@@ -1,0 +1,59 @@
+name: BloomUp Backend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: mypassword
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" 
+          --health-interval 10s 
+          --health-timeout 5s 
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: Wait for PostgreSQL to be ready
+        run: sleep 10
+
+      - name: Initialize database/table
+        working-directory: backend
+        run: |
+          psql postgresql://postgres:mypassword@127.0.0.1:5432/todos -c "CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, text VARCHAR(255) NOT NULL, completed BOOLEAN DEFAULT false);"
+
+      - name: Run backend server (optional)
+        working-directory: backend
+        run: |
+          node index.js &
+          sleep 5
+
+      - name: Test backend endpoints (optional)
+        working-directory: backend
+        run: |
+          curl -s http://127.0.0.1:15000/tasks
