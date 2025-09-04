@@ -45,7 +45,7 @@ jobs:
       - name: Initialize database/table
         working-directory: backend
         run: |
-          psql postgresql://postgres:mypassword@127.0.0.1:5432/todos -c "CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, text VARCHAR(255) NOT NULL, completed BOOLEAN DEFAULT false);"
+          psql postgresql://postgres:mypassword@127.0.0.1:5432/postgres -c "CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, text VARCHAR(255) NOT NULL, completed BOOLEAN DEFAULT false);"
 
       - name: Run backend server (optional)
         working-directory: backend
