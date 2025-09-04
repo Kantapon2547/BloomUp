@@ -89,10 +89,9 @@ BloomUp is created to solve this problem by combining:
 
 **Deployment & DevOps**  
 - Docker (containerized environments)  
-- GitHub Actions (automated testing, CI/CD pipelines)  
+- GitHub Actions (automated testing, CI/CD pipelines)
 
 ---
-
 ## 👨‍👩‍👧 Team Members  
 
 1. **6510545276** – Kantapon Hemmadhun  
