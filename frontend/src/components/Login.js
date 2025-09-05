@@ -1,72 +1,103 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import "./Login.css";
 
 export function Login({ onLoginSuccess }) {
-  const [email, setEmail] = useState("");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Prefill email if coming from signup
+  const prefillEmail = location.state?.email || "";
+
+  const [email, setEmail] = useState(prefillEmail);
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setEmail(prefillEmail);
+  }, [prefillEmail]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    // --- Fake API delay for frontend testing ---
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Simulate backend login
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // Pretend login succeeded
-    onLoginSuccess({ email }); // passes email to App
+    if (!email || !password) {
+      setError("Please fill all fields");
+    } else {
+      onLoginSuccess({ email });
+      navigate("/home"); // redirect to home after login
+    }
+
     setIsLoading(false);
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{
-        maxWidth: "400px",
-        margin: "auto",
-        padding: "2rem",
-        border: "1px solid #ccc",
-        borderRadius: "8px",
-      }}
-    >
-      <h2 style={{ textAlign: "center" }}>Sign In</h2>
-
-      <div style={{ marginBottom: "1rem" }}>
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          placeholder="student@university.edu"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
-        />
+    <div className="login-container">
+      <div className="logo-section">
+        <div className="logo">B</div>
+        <h1>BloomUp</h1>
+        <p>Your personal habit tracker for student success</p>
       </div>
 
-      <div style={{ marginBottom: "1rem" }}>
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          placeholder="Enter your password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
-        />
+      <div className="login-card">
+        <h2>Welcome Back</h2>
+        <p>Sign in to continue your wellness journey</p>
+
+        <form onSubmit={handleSubmit}>
+          <div className="input-group">
+            <label>Email</label>
+            <input
+              type="email"
+              placeholder="student@university.edu"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <label>Password</label>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          {error && <p className="error">{error}</p>}
+
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
+
+        {/* Clickable Sign up text using navigate */}
+        <p className="signup-link">
+          Don’t have an account?{" "}
+          <span
+            className="clickable-text"
+            onClick={() => navigate("/signup")}
+            style={{ color: "#007bff", cursor: "pointer", textDecoration: "underline" }}
+          >
+            Sign up
+          </span>
+        </p>
       </div>
 
-      {error && <p style={{ color: "red", marginBottom: "1rem" }}>{error}</p>}
-
-      <button
-        type="submit"
-        disabled={isLoading}
-        style={{ width: "100%", padding: "0.75rem" }}
-      >
-        {isLoading ? "Signing in..." : "Sign In"}
-      </button>
-    </form>
+      {/* Demo/Admin info outside card */}
+      <div className="demo-dashboard">
+        <p>Try Demo Dashboard</p>
+        <p>
+          Admin login: <span>admin@bloomup.com</span> (any password)
+        </p>
+      </div>
+    </div>
   );
 }
