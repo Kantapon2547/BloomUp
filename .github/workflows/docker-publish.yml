@@ -90,14 +90,14 @@ jobs:
 
       - name: Verify Docker Hub secrets present
         run: |
-          [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]    || { echo "::error::Missing DOCKERHUB_TOKEN"; exit 1; }
+          [ -n "${{ secrets.DOCKER_HUB_TOKEN }}" ]    || { echo "::error::Missing DOCKER_HUB_TOKEN"; exit 1; }
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           registry: docker.io
           username: chassss     
-          password: ${{ secrets.DOCKERHUB_TOKEN }}        
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}        
 
       - name: Build & push API image
         uses: docker/build-push-action@v5
