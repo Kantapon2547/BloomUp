@@ -1,5 +1,4 @@
-# Youtube link
-[1st sprint video](https://youtu.be/z-p-CjOjcNQ)
+Youtube link: [1st sprint video](https://youtu.be/z-p-CjOjcNQ)
 
 ---
 
@@ -87,7 +86,7 @@ BloomUp is created to solve this problem by combining:
 - React + Next.js (fast, responsive, server-side rendering)  
 
 **Backend**  
-- Node.js with REST API (auth, profile, CRUD habits, admin ops)  
+- Node.js with FAST API (auth, profile, CRUD habits, admin ops)  
 
 **Database**  
 - PostgreSQL (flexible schema for evolving features)  
