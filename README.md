@@ -1,3 +1,8 @@
+# Youtube link
+[1st sprint video](https://youtu.be/z-p-CjOjcNQ)
+
+---
+
 # 🌱 BloomUp: Habit Tracker for Students  
 
 BloomUp is a **web-based platform** designed to help students build steady **study** and **self-care habits**.  
@@ -98,10 +103,3 @@ BloomUp is created to solve this problem by combining:
 2. **6510545331** – Chananthida Sopaphol  
 3. **6510545501** – Thunyanan Tangpipatpong  
 4. **6510545756** – Suparak Aryasit  
-
----
-
-## 🚀 Future Plans  
-- Smarter adaptive goal-setting  
-- Gamified challenges between peers  
-- Mobile app version for iOS/Android  
