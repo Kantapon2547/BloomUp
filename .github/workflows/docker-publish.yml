@@ -1,16 +1,85 @@
-name: Build & Push to Docker Hub
+name: version 2.0
 
 on:
   push:
-    branches: [main]    
-  workflow_dispatch:   
+    branches: [ auth-pages ]
+  workflow_dispatch:
+
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-push:
+  test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: bloomup
+          POSTGRES_PASSWORD: bloomup_pw
+          POSTGRES_DB: bloomup_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U bloomup -d bloomup_test"
+          --health-interval=5s --health-timeout=3s --health-retries=20
+
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: bloomup_test
+      POSTGRES_USER: bloomup
+      POSTGRES_PASSWORD: bloomup_pw
+
     steps:
-      - name: 📥 Checkout repository
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: DB smoke check (connect & simple query)
+        run: |
+          PGPASSWORD="$POSTGRES_PASSWORD" psql \
+            -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+            -c "SELECT version();"
+          PGPASSWORD="$POSTGRES_PASSWORD" psql \
+            -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+            -c "CREATE TABLE IF NOT EXISTS ci_smoke(id serial primary key, note text); INSERT INTO ci_smoke(note) VALUES ('ok'); SELECT count(*) FROM ci_smoke;"
+
+      - name: Setup Python
+        if: ${{ hashFiles('backend/tests/**') != '' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install backend deps
+        if: ${{ hashFiles('backend/tests/**') != '' }}
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Run backend tests
+        if: ${{ hashFiles('backend/tests/**') != '' }}
+        working-directory: backend
+        env:
+          POSTGRES_HOST: ${{ env.POSTGRES_HOST }}
+          POSTGRES_PORT: ${{ env.POSTGRES_PORT }}
+          POSTGRES_DB:   ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        run: |
+          pytest -q || (echo "::error::Tests failed"; exit 1)
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: release
+
+    steps:
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up QEMU
@@ -19,13 +88,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 🔑 Log in to Docker Hub
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: docker.io
+          username: chassss     
+          password: ${{ secrets.DOCKERHUB_TOKEN }}        
 
-      - name: Build & push API
+      - name: Build & push API image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
@@ -35,8 +105,10 @@ jobs:
           tags: |
             chassss/bloomup-api:latest
             chassss/bloomup-api:${{ github.sha }}
+          cache-from: type=registry,ref=chassss/bloomup-api:buildcache
+          cache-to:   type=registry,ref=chassss/bloomup-api:buildcache,mode=max
 
-      - name: Build & push Web
+      - name: Build & push Web image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
@@ -47,3 +119,5 @@ jobs:
           tags: |
             chassss/bloomup-web:latest
             chassss/bloomup-web:${{ github.sha }}
+          cache-from: type=registry,ref=chassss/bloomup-web:buildcache
+          cache-to:   type=registry,ref=chassss/bloomup-web:buildcache,mode=max
