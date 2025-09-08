@@ -90,6 +90,7 @@ jobs:
 
       - name: Verify Docker Hub secrets present
         run: |
+          [ -n "${{ secrets.DOCKER_HUB_USERNAME }}" ] || { echo "::error::Missing DOCKER_HUB_USERNAME"; exit 1; }
           [ -n "${{ secrets.DOCKER_HUB_TOKEN }}" ]    || { echo "::error::Missing DOCKER_HUB_TOKEN"; exit 1; }
 
       - name: Log in to Docker Hub
