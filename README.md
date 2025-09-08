@@ -1,5 +1,7 @@
 Youtube link: [1st sprint video](https://youtu.be/z-p-CjOjcNQ)
 
+Google Doc: [BloomUp_proposal](https://docs.google.com/document/d/1SbqJxDzCeouo_gEf_Rshsd-D2RGFNPK-2LkpiJmc81s/edit?usp=sharing)
+
 ---
 
 # 🌱 BloomUp: Habit Tracker for Students  
