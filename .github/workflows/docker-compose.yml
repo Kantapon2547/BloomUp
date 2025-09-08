@@ -1,4 +1,4 @@
-name: version 3.0
+name: Docker Compose CI
 
 on:
   push:
@@ -107,10 +107,10 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/bloomup-api:latest
-            ${{ secrets.DOCKER_HUB_USERNAME }}/bloomup-api:${{ github.sha }}
-          cache-from: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/bloomup-api:buildcache
-          cache-to:   type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/bloomup-api:buildcache,mode=max
+            kantaponh/bloomup-api:latest
+            kantaponh/bloomup-api:${{ github.sha }}
+          cache-from: type=registry,ref=kantaponh/bloomup-api:buildcache
+          cache-to:   type=registry,ref=kantaponh/bloomup-api:buildcache,mode=max
 
       - name: Build & push Web image
         uses: docker/build-push-action@v5
@@ -120,7 +120,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/bloomup-web:latest
-            ${{ secrets.DOCKER_HUB_USERNAME }}/bloomup-web:${{ github.sha }}
-          cache-from: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/bloomup-web:buildcache
-          cache-to:   type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/bloomup-web:buildcache,mode=max
+            kantaponh/bloomup-web:latest
+            kantaponh/bloomup-web:${{ github.sha }}
+          cache-from: type=registry,ref=kantaponh/bloomup-web:buildcache
+          cache-to:   type=registry,ref=kantaponh/bloomup-web:buildcache,mode=max
