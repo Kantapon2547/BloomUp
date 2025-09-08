@@ -17,21 +17,21 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: bloomup
-          POSTGRES_PASSWORD: bloomup_pw
-          POSTGRES_DB: bloomup_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: mypassword
+          POSTGRES_DB: postgres
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U bloomup -d bloomup_test"
+          --health-cmd="pg_isready -U postgres -d postgres"
           --health-interval=5s --health-timeout=3s --health-retries=20
 
     env:
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
-      POSTGRES_DB: bloomup_test
-      POSTGRES_USER: bloomup
-      POSTGRES_PASSWORD: bloomup_pw
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mypassword
 
     steps:
       - name: Checkout
@@ -96,7 +96,7 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          username: kantaponh
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
       - name: Build & push API image
