@@ -69,7 +69,9 @@ BloomUp is created to solve this problem by combining:
 
 ### 🧑‍🎓 Student  
 - **Habit Management**: create tasks with name, type (study/health/personal), frequency & reminders  
-- **Mood & Gratitude**: daily mood log (1–5 scale), Gratitude Jar entries (not daily)  
+- **Mood & Gratitude**: daily mood log (1–5 scale)
+    - Gratitude Jar: notes the good thing that happened to user (not daily ) 
+
 - **File Handling**: upload images, personal notes, or related docs  
 - **Reports**: weekly/monthly recap with graphs of completions & mood trends  
 - **Feedback**: motivational messages based on progress (50%, 75%, 100%)  
