@@ -1,20 +1,19 @@
-version: 1.0
-
 services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_USER: pro
-      POSTGRES_PASSWORD: bloomup_pw
-      POSTGRES_DB: bloomup_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: BloomUp_db
     volumes:
       - db_data:/var/lib/postgresql/data
-
+    ports:
+      - "5432:5432"
 
   api:
-    image: chassss/bloomup-api:latest
+    image: kantaponh/bloomup-api:latest
     env_file:
-      - ./backend/.env 
+      - ./backend/.env
     depends_on:
       - db
     ports:
@@ -23,7 +22,7 @@ services:
       - ./backend/app:/app/app:ro
 
   web:
-    image: chassss/bloomup-web:latest
+    image: kantaponh/bloomup-web:latest
     environment:
       NEXT_PUBLIC_API_URL: "http://localhost:8000"
     depends_on:
@@ -33,7 +32,6 @@ services:
     volumes:
       - ./frontend:/app
 
-  # DB GUI (visit http://127.0.0.1:5051)
   pgadmin:
     image: dpage/pgadmin4:8
     environment:

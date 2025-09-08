@@ -19,7 +19,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: mypassword
-          POSTGRES_DB: postgres
+          POSTGRES_DB: BloomUp_db
         ports:
           - 5432:5432
         options: >-
@@ -29,7 +29,7 @@ jobs:
     env:
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
-      POSTGRES_DB: postgres
+      POSTGRES_DB: BloomUp_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: mypassword
 
