@@ -20,6 +20,11 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/app:/app/app:ro
+    develop:
+      watch:
+        - path: ./backend/app
+          target: /app/app
+          action: sync
 
   web:
     image: kantaponh/bloomup-web:latest
@@ -31,6 +36,11 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend:/app
+    develop:
+      watch:
+        - path: ./frontend
+          target: /app
+          action: sync
 
   pgadmin:
     image: dpage/pgadmin4:8
