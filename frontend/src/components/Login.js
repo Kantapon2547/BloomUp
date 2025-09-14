@@ -93,7 +93,13 @@ export function Login({ onLoginSuccess }) {
 
       {/* Demo/Admin info outside card */}
       <div className="demo-dashboard">
-        <p>Try Demo Dashboard</p>
+        <p
+          className="clickable-text"
+          onClick={() => navigate("/demo")}
+          style={{ color: "#007bff", cursor: "pointer", textDecoration: "underline" }}
+        >
+          Try Demo Dashboard
+        </p>
         <p>
           Admin login: <span>admin@bloomup.com</span> (any password)
         </p>

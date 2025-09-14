@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { Login } from "./components/Login";
 import { Signup } from "./components/Signup";
 import Home from "./pages/Home";
+import DemoDashboard from "./components/DemoDashboard";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -10,10 +11,10 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Default redirect to /login if not logged in */}
+        {/* Root route shows demo dashboard */}
         <Route
           path="/"
-          element={user ? <Navigate to="/home" /> : <Navigate to="/login" />}
+          element={<DemoDashboard user={user} setUser={setUser} />}
         />
 
         {/* Login page */}
@@ -30,6 +31,10 @@ function App() {
           path="/home"
           element={user ? <Home user={user} /> : <Navigate to="/login" />}
         />
+
+        {/* Demo Dashboard page */}
+        <Route path="/demo" element={<DemoDashboard />} />
+
       </Routes>
     </Router>
   );
