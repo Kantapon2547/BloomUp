@@ -39,18 +39,22 @@ export function Signup() {
   return (
     <div className="signup-container">
       <div className="signup-logo-section">
-        <div className="signup-logo">B</div>
-        <h1>Create Account</h1>
-        <p>Join BloomUp and start building habits 🚀</p>
+        <div className="signup-logo-heading">
+          <div className="signup-logo">B</div>
+          <h1 className="signup-heading">Create Account</h1>
+        </div>
+        <p className="signup-subtitle">Join BloomUp and start building habits 🚀</p>
       </div>
 
       <div className="signup-card">
         <form onSubmit={handleSubmit}>
           <div className="signup-input-group">
-            <label>Name</label>
+            <label htmlFor="name">Full Name</label>
             <input
               type="text"
+              id="name"
               name="name"
+              placeholder="Enter your full name"
               value={formData.name}
               onChange={handleChange}
               required
@@ -58,10 +62,12 @@ export function Signup() {
           </div>
 
           <div className="signup-input-group">
-            <label>Email</label>
+            <label htmlFor="email">Email</label>
             <input
               type="email"
+              id="email"
               name="email"
+              placeholder="Enter your email"
               value={formData.email}
               onChange={handleChange}
               required
@@ -69,10 +75,12 @@ export function Signup() {
           </div>
 
           <div className="signup-input-group">
-            <label>Password</label>
+            <label htmlFor="password">Password</label>
             <input
               type="password"
+              id="password"
               name="password"
+              placeholder="Enter your password"
               value={formData.password}
               onChange={handleChange}
               required
@@ -80,10 +88,12 @@ export function Signup() {
           </div>
 
           <div className="signup-input-group">
-            <label>Confirm Password</label>
+            <label htmlFor="confirmPassword">Confirm Password</label>
             <input
               type="password"
+              id="confirmPassword"
               name="confirmPassword"
+              placeholder="Confirm your password"
               value={formData.confirmPassword}
               onChange={handleChange}
               required
@@ -95,7 +105,6 @@ export function Signup() {
           <button type="submit">Sign Up</button>
         </form>
 
-        {/* Clickable Sign in text */}
         <p className="login-link">
           Already have an account?{" "}
           <span
