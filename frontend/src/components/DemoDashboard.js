@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import "./DemoDashboard.css"
+import { Link, useNavigate } from "react-router-dom";
+
 
 export default function DemoDashboard() {
   const [activeMood, setActiveMood] = useState(3)
@@ -53,11 +55,11 @@ export default function DemoDashboard() {
 
         {/* Features */}
         <section className="features-grid">
-          <div className="feature-card">
+          <Link to="/habits" className="feature-card" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
             <div className="feature-icon">🎯</div>
             <h3>Habit Tracking</h3>
             <p>Build and maintain positive habits with visual progress tracking</p>
-          </div>
+          </Link>
 
           <div className="feature-card">
             <div className="feature-icon pink">❤️</div>
