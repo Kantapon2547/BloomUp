@@ -10,22 +10,36 @@
   font-family: Arial, sans-serif;
 }
 
-/* Container for logo + heading + subtitle */
 .signup-logo-section {
   display: flex;
-  flex-direction: column; /* stack heading row and subtitle */
-  align-items: center; /* center horizontally */
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   margin-bottom: 20px;
   text-align: center;
 }
 
-/* Row: logo + heading */
-.signup-logo-heading {
+.signup-logo {
+  width: 56px;
+  height: 56px;
+  background-color: #7c3aed;
+  color: white;
+  font-weight: bold;
   display: flex;
-  flex-direction: row; /* logo left, heading right */
-  align-items: center; /* vertically center logo and heading */
-  gap: 12px; /* space between logo and heading */
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  margin-left: 60px;
+}
+
+
+.signup-heading {
+  font-size: 26px;
+  font-weight: bold;
+  color: #111;
+  margin: 0;
 }
 
 /* Logo Box */
@@ -40,7 +54,7 @@
   justify-content: center;
   font-size: 24px;
   border-radius: 12px;
-  flex-shrink: 0;
+  margin-bottom: 10px; /* space under logo */
 }
 
 /* Heading */
@@ -55,7 +69,7 @@
 .signup-subtitle {
   font-size: 14px;
   color: #6b7280;
-  margin-top: 4px; /* space under heading */
+  margin-top: 4px;
 }
 
 /* Card */
