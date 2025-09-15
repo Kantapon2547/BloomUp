@@ -37,14 +37,15 @@ export function Signup() {
   };
 
   return (
-    <div className="signup-container">
-      <div className="signup-logo-section">
-        <div className="signup-logo-heading">
-          <div className="signup-logo">B</div>
-          <h1 className="signup-heading">Create Account</h1>
-        </div>
-        <p className="signup-subtitle">Join BloomUp and start building habits 🚀</p>
-      </div>
+<div className="signup-container">
+  <div className="signup-logo-section">
+    <div className="signup-logo-heading">
+      <div className="signup-logo">B</div>
+      <h1 className="signup-heading">Create Account</h1>
+    </div>
+    <p className="signup-subtitle">Join BloomUp and start building habits 🚀</p>
+  </div>
+
 
       <div className="signup-card">
         <form onSubmit={handleSubmit}>
