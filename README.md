@@ -34,9 +34,31 @@ Follow these steps to get the project running locally:
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
-cd <repository-folder>
+git clone https://github.com/Kantapon2547/BloomUp.git
+cd BloomUp
 ```
+### 2. Run with Docker Compose
+Build and start all services (API, Client, PostgreSQL, and pgAdmin):
+
+```bash
+docker-compose up --build
+```
+To stop the containers, press CTRL + C or run:
+
+```bash
+docker-compose down
+```
+
+To remove containers, networks, and volumes:
+
+```bash
+docker-compose down -v
+```
+
+### 3. Access the Services
+
+- 🌐 Frontend (React Client): http://localhost:3000
+
 ---
 
 ## ⚙️ Features  
