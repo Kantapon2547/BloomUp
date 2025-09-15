@@ -5,6 +5,7 @@ import { Signup } from "./components/Signup";
 import Home from "./pages/Home";
 import DemoDashboard from "./components/DemoDashboard";
 import Habits from "./components/Habits";
+import Profile from "./pages/Profile";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -37,6 +38,9 @@ function App() {
         <Route path="/demo" element={<DemoDashboard />} />
 
         <Route path="/habits" element={<Habits />} />
+
+        {/* Profile page*/}
+        <Route path="/profile" element={<Profile />} />
 
       </Routes>
     </Router>
