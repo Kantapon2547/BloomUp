@@ -36,6 +36,7 @@ Follow these steps to get the project running locally:
 ```bash
 git clone <repository-url>
 cd <repository-folder>
+```
 ---
 
 ## ⚙️ Features  
