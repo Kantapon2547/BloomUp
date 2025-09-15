@@ -28,37 +28,14 @@ BloomUp is created to solve this problem by combining:
 
 ---
 
-## 👥 Stakeholders & Use Cases  
+## 🛠️ Development Setup
 
-### Roles & Access Levels  
-- **Guest (no login)** – Can try a guided demo, view sample dashboards, and app info.  
-- **Student (authenticated)** – Main user. Creates habits, logs completions, moods, gratitude, and views progress.  
-- **Admin** – Handles system management, analytics, content moderation, and user roles.  
+Follow these steps to get the project running locally:
 
-🔑 **Permissions hierarchy**: `Admin > Student > Guest`  
-
-### Use Case List  
-**Guest**  
-- View landing page & feature tour  
-- Try demo dashboard (read-only)  
-
-**Student**  
-- Manage account & profile (upload picture, change username)  
-- Create/edit/delete habits (study/health/personal)  
-- Log habit completion; view streaks & progress  
-- Log mood (1–5 scale), add Gratitude entries  
-- Weekly/monthly recap & reflection  
-- Configure reminders/notifications  
-- Upload files (images, personal notes, related documents)  
-- Receive adaptive feedback & suggestions  
-
-**Admin**  
-- Manage users/roles (suspend/restore accounts)  
-- Approve/curate challenge templates (e.g., 30-day mindfulness)  
-- System health dashboard & analytics  
-- Content moderation (reported entries)  
-- Data backup/restore
-
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd <repository-folder>
 ---
 
 ## ⚙️ Features  
