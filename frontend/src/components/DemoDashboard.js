@@ -55,11 +55,11 @@ export default function DemoDashboard() {
 
         {/* Features */}
         <section className="features-grid">
-          <Link to="/habits" className="feature-card" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+          <div className="feature-card">
             <div className="feature-icon">🎯</div>
             <h3>Habit Tracking</h3>
             <p>Build and maintain positive habits with visual progress tracking</p>
-          </Link>
+          </div>
 
           <div className="feature-card">
             <div className="feature-icon pink">❤️</div>

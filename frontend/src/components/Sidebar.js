@@ -30,7 +30,7 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Profile (mock) */}
+      {/* Profile (mock)
       <div className="sb-profile">
         <div className="sb-avatar">🙂</div>
         <div className="sb-profile-text">
@@ -39,7 +39,7 @@ export default function Sidebar() {
             <span className="sb-dot" /> online
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Nav */}
       <nav className="sb-nav">
@@ -47,8 +47,7 @@ export default function Sidebar() {
         <Item to="/habits" icon={Target}      label="Habits" />
         <Item to="/gratitude" icon={Heart}    label="Gratitude Jar" />
         <Item to="/mood"   icon={CalendarDays} label="Mood Log" />
-        <Item to="/files"  icon={FileText}    label="Files" />
-        <Item to="/reports" icon={BarChart3}  label="Reports" badge="New" />
+        <Item to="/reports" icon={BarChart3}  label="Reports" />
         <Item to="/profile" icon={User2}      label="Profile" />
       </nav>
     </aside>

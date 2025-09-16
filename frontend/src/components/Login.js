@@ -30,7 +30,8 @@ export function Login({ onLoginSuccess }) {
       setError("Please fill all fields");
     } else {
       onLoginSuccess({ email });
-      navigate("/home"); // redirect to home after login
+      // navigate("/home"); // redirect to home after login
+      navigate("/habits", { replace: true });
     }
 
     setIsLoading(false);

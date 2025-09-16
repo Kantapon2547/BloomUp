@@ -285,7 +285,7 @@ export default function Habits() {
             ))}
           </AnimatePresence>
 
-          <footer className="footer">Crafted with care • Soft purple theme ✨</footer>
+          <footer className="footer">draff✨</footer>
         </div>
       </div>
     </div>
