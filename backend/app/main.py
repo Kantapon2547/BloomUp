@@ -2,11 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .db import Base, engine
 from . import models
-from .routers import items, auth  
+from .routers import auth, users 
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="BloomUp API (FastAPI + PostgreSQL)")
+app = FastAPI(title="BloomUp API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,9 +16,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/health")
+@app.get("/")
 def health():
     return {"status": "ok"}
 
-app.include_router(items.router)
 app.include_router(auth.router) 
+app.include_router(users.router) 
