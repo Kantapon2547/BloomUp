@@ -14,7 +14,7 @@
   margin: 0 auto;
   padding: 16px;
   display: grid;
-  grid-template-columns: 260px 1fr; /* ซ้าย Sidebar / ขวา Content */
+  grid-template-columns: 260px 1fr; 
   gap: 16px;
   box-sizing: border-box;
 }
