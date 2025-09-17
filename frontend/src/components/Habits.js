@@ -119,7 +119,6 @@ export default function Habits() {
           {/* Header */}
           <header className="habits-header">
             <div className="brand">
-              <div className="brand-circle">B</div>
               <div>
                 <h1 className="brand-title">My Habits</h1>
                 <p className="brand-sub">Build consistent routines for academic and personal growth</p>
