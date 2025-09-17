@@ -1,11 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, func, UniqueConstraint
 from .db import Base
-
-class Item(Base):
-    __tablename__ = "items"
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(255), nullable=False)
-    done = Column(Boolean, default=False)
 
 class User(Base):
     __tablename__ = "users"
@@ -14,6 +8,6 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String(120), nullable=False)
     email = Column(String(255), nullable=False, index=True)
-    password = Column(String(255), nullable=False)
     password_hash = Column(String(255), nullable=False)
+    avatar_url = Column(String(512))  
     created_at = Column(DateTime(timezone=True), server_default=func.now())

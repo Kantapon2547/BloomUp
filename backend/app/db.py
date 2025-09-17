@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 load_dotenv()
 
-# Use DATABASE_URL directly if available, otherwise build from components
+# database
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     DB_USER = os.getenv("DATABASE_USER", os.getenv("POSTGRES_USER"))
