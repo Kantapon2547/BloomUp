@@ -1,34 +1,29 @@
+from pydantic import BaseModel, EmailStr
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
 
-class UserCreate(BaseModel):
-    full_name: str = Field(min_length=1, max_length=120)
+class UserBase(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
-    confirm_password: str = Field(min_length=8, max_length=128)
+    name: str
+    bio: Optional[str] = None
+    profile_picture: Optional[str] = None
+
+class UserCreate(UserBase):
+    password: str   # raw password when creating
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
 class UserUpdate(BaseModel):
-    full_name: Optional[str] = Field(default=None, min_length=1, max_length=120)
-    email: Optional[EmailStr] = None
-    avatar_url: Optional[str] = None  # profile pics
+    name: Optional[str] = None
+    bio: Optional[str] = None
+    profile_picture: Optional[str] = None
+    password: Optional[str] = None
 
-class UserRead(BaseModel):
-    id: int
-    full_name: str
-    email: EmailStr
-    avatar_url: Optional[str] = None
+class UserOut(UserBase):
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
-
-class PasswordChange(BaseModel):
-    current_password: str
-    new_password: str = Field(min_length=8, max_length=128)
-    confirm_new_password: str = Field(min_length=8, max_length=128)
