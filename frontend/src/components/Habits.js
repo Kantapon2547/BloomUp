@@ -4,8 +4,7 @@ import { PlusCircle, Trash2, Search, Trophy, Sun, CheckCircle2 } from "lucide-re
 import Sidebar from "../components/Sidebar"; 
 import "./Habits.css";
 
-/* -------------------- utils -------------------- */
-const fmt = (d) => d.toISOString().slice(0, 10);            // YYYY-MM-DD
+const fmt = (d) => d.toISOString().slice(0, 10);          
 const todayKey = () => fmt(new Date());
 const daysAgo = (n) => {
   const d = new Date();
@@ -14,14 +13,13 @@ const daysAgo = (n) => {
 };
 
 export default function Habits() {
-  /* -------------------- state -------------------- */
+
   const [habits, setHabits] = useState([]);
   const [newHabit, setNewHabit] = useState("");
   const [newCategory, setNewCategory] = useState("general");
   const [query, setQuery] = useState("");
   const [bursts, setBursts] = useState([]);
 
-  /* -------------------- persistence -------------------- */
   useEffect(() => {
     try {
       const raw = localStorage.getItem("habit-tracker@v3");
@@ -121,7 +119,6 @@ export default function Habits() {
           {/* Header */}
           <header className="habits-header">
             <div className="brand">
-              <div className="brand-circle">B</div>
               <div>
                 <h1 className="brand-title">My Habits</h1>
                 <p className="brand-sub">Build consistent routines for academic and personal growth</p>
@@ -285,7 +282,7 @@ export default function Habits() {
             ))}
           </AnimatePresence>
 
-          <footer className="footer">Crafted with care • Soft purple theme ✨</footer>
+          <footer className="footer">✨</footer>
         </div>
       </div>
     </div>

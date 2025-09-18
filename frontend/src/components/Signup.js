@@ -28,7 +28,7 @@ export function Signup() {
     e.preventDefault();
     setError("");
 
-    // client validation
+    // client-side validation
     if (!form.full_name.trim()) return setError("Full name is required.");
     if (!form.email.trim()) return setError("Email is required.");
     if (form.password.length < 8)
@@ -38,19 +38,24 @@ export function Signup() {
 
     try {
       setSubmitting(true);
-      const res = await fetch(`${API}/api/auth/signup`, {
+      const res = await fetch(`${API}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          name: form.full_name,  
+          email: form.email,
+          password: form.password,
+        }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
         throw new Error(data?.detail || "Sign up failed");
       }
 
       // redirect with email prefilled
-      navigate("/login", { state: { email: data.email } });
+      navigate("/login", { state: { email: data.email || form.email } });
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {

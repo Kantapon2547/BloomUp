@@ -29,7 +29,7 @@ export function Login({ onLoginSuccess }) {
     setError("");
 
     try {
-      const res = await fetch(`${API}/api/auth/login`, {
+      const res = await fetch(`${API}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -45,13 +45,11 @@ export function Login({ onLoginSuccess }) {
         localStorage.setItem("token", data.access_token);
       }
 
-      // Notify parent
+      // when success, go to homepage
       if (onLoginSuccess) {
-        onLoginSuccess(data);
+        navigate("/habits", { replace: true });
       }
 
-      // Redirect to dashboard/home
-      navigate("/dashboard");
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
