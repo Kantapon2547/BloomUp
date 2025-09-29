@@ -37,6 +37,8 @@ function App() {
         {/* Demo Dashboard page */}
         <Route path="/demo" element={<DemoDashboard />} />
 
+        <Route path="/demo" element={<DemoDashboard />} />
+
         <Route path="/habits" element={<Habits />} />
 
         {/* Profile page*/}

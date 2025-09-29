@@ -1,10 +1,16 @@
-.profile-container {
+.page-container {
+    display: flex;
+    min-height: 100vh;
+  }
+  
+  .profile-wrapper {
+    flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
     background: linear-gradient(to right, #e0e7ff, #dbeafe);
   }
+  
   
   .profile-card {
     background: #f9fafb;
@@ -129,5 +135,15 @@
   
   .btn.change-image:hover {
     background-color: #2563eb;
+  }
+  
+
+  .btn.back {
+    background-color: #6b7280;
+    color: white;
+  }
+  
+  .btn.back:hover {
+    background-color: #4b5563;
   }
   
