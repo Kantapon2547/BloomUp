@@ -1,21 +1,32 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Profile.css";
 import Sidebar from "../components/Sidebar";
+import "./Profile.css";
 
 const Profile = () => {
-  const [profile, setProfile] = useState({
-    picture: "",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    bio: "This is my short bio.",
-  });
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+
+  // Load saved user from localStorage
+  const savedUser = JSON.parse(localStorage.getItem("user"));
+
+  const [profile, setProfile] = useState(
+    savedUser || {
+      picture: "",
+      name: "John Doe",
+      email: "john.doe@example.com",
+      bio: "",
+      extraInfo: "", // user can add extra info
+    }
+  );
 
   const [tempProfile, setTempProfile] = useState(profile);
   const [isEditing, setIsEditing] = useState(false);
 
-  const fileInputRef = useRef(null);
-  const navigate = useNavigate();
+  // Update localStorage whenever profile changes
+  useEffect(() => {
+    localStorage.setItem("user", JSON.stringify(profile));
+  }, [profile]);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -48,13 +59,12 @@ const Profile = () => {
 
   return (
     <div className="page-container">
-      {/* Sidebar on the left
-      <Sidebar /> */}
+      <Sidebar />
 
-      {/* Profile content on the right */}
       <div className="profile-wrapper">
         <div className="profile-container">
           <div className="profile-card">
+            {/* Profile Picture */}
             <div className="profile-picture">
               {tempProfile.picture ? (
                 <img src={tempProfile.picture} alt="Profile" />
@@ -86,6 +96,9 @@ const Profile = () => {
                 <h2 className="profile-name">{profile.name}</h2>
                 <p className="profile-email">{profile.email}</p>
                 <p className="profile-bio">{profile.bio}</p>
+                {profile.extraInfo && (
+                  <p className="profile-extraInfo">{profile.extraInfo}</p>
+                )}
                 <div className="btn-center">
                   <button
                     onClick={() => setIsEditing(true)}
@@ -119,6 +132,14 @@ const Profile = () => {
                   onChange={handleChange}
                   placeholder="Write your bio"
                   rows="4"
+                  className="input-field bio-field"
+                />
+                <textarea
+                  name="extraInfo"
+                  value={tempProfile.extraInfo}
+                  onChange={handleChange}
+                  placeholder="Add other info (hobbies, location...)"
+                  rows="3"
                   className="input-field bio-field"
                 />
                 <div className="btn-center">

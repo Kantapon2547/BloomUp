@@ -32,20 +32,28 @@ export function Signup() {
     await new Promise((resolve) => setTimeout(resolve, 800));
     console.log("Signup successful:", formData);
 
+    // Save user to localStorage for profile page
+    const userData = {
+      name: formData.name,
+      email: formData.email,
+      bio: "", // optional default bio
+      picture: "", // optional default picture
+    };
+    localStorage.setItem("user", JSON.stringify(userData));
+
     // Redirect to login and prefill email
     navigate("/login", { state: { email: formData.email } });
   };
 
   return (
-<div className="signup-container">
-  <div className="signup-logo-section">
-    <div className="signup-logo-heading">
-      <div className="signup-logo">B</div>
-      <h1 className="signup-heading">Create Account</h1>
-    </div>
-    <p className="signup-subtitle">Join BloomUp and start building habits 🚀</p>
-  </div>
-
+    <div className="signup-container">
+      <div className="signup-logo-section">
+        <div className="signup-logo-heading">
+          <div className="signup-logo">B</div>
+          <h1 className="signup-heading">Create Account</h1>
+        </div>
+        <p className="signup-subtitle">Join BloomUp and start building habits 🚀</p>
+      </div>
 
       <div className="signup-card">
         <form onSubmit={handleSubmit}>
