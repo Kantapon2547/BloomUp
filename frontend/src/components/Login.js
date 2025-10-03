@@ -6,6 +6,11 @@ export function Login({ onLoginSuccess }) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const API =
+    process.env.REACT_APP_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:8000";
+
   // Prefill email if coming from signup
   const prefillEmail = location.state?.email || "";
 
@@ -23,18 +28,33 @@ export function Login({ onLoginSuccess }) {
     setIsLoading(true);
     setError("");
 
-    // Simulate backend login
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    try {
+      const res = await fetch(`${API}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!email || !password) {
-      setError("Please fill all fields");
-    } else {
-      onLoginSuccess({ email });
-      // navigate("/home"); // redirect to home after login
-      navigate("/habits", { replace: true });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.detail || "Login failed");
+      }
+
+      // Save token if backend returns one
+      if (data.access_token) {
+        localStorage.setItem("token", data.access_token);
+      }
+
+      // when success, go to homepage
+      if (onLoginSuccess) {
+        navigate("/habits", { replace: true });
+      }
+
+    } catch (err) {
+      setError(err.message || "Something went wrong.");
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -79,25 +99,31 @@ export function Login({ onLoginSuccess }) {
           </button>
         </form>
 
-        {/* Clickable Sign up text using navigate */}
         <p className="signup-link">
           Don’t have an account?{" "}
           <span
             className="clickable-text"
             onClick={() => navigate("/signup")}
-            style={{ color: "#007bff", cursor: "pointer", textDecoration: "underline" }}
+            style={{
+              color: "#007bff",
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
           >
             Sign up
           </span>
         </p>
       </div>
 
-      {/* Demo/Admin info outside card */}
       <div className="demo-dashboard">
         <p
           className="clickable-text"
           onClick={() => navigate("/demo")}
-          style={{ color: "#007bff", cursor: "pointer", textDecoration: "underline" }}
+          style={{
+            color: "#007bff",
+            cursor: "pointer",
+            textDecoration: "underline",
+          }}
         >
           Try Demo Dashboard
         </p>
