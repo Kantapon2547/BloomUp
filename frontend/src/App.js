@@ -5,7 +5,7 @@ import { Signup } from "./components/Signup";
 import Home from "./pages/Home";
 import DemoDashboard from "./components/DemoDashboard";
 import Habits from "./components/Habits";
-import Reports from "./components/Reports";
+// import Reports from "./components/Reports";
 
 function App() {
   const [user, setUser] = useState(null);
