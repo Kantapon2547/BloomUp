@@ -90,7 +90,6 @@ export default function Habits() {
 
   const removeHabit = (index) => setHabits((h) => h.filter((_, i) => i !== index));
 
-  // สัดส่วน completion ของ "สัปดาห์นี้" สำหรับใช้กรอง rate
   const weekCompletionRate = (h) => {
     const total = weekDates.length;
     const done = weekDates.filter((d) => !!h.history?.[d]).length;
