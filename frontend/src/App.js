@@ -40,6 +40,9 @@ function App() {
         {/* Habits page */}
         <Route path="/habits" element={<Habits />} />
 
+        {/* Reports page */}
+        <Route path="/reports" element={<Reports />} />
+
       </Routes>
     </Router>
   );
