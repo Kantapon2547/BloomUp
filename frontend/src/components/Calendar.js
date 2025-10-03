@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import "./Calendar.css";
 
-// --- helpers ---
 const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const monthLabel = (y, m) =>
   new Date(y, m, 1).toLocaleString("en-US", { month: "long", year: "numeric" });
@@ -10,8 +9,8 @@ const dateKey = (y, m, d) =>
 
 function buildMonthGrid(year, month) {
   const firstDay = new Date(year, month, 1);
-  const startWeekday = firstDay.getDay(); // 0..6 (Sun..Sat)
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startWeekday = firstDay.getDay(); // 0 = Sunday
+  const daysInMonth = new Date(year, month + 1, 0).getDate(); // 0 = January
 
   const cells = [];
   for (let i = 0; i < startWeekday; i++) cells.push(null);
@@ -19,7 +18,7 @@ function buildMonthGrid(year, month) {
   return cells;
 }
 
-// --- sample mood data (keys = YYYY-MM-DD) ---
+// sample mood data
 const sampleMoods = {};
 [
   [2024, 11, 1, "😊"], [2024, 11, 2, "🙂"], [2024, 11, 3, "😁"], [2024, 11, 4, "🙂"],
@@ -41,10 +40,10 @@ const LEGEND = [
 
 export default function Calendar() {
   const today = new Date();
-  // ✅ single state object
+  // single state object
   const [date, setDate] = useState({
     year: today.getFullYear(),
-    month: today.getMonth(), // 0..11
+    month: today.getMonth(),
   });
 
   const cells = useMemo(() => buildMonthGrid(date.year, date.month), [date]);
@@ -80,7 +79,7 @@ export default function Calendar() {
   };
 
   return (
-    <div className="cal-screen light">
+    <div className="cal-screen light"> 
       {/* Top Nav */}
       <nav className="cal-nav">
         <div className="brand">
@@ -199,21 +198,6 @@ export default function Calendar() {
             </div>
           </div>
         </section>
-
-        {/* Legend
-        <section className="card">
-          <div className="card-head-only">
-            <h3 className="card-title">Mood Scale</h3>
-          </div>
-          <div className="card-body legend">
-            {LEGEND.map(([emoji, label]) => (
-              <div key={label} className="legend-item">
-                <div className="legend-emoji">{emoji}</div>
-                <div className="legend-text">{label}</div>
-              </div>
-            ))}
-          </div>
-        </section> */}
       </div>
     </div>
   );
