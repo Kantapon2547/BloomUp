@@ -6,6 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 import os
 
+BCRYPT_MAX_BYTES = 72
 JWT_SECRET = os.getenv("JWT_SECRET", "change_me")
 JWT_ALG = "HS256"
 JWT_EXPIRE_MIN = 60 * 24
@@ -13,11 +14,22 @@ JWT_EXPIRE_MIN = 60 * 24
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-def hash_password(raw: str) -> str:
-    return pwd_context.hash(raw)
+def hash_password(plain_password) -> str:
+    if not isinstance(plain_password, str):
+        raise TypeError(f"Password must be a str, got {type(plain_password).__name__}")
 
-def verify_password(raw: str, hashed: str) -> bool:
-    return pwd_context.verify(raw, hashed)
+    b = plain_password.encode("utf-8")
+    if len(b) > BCRYPT_MAX_BYTES:
+        raise ValueError(f"Password too long ({len(b)} bytes). Max is {BCRYPT_MAX_BYTES} bytes in UTF-8.")
+
+    return pwd_context.hash(plain_password)
+
+def verify_password(plain_password: str, password_hash: str) -> bool:
+    if not isinstance(plain_password, str):
+        raise TypeError(f"Password must be a str, got {type(plain_password).__name__}")
+    if not isinstance(password_hash, str):
+        raise TypeError(f"password_hash must be a str, got {type(password_hash).__name__}")
+    return pwd_context.verify(plain_password, password_hash)
 
 def create_access_token(subject: str) -> str:
     payload = {
