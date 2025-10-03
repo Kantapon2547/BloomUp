@@ -1,9 +1,3 @@
-Youtube link: [1st sprint video](https://youtu.be/z-p-CjOjcNQ)
-
-Google Doc: [BloomUp_proposal](https://docs.google.com/document/d/1SbqJxDzCeouo_gEf_Rshsd-D2RGFNPK-2LkpiJmc81s/edit?usp=sharing)
-
----
-
 # 🌱 BloomUp: Habit Tracker for Students  
 
 BloomUp is a **web-based platform** designed to help students build steady **study** and **self-care habits**.  
@@ -28,36 +22,36 @@ BloomUp is created to solve this problem by combining:
 
 ---
 
-## 👥 Stakeholders & Use Cases  
+## 🛠️ Development Setup
 
-### Roles & Access Levels  
-- **Guest (no login)** – Can try a guided demo, view sample dashboards, and app info.  
-- **Student (authenticated)** – Main user. Creates habits, logs completions, moods, gratitude, and views progress.  
-- **Admin** – Handles system management, analytics, content moderation, and user roles.  
+Follow these steps to get the project running locally:
 
-🔑 **Permissions hierarchy**: `Admin > Student > Guest`  
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Kantapon2547/BloomUp.git
+cd BloomUp
+```
+### 2. Run with Docker Compose
+Build and start all services (API, Client, PostgreSQL, and pgAdmin):
 
-### Use Case List  
-**Guest**  
-- View landing page & feature tour  
-- Try demo dashboard (read-only)  
+```bash
+docker-compose up --build
+```
+To stop the containers, press CTRL + C or run:
 
-**Student**  
-- Manage account & profile (upload picture, change username)  
-- Create/edit/delete habits (study/health/personal)  
-- Log habit completion; view streaks & progress  
-- Log mood (1–5 scale), add Gratitude entries  
-- Weekly/monthly recap & reflection  
-- Configure reminders/notifications  
-- Upload files (images, personal notes, related documents)  
-- Receive adaptive feedback & suggestions  
+```bash
+docker-compose down
+```
 
-**Admin**  
-- Manage users/roles (suspend/restore accounts)  
-- Approve/curate challenge templates (e.g., 30-day mindfulness)  
-- System health dashboard & analytics  
-- Content moderation (reported entries)  
-- Data backup/restore
+To remove containers, networks, and volumes:
+
+```bash
+docker-compose down -v
+```
+
+### 3. Access the Services
+
+- 🌐 Frontend (React Client): http://localhost:3000
 
 ---
 

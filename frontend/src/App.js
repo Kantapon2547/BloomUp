@@ -6,6 +6,7 @@ import Home from "./pages/Home";
 import DemoDashboard from "./components/DemoDashboard";
 import Habits from "./components/Habits";
 import Profile from "./pages/Profile";
+import GratitudeJar from "./pages/GratitudeJar";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -37,7 +38,12 @@ function App() {
         {/* Demo Dashboard page */}
         <Route path="/demo" element={<DemoDashboard />} />
 
+        <Route path="/demo" element={<DemoDashboard />} />
+
         <Route path="/habits" element={<Habits />} />
+
+        {/* Gratitude Jar page ✅ */}
+        <Route path="/gratitude" element={<GratitudeJar />} />
 
         {/* Profile page*/}
         <Route path="/profile" element={<Profile />} />

@@ -7,8 +7,8 @@ services:
       POSTGRES_DB: BloomUp_db
     volumes:
       - db_data:/var/lib/postgresql/data
-    # ports:
-    #   - "5432:5432"
+    ports:
+      - "5432:5432"
 
   api:
     build:
