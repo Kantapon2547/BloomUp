@@ -31,7 +31,7 @@ export default function Sidebar() {
   const Item = ({ to, icon: Icon, label, badge }) => {
     const active = pathname.startsWith(to);
     const handleClick = () => {
-      // ถ้าย่ออยู่ แล้วคลิกเมนู → ขยายกลับอัตโนมัติหลัง navigate
+      
       if (collapsed) {
         localStorage.setItem("sidebar:collapsed", "0");
         document.body.classList.remove("sidebar-collapsed");
