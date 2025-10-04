@@ -12,7 +12,6 @@ const daysBetween = (a,b) => Math.round((b-a)/(1000*60*60*24));
 /** percent helper */
 const pct = (num, den) => den === 0 ? 0 : Math.round((num/den)*100);
 
-/** calc streak ล่าสุดติดกัน (จากวันนี้ถอยหลัง) */
 const calcStreak = (habit) => {
   let s=0;
   for(let i=0;;i++){
@@ -35,7 +34,7 @@ export default function Reports(){
 
   /** ===== period: week | month  + cursor (Date of current viewport) ===== */
   const [mode, setMode] = useState("week"); // 'week' | 'month'
-  const [cursor, setCursor] = useState(new Date()); // จุดอ้างอิง
+  const [cursor, setCursor] = useState(new Date()); 
 
   const period = useMemo(() => {
     if(mode === "week"){
@@ -52,7 +51,7 @@ export default function Reports(){
     }
   }, [mode, cursor]);
 
-  /** ===== สร้างสรุป completion ต่อวันในช่วงที่เลือก ===== */
+    /* daily completion */
   const dailyCompletion = useMemo(() => {
     const map = period.days.map((dateObj) => {
       const key = fmt(dateObj);
@@ -63,7 +62,7 @@ export default function Reports(){
     return map;
   }, [habits, period]);
 
-  /** ===== summary metric (ช่วงที่เลือก) ===== */
+  /*summary metric */
   const avgCompletion = useMemo(() => {
     if(dailyCompletion.length === 0) return 0;
     const sum = dailyCompletion.reduce((a,b) => a + b.rate, 0);
@@ -76,7 +75,7 @@ export default function Reports(){
 
   const filteredHabits = useMemo(() => habits, [habits]); // ไว้เผื่ออนาคตมี filter เพิ่ม
 
-  /** ===== category breakdown (เฉพาะช่วง) ===== */
+  /*category breakdown*/
   const categoryPct = useMemo(() => {
     const byCat = new Map();
     period.days.forEach((d) => {
@@ -85,7 +84,7 @@ export default function Reports(){
         const cat = h.category || "general";
         if(!byCat.has(cat)) byCat.set(cat, {cat, done:0, total:0});
         const row = byCat.get(cat);
-        row.total += 1;                  // ต่อวันต่อ habit = 1 โอกาส
+        row.total += 1;                  
         if(h.history?.[k]) row.done += 1;
       });
     });
@@ -95,7 +94,7 @@ export default function Reports(){
     })).sort((a,b)=>b.rate-a.rate);
   }, [habits, period]);
 
-  /** ===== top habits (ตามอัตราสำเร็จในช่วง) ===== */
+  /*top habits*/
   const topHabits = useMemo(() => {
     const rows = habits.map(h => {
       let done=0, total=0;
@@ -108,7 +107,7 @@ export default function Reports(){
     return rows.slice(0,5);
   }, [habits, period]);
 
-  /** ===== navigation ===== */
+  /*navigation*/
   const goPrev = () => {
     if(mode === "week") setCursor(addDays(period.start, -1));
     else setCursor(new Date(cursor.getFullYear(), cursor.getMonth()-1, 1));
@@ -118,7 +117,6 @@ export default function Reports(){
     else setCursor(new Date(cursor.getFullYear(), cursor.getMonth()+1, 1));
   };
 
-  /** ===== small SVG components ===== */
   const BarChart = ({ data }) => {
     const maxH = 110;
     const w = Math.max(300, data.length*24);
