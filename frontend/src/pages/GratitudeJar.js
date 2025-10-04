@@ -40,14 +40,12 @@ const GratitudeJar = () => {
       <Sidebar />
 
       <main className="main-content">
-        <div className="page-header">
         <h1 className="page-title">
           Gratitude Jar <span className="heart">💜</span>
         </h1>
         <p className="page-description">
           Reflect on the positive moments in your day and keep track of what you’re grateful for.
         </p>
-        </div>
 
         {/* Stats */}
         <div className="stats-container">
