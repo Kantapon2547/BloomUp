@@ -40,9 +40,14 @@ const GratitudeJar = () => {
       <Sidebar />
 
       <main className="main-content">
+        <div className="page-header">
         <h1 className="page-title">
           Gratitude Jar <span className="heart">💜</span>
         </h1>
+        <p className="page-description">
+          Reflect on the positive moments in your day and keep track of what you’re grateful for.
+        </p>
+        </div>
 
         {/* Stats */}
         <div className="stats-container">
@@ -52,15 +57,13 @@ const GratitudeJar = () => {
           </div>
           <div className="stat-card blue">
             <h2>
-              {entries.filter(
-                (e) => e.date === new Date().toLocaleDateString()
-              ).length}
+              {
+                entries.filter(
+                  (e) => e.date === new Date().toLocaleDateString()
+                ).length
+              }
             </h2>
             <p>Added Today</p>
-          </div>
-          <div className="stat-card green">
-            <h2>7</h2>
-            <p>Day Streak</p>
           </div>
         </div>
 
