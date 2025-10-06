@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
 import { Login } from "./components/Login";
 import { Signup } from "./components/Signup";
 import Home from "./pages/Home";
@@ -8,6 +8,7 @@ import Habits from "./components/Habits";
 import Reports from "./components/Reports";
 import Profile from "./pages/Profile";
 import GratitudeJar from "./pages/GratitudeJar";
+import Calendar from "./components/Calendar";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -15,6 +16,7 @@ function App() {
   return (
     <Router>
       <Routes>
+
         {/* Root route shows demo dashboard */}
         <Route
           path="/"
@@ -44,15 +46,15 @@ function App() {
 
         {/* Reports page */}
         <Route path="/reports" element={<Reports />} />
-        <Route path="/demo" element={<DemoDashboard />} />
-
-        <Route path="/habits" element={<Habits />} />
 
         {/* Gratitude Jar page ✅ */}
         <Route path="/gratitude" element={<GratitudeJar />} />
 
-        {/* Profile page*/}
+        {/* Profile page */}
         <Route path="/profile" element={<Profile />} />
+
+        {/* Calendar page */}
+        <Route path="/calendar" element={<Calendar />} />
 
       </Routes>
     </Router>

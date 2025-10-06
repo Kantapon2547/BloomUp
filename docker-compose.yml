@@ -7,8 +7,6 @@ services:
       POSTGRES_DB: BloomUp_db
     volumes:
       - db_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
 
   api:
     build:
@@ -22,11 +20,6 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/app:/app/app:ro
-    # develop:
-    #   watch:
-    #     - path: ./backend/app
-    #       target: /app/app
-    #       action: sync
 
   web:
     image: kantaponh/bloomup-web:latest 
@@ -40,11 +33,6 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    # develop:
-    #   watch:
-    #     - path: ./frontend
-    #       target: /app
-    #       action: sync
 
   pgadmin:
     image: dpage/pgadmin4:8

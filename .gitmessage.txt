@@ -1,0 +1,32 @@
+# -------------------------------------------------------
+# Commit message template for BloomUp project
+# Follows Conventional Commits: <type>(scope): <subject>
+# -------------------------------------------------------
+
+# <type>(scope): <short summary>
+# Example: feat(auth): add JWT authentication
+
+# Types: 
+#   feat     – new feature
+#   fix      – bug fix
+#   docs     – documentation only changes
+#   style    – changes that don’t affect meaning (formatting, CSS)
+#   refactor – code change that neither fixes a bug nor adds a feature
+#   test     – add or fix tests
+#   chore    – maintenance tasks (deps, build, configs)
+
+# Scope (optional): area affected, e.g. auth, api, db, ui
+
+# ---------------- Commit message starts below ----------------
+
+<type>(<scope>): <short description>
+
+# Why:
+# - (Explain the reason for this change)
+
+# What:
+# - (Explain what was done in more detail)
+
+# Notes:
+# - (Any additional info, breaking changes, related issues, etc.)
+
