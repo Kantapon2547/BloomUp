@@ -1,0 +1,154 @@
+/* --- Page layout --- */
+.profile-page {
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(to right, #e0e7ff, #dbeafe);
+}
+
+/* Sidebar will take its own width, profile-container fills the rest */
+.profile-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center; /* centers vertically */
+  padding: 20px;
+}
+
+/* --- Profile Card --- */
+.profile-card {
+  background: #f9fafb;
+  border-radius: 16px;
+  padding: 2rem;
+  width: 450px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+/* --- Profile Picture --- */
+.profile-picture {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid #d1d5db;
+  margin: 0 auto 0.5rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-picture img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholder {
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+/* --- Text styles --- */
+.profile-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.profile-email {
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+.profile-bio {
+  color: #374151;
+  margin-bottom: 1.5rem;
+  white-space: pre-line;
+  font-size: 1.1rem;
+}
+
+/* --- Inputs --- */
+.input-file {
+  display: none; /* hidden file input */
+}
+
+.input-field {
+  margin-bottom: 1rem;
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.bio-field {
+  padding: 0.6rem;
+  box-sizing: border-box;
+  resize: none;
+}
+
+/* --- Buttons --- */
+.btn-center {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn {
+  padding: 0.6rem 1.2rem;
+  margin-top: 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn.edit {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.btn.edit:hover {
+  background-color: #2563eb;
+}
+
+.btn.save {
+  background-color: #10b981;
+  color: white;
+}
+
+.btn.save:hover {
+  background-color: #059669;
+}
+
+.btn.cancel {
+  background-color: #ef4444;
+  color: white;
+}
+
+.btn.cancel:hover {
+  background-color: #b91c1c;
+}
+
+.btn.back {
+  background-color: #6b7280;
+  color: white;
+}
+
+.btn.back:hover {
+  background-color: #4b5563;
+}
+
+.btn.change-image {
+  background-color: #3b82f6;
+  color: white;
+  margin-bottom: 1rem;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.6rem;
+}
+
+.btn.change-image:hover {
+  background-color: #2563eb;
+}

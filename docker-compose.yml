@@ -11,7 +11,9 @@ services:
       - "5432:5432"
 
   api:
-    image: kantaponh/bloomup-api:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     env_file:
       - ./backend/.env
     depends_on:
@@ -20,14 +22,15 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/app:/app/app:ro
-    develop:
-      watch:
-        - path: ./backend/app
-          target: /app/app
-          action: sync
+    # develop:
+    #   watch:
+    #     - path: ./backend/app
+    #       target: /app/app
+    #       action: sync
 
   web:
-    image: kantaponh/bloomup-web:latest
+    image: kantaponh/bloomup-web:latest 
+    command: sh -lc "npm ci && npm start"
     environment:
       NEXT_PUBLIC_API_URL: "http://localhost:8000"
     depends_on:
@@ -36,11 +39,12 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend:/app
-    develop:
-      watch:
-        - path: ./frontend
-          target: /app
-          action: sync
+      - /app/node_modules
+    # develop:
+    #   watch:
+    #     - path: ./frontend
+    #       target: /app
+    #       action: sync
 
   pgadmin:
     image: dpage/pgadmin4:8

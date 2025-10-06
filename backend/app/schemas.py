@@ -1,12 +1,29 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+from typing import Optional
 
-class ItemCreate(BaseModel):
-    title: str
-    done: bool = False
+class UserBase(BaseModel):
+    email: EmailStr
+    name: str
+    bio: Optional[str] = None
+    profile_picture: Optional[str] = None
 
-class ItemRead(BaseModel):
-    id: int
-    title: str
-    done: bool
+class UserCreate(UserBase):
+    password: str   # raw password when creating
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    bio: Optional[str] = None
+    profile_picture: Optional[str] = None
+    password: Optional[str] = None
+
+class UserOut(UserBase):
     class Config:
-        from_attributes = True
+        orm_mode = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"

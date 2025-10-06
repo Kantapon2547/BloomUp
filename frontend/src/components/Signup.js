@@ -4,37 +4,64 @@ import "./Signup.css";
 
 export function Signup() {
   const navigate = useNavigate();
+  const API =
+    process.env.REACT_APP_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:8000";
 
-  const [formData, setFormData] = useState({
-    name: "",
+  const [form, setForm] = useState({
+    full_name: "",
     email: "",
     password: "",
-    confirmPassword: "",
+    confirm_password: "",
   });
 
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
+  }
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
-
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
     setError("");
 
-    // Simulate backend signup
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    console.log("Signup successful:", formData);
+    // client-side validation
+    if (!form.full_name.trim()) return setError("Full name is required.");
+    if (!form.email.trim()) return setError("Email is required.");
+    if (form.password.length < 8)
+      return setError("Password must be at least 8 characters.");
+    if (form.password !== form.confirm_password)
+      return setError("Passwords do not match.");
 
-    // Redirect to login and prefill email
-    navigate("/login", { state: { email: formData.email } });
-  };
+    try {
+      setSubmitting(true);
+      const res = await fetch(`${API}/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.full_name,
+          email: form.email,
+          password: form.password,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data?.detail || "Sign up failed");
+      }
+
+      // redirect with email prefilled
+      navigate("/login", { state: { email: data.email || form.email } });
+    } catch (err) {
+      setError(err.message || "Something went wrong.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="signup-container">
@@ -43,19 +70,21 @@ export function Signup() {
           <div className="signup-logo">B</div>
           <h1 className="signup-heading">Create Account</h1>
         </div>
-        <p className="signup-subtitle">Join BloomUp and start building habits 🚀</p>
+        <p className="signup-subtitle">
+          Join BloomUp and start building habits 🚀
+        </p>
       </div>
 
       <div className="signup-card">
         <form onSubmit={handleSubmit}>
           <div className="signup-input-group">
-            <label htmlFor="name">Full Name</label>
+            <label htmlFor="full_name">Full Name</label>
             <input
               type="text"
-              id="name"
-              name="name"
+              id="full_name"
+              name="full_name"
               placeholder="Enter your full name"
-              value={formData.name}
+              value={form.full_name}
               onChange={handleChange}
               required
             />
@@ -68,7 +97,7 @@ export function Signup() {
               id="email"
               name="email"
               placeholder="Enter your email"
-              value={formData.email}
+              value={form.email}
               onChange={handleChange}
               required
             />
@@ -81,20 +110,20 @@ export function Signup() {
               id="password"
               name="password"
               placeholder="Enter your password"
-              value={formData.password}
+              value={form.password}
               onChange={handleChange}
               required
             />
           </div>
 
           <div className="signup-input-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
+            <label htmlFor="confirm_password">Confirm Password</label>
             <input
               type="password"
-              id="confirmPassword"
-              name="confirmPassword"
+              id="confirm_password"
+              name="confirm_password"
               placeholder="Confirm your password"
-              value={formData.confirmPassword}
+              value={form.confirm_password}
               onChange={handleChange}
               required
             />
@@ -102,7 +131,9 @@ export function Signup() {
 
           {error && <p className="signup-error">{error}</p>}
 
-          <button type="submit">Sign Up</button>
+          <button type="submit" disabled={submitting}>
+            {submitting ? "Signing up..." : "Sign Up"}
+          </button>
         </form>
 
         <p className="login-link">
@@ -110,7 +141,11 @@ export function Signup() {
           <span
             className="clickable-text"
             onClick={() => navigate("/login")}
-            style={{ color: "#007bff", cursor: "pointer", textDecoration: "underline" }}
+            style={{
+              color: "#007bff",
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
           >
             Sign in
           </span>

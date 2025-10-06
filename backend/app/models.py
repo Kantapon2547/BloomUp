@@ -1,8 +1,11 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, String, Text
 from .db import Base
 
-class Item(Base):
-    __tablename__ = "items"
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(255), nullable=False)
-    done = Column(Boolean, default=False)
+class User(Base):
+    __tablename__ = "users"
+
+    email = Column(String, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    password_hash = Column(String, nullable=False) 
+    bio = Column(Text, nullable=True)
+    profile_picture = Column(String, nullable=True)
