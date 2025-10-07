@@ -17,6 +17,9 @@ function App() {
     <Router>
       <Routes>
 
+        {/* Calendar page */}
+        <Route path="/calendar" element={<Calendar />} />
+
         {/* Root route shows demo dashboard */}
         <Route
           path="/"
@@ -53,8 +56,7 @@ function App() {
         {/* Profile page */}
         <Route path="/profile" element={<Profile />} />
 
-        {/* Calendar page */}
-        <Route path="/calendar" element={<Calendar />} />
+
 
       </Routes>
     </Router>

@@ -73,7 +73,7 @@ export default function Reports(){
     return habits.reduce((m,h) => Math.max(m, calcStreak(h)), 0);
   }, [habits]);
 
-  const filteredHabits = useMemo(() => habits, [habits]); // ไว้เผื่ออนาคตมี filter เพิ่ม
+  const filteredHabits = useMemo(() => habits, [habits]); 
 
   /*category breakdown*/
   const categoryPct = useMemo(() => {
@@ -161,7 +161,7 @@ export default function Reports(){
   /** ===== render ===== */
   return (
     <div className="reports-root">
-      <div className="reports-grid">
+      <div className="with-sidebar">
         <Sidebar />
 
         <section className="reports-content">

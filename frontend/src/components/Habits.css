@@ -106,7 +106,7 @@
 }
 .btn{
   background: var(--violet-600); color:#fff; border:0; border-radius:12px;
-  padding:10px 14px; cursor:pointer; display:inline-flex; align-items:center; gap:8px;
+  padding:10px 12px; cursor:pointer; display:inline-flex; align-items:center; gap:8px;
 }
 .btn:disabled{ opacity:.6; cursor: default; }
 .add-input{ width:240px; }

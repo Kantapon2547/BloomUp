@@ -143,7 +143,7 @@ export default function Habits() {
   /* -------------------- render -------------------- */
   return (
     <div className="habits-root">
-      <div className="habits-grid">
+      <div className="with-sidebar">
         {/* LEFT: Sidebar */}
         <Sidebar />
 
