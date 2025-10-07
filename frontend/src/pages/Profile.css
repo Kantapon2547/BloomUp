@@ -131,3 +131,13 @@
     background-color: #2563eb;
   }
   
+
+  .btn.back {
+    background-color: #6b7280;
+    color: white;
+  }
+  
+  .btn.back:hover {
+    background-color: #4b5563;
+  }
+  

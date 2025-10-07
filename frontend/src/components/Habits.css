@@ -1,5 +1,5 @@
 :root{
-  --violet-50:#f3e8ff; --violet-100:#e9d5ff; --violet-400:#a78bfa; --violet-600:#7c3aed;
+  --violet-50:#e6e8ff; --violet-100:#d4d3d5a9; --violet-400:#7c86ff; --violet-600:#7c3aed;
   --gray-100:#f3f4f6; --gray-200:#e5e7eb; --gray-400:#9ca3af; --gray-600:#6b7280; --gray-900:#111827;
   --white:#fff;
 }
@@ -33,7 +33,7 @@
 .brand{ display:flex; align-items:center; gap:12px; }
 .brand-circle{
   width: 36px; height: 36px; border-radius: 50%;
-  background: linear-gradient(135deg,#a78bfa,#ef74ff);
+  background: linear-gradient(135deg,#6d28d9);
   color:#fff; display:grid; place-items:center; font-weight:800;
 }
 .brand-title{ font-size: 24px; font-weight: 700; color: var(--gray-900); margin:0; }

@@ -46,7 +46,7 @@ export default function Sidebar() {
         <Item to="/home"   icon={Home}        label="Home" />
         <Item to="/habits" icon={Target}      label="Habits" />
         <Item to="/gratitude" icon={Heart}    label="Gratitude Jar" />
-        <Item to="/mood"   icon={CalendarDays} label="Mood Log" />
+        <Item to="/calendar"   icon={CalendarDays} label="Mood Log" />
         <Item to="/reports" icon={BarChart3}  label="Reports" />
         <Item to="/profile" icon={User2}      label="Profile" />
       </nav>
