@@ -1,28 +1,25 @@
 // src/pages/Home.js
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
-import "./home.css";
+import { gsap } from "gsap";
+import "./style/Home.css";
 
 export default function Home({ user }) {
   const navigate = useNavigate();
 
-  // Logout function: clears token + user from localStorage
+  const headerRef = useRef(null);
+  const leftColRef = useRef(null);
+  const rightColRef = useRef(null);
+  const progressFillRef = useRef(null);
+
+  const [completed, setCompleted] = useState([false, true, false]);
+  const [selectedMood, setSelectedMood] = useState(null);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login", { replace: true });
   };
-
-  const weeklyData = [
-    { day: "Mon", completed: 85 },
-    { day: "Tue", completed: 92 },
-    { day: "Wed", completed: 67 },
-    { day: "Thu", completed: 88 },
-    { day: "Fri", completed: 75 },
-    { day: "Sat", completed: 45 },
-    { day: "Sun", completed: 60 },
-  ];
 
   const habits = [
     { name: "Study for 2 hours", description: "Maintain consistent study schedule", streak: 12, tag: "Study" },
@@ -45,9 +42,6 @@ export default function Home({ user }) {
     "Consistency is the mother of mastery.",
   ];
 
-  const [completed, setCompleted] = useState([false, true, false]);
-  const [selectedMood, setSelectedMood] = useState(null);
-
   const completedHabits = completed.filter(Boolean).length;
   const totalHabits = habits.length;
   const randomQuote = motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
@@ -60,44 +54,80 @@ export default function Home({ user }) {
     const newState = [...completed];
     newState[index] = !newState[index];
     setCompleted(newState);
+
+    gsap.fromTo(
+      `.habit-card:nth-child(${index + 2})`, // +2 to skip progress card
+      { scale: 0.95 },
+      { scale: 1, duration: 0.3, ease: "power2.out" }
+    );
+  };
+
+  // ✅ Fix: Reset all opacity + remove unwanted overlays on mount
+  useEffect(() => {
+    document.querySelectorAll(".overlay, .backdrop, .filter").forEach(el => el.remove());
+    ["body", "#root", ".home-layout", ".home-main", ".home-grid"].forEach(sel => {
+      document.querySelectorAll(sel).forEach(el => {
+        el.style.opacity = "1";
+        el.style.filter = "none";
+        el.style.transition = "none";
+        el.style.backdropFilter = "none";
+      });
+    });
+  }, []);
+
+  // 👇 Run entrance animation once on mount
+  useEffect(() => {
+    const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+
+    // ✅ Force opacity to 1 before animating (fix ghost fade)
+    gsap.set([".home-header", ".left-col > div", ".right-col > div"], { opacity: 1 });
+
+    tl.from(headerRef.current, { y: -50, opacity: 0, duration: 0.8 })
+      .from(".left-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.5")
+      .from(".right-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.7")
+      .set(".home-layout, .home-main, .home-grid", { clearProps: "transform" });
+  }, []);
+
+  // 👇 Animate progress bar smoothly when habits change
+  useEffect(() => {
+    gsap.to(progressFillRef.current, {
+      width: `${(completedHabits / totalHabits) * 100}%`,
+      duration: 0.8,
+      ease: "power2.out"
+    });
+  }, [completedHabits, totalHabits]);
+
+  const handleMoodClick = (idx) => {
+    setSelectedMood(idx);
+    gsap.fromTo(
+      `.mood-btn:nth-child(${idx + 1})`,
+      { scale: 0.8 },
+      { scale: 1.2, duration: 0.3, yoyo: true, repeat: 1 }
+    );
   };
 
   return (
     <div className="home-layout">
-      <Sidebar />
       <main className="home-main">
-        <header className="home-header">
+        <header className="home-header" ref={headerRef}>
           <div className="header-left">
-            <h1>
-              Good morning, {user?.email?.split("@")[0] || "User"}! 🌸
-            </h1>
-            <p>
-              You’ve completed {completedHabits} of {totalHabits} tasks today.
-            </p>
+            <h1>Good morning, {user?.email?.split("@")[0] || "User"}! 🌸</h1>
+            <p>You’ve completed {completedHabits} of {totalHabits} tasks today.</p>
           </div>
-          <button className="logout-btn" onClick={handleLogout}>
-            Logout
-          </button>
         </header>
 
         <section className="home-grid">
-          {/* LEFT COLUMN */}
-          <div className="left-col">
-            {/* Progress card */}
+          <div className="left-col" ref={leftColRef}>
             <div className="progress-card">
               <div className="progress-info">
                 <span>Today's Progress</span>
                 <span>{Math.round((completedHabits / totalHabits) * 100)}%</span>
               </div>
               <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{ width: `${(completedHabits / totalHabits) * 100}%` }}
-                />
+                <div className="progress-fill" ref={progressFillRef} style={{ width: 0 }} />
               </div>
             </div>
 
-            {/* Habit cards */}
             {habits.map((h, i) => (
               <div className={`habit-card ${completed[i] ? "done" : ""}`} key={i}>
                 <button className="habit-check" onClick={() => toggleHabit(i)}>
@@ -114,23 +144,19 @@ export default function Home({ user }) {
               </div>
             ))}
 
-            {/* Gratitude */}
             <div className="gratitude-card">
               <h3>Today's Gratitude 🙏</h3>
               <p>"{randomGratitude}"</p>
             </div>
           </div>
 
-          {/* RIGHT COLUMN */}
-          <div className="right-col">
-            {/* Streak */}
+          <div className="right-col" ref={rightColRef}>
             <div className="streak-card">
               <h3>Overall Streak</h3>
               <div className="streak-number">{overallStreak}</div>
               <p className="streak-sub">days active 🔥</p>
             </div>
 
-            {/* Weather */}
             <div className="weather-card">
               {isRaining ? (
                 <>
@@ -145,14 +171,13 @@ export default function Home({ user }) {
               )}
             </div>
 
-            {/* Mood tracker */}
             <div className="mood-card">
               <h3>How are you feeling?</h3>
               <div className="mood-list">
                 {moodEmojis.map((emoji, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setSelectedMood(idx)}
+                    onClick={() => handleMoodClick(idx)}
                     className={`mood-btn ${selectedMood === idx ? "selected" : ""}`}
                   >
                     {emoji}
@@ -167,7 +192,6 @@ export default function Home({ user }) {
               )}
             </div>
 
-            {/* Quote */}
             <div className="quote-card">
               <h3>Daily Motivation</h3>
               <blockquote>"{randomQuote}"</blockquote>

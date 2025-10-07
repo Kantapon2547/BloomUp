@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import Sidebar from "../components/Sidebar";
-import "./GratitudeJar.css";
+import "./style/GratitudeJar.css";
 
 const categoryColors = {
   "Simple Pleasures": "simple-pleasures",
@@ -37,7 +36,6 @@ const GratitudeJar = () => {
 
   return (
     <div className="app-container">
-      <Sidebar />
 
       <main className="main-content">
         <h1 className="page-title">

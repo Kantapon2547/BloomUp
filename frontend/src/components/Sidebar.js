@@ -14,6 +14,7 @@ export default function Sidebar() {
     const isCollapsed = saved === "1";
     setCollapsed(isCollapsed);
     document.body.classList.toggle("sidebar-collapsed", isCollapsed);
+    document.body.setAttribute("data-collapsed", isCollapsed ? "1" : "0"); 
   }, []);
 
   const toggleCollapsed = () => {
@@ -21,6 +22,7 @@ export default function Sidebar() {
       const next = !prev;
       localStorage.setItem("sidebar:collapsed", next ? "1" : "0");
       document.body.classList.toggle("sidebar-collapsed", next);
+      document.body.setAttribute("data-collapsed", next ? "1" : "0");
       return next;
     });
   };

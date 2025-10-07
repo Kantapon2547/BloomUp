@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlusCircle, Trash2, Trophy, Sun, CheckCircle2 } from "lucide-react";
-import Sidebar from "../components/Sidebar";
-import "./Habits.css";
+import "./style/Habits.css";
 
 /* -------------------- utils -------------------- */
 const fmt = (d) => d.toISOString().slice(0, 10);            // YYYY-MM-DD
@@ -19,6 +18,9 @@ export default function Habits() {
   const [newHabit, setNewHabit] = useState("");
   const [newCategory, setNewCategory] = useState("general");
   const [bursts, setBursts] = useState([]);
+  const [catFilter, setCatFilter] = useState("all");
+  const [rateFilter, setRateFilter] = useState("all");
+  const [streakFilter, setStreakFilter] = useState("all");
 
   /* -------------------- persistence -------------------- */
   useEffect(() => {
@@ -140,7 +142,6 @@ export default function Habits() {
     <div className="habits-root">
       <div className="habits-grid">
         {/* LEFT: Sidebar */}
-        <Sidebar />
 
         {/* RIGHT: Content */}
         <div className="habits-content">

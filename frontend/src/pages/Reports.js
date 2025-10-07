@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import Sidebar from "./Sidebar";
-import "./Reports.css";
+import "./style/Reports.css";
 
 /** ===== utils ===== */
 const fmt = (d) => d.toISOString().slice(0,10);      // YYYY-MM-DD
@@ -162,8 +161,6 @@ export default function Reports(){
   return (
     <div className="reports-root">
       <div className="reports-grid">
-        <Sidebar />
-
         <section className="reports-content">
           {/* header */}
           <header className="reports-header">

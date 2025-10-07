@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import "./DemoDashboard.css"
+import "./style/DemoDashboard.css"
 import { Link, useNavigate } from "react-router-dom";
 
 
