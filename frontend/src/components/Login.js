@@ -47,7 +47,10 @@ export function Login({ onLoginSuccess }) {
 
       // when success, go to homepage
       if (onLoginSuccess) {
-        navigate("/habits", { replace: true });
+        const loggedInUser = { email };
+        localStorage.setItem("user", JSON.stringify(loggedInUser));
+        onLoginSuccess(loggedInUser);
+        navigate("/home", { replace: true });
       }
 
     } catch (err) {
