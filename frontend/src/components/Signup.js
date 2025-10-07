@@ -42,7 +42,7 @@ export function Signup() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.full_name,  
+          name: form.full_name,
           email: form.email,
           password: form.password,
         }),

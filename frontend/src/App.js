@@ -5,6 +5,7 @@ import { Signup } from "./components/Signup";
 import Home from "./pages/Home";
 import DemoDashboard from "./components/DemoDashboard";
 import Habits from "./components/Habits";
+import Reports from "./components/Reports";
 import Profile from "./pages/Profile";
 import Calendar from "./components/Calendar";
 
@@ -14,8 +15,6 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Calendar page */}
-        <Route path="/calendar" element={<Calendar />} />
 
         {/* Root route shows demo dashboard */}
         <Route
@@ -43,6 +42,12 @@ function App() {
 
         {/* Habits page */}
         <Route path="/habits" element={<Habits />} />
+
+        {/* Reports page */}
+        <Route path="/reports" element={<Reports />} />
+
+        {/* Gratitude Jar page ✅ */}
+        <Route path="/gratitude" element={<GratitudeJar />} />
 
         {/* Profile page */}
         <Route path="/profile" element={<Profile />} />

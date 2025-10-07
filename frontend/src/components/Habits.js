@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlusCircle, Trash2, Search, Trophy, Sun, CheckCircle2 } from "lucide-react";
-import Sidebar from "../components/Sidebar"; 
+import { PlusCircle, Trash2, Trophy, Sun, CheckCircle2 } from "lucide-react";
+import Sidebar from "../components/Sidebar";
 import "./Habits.css";
 
 /* -------------------- utils -------------------- */
@@ -18,7 +18,6 @@ export default function Habits() {
   const [habits, setHabits] = useState([]);
   const [newHabit, setNewHabit] = useState("");
   const [newCategory, setNewCategory] = useState("general");
-  const [query, setQuery] = useState("");
   const [bursts, setBursts] = useState([]);
 
   /* -------------------- persistence -------------------- */
@@ -86,8 +85,35 @@ export default function Habits() {
 
   const removeHabit = (index) => setHabits((h) => h.filter((_, i) => i !== index));
 
+  const weekCompletionRate = (h) => {
+    const total = weekDates.length;
+    const done = weekDates.filter((d) => !!h.history?.[d]).length;
+    return total === 0 ? 0 : Math.round((done / total) * 100);
+  };
+
   /* -------------------- stats -------------------- */
-  const filtered = habits.filter((h) => h.name.toLowerCase().includes(query.toLowerCase()));
+  const filtered = habits
+    // category filter
+    .filter((h) => (catFilter === "all" ? true : (h.category || "general") === catFilter))
+    // completion rate filter (weekly)
+    .filter((h) => {
+      if (rateFilter === "all") return true;
+      const r = weekCompletionRate(h);
+      if (rateFilter === "high") return r >= 80;
+      if (rateFilter === "medium") return r >= 50 && r < 80;
+      if (rateFilter === "low") return r < 50;
+      return true;
+    })
+    // streak filter
+    .filter((h) => {
+      if (streakFilter === "all") return true;
+      const s = calcStreak(h);
+      if (streakFilter === "sHigh") return s >= 10;
+      if (streakFilter === "sMed") return s >= 5 && s < 10;
+      if (streakFilter === "sLow") return s < 5;
+      return true;
+    });
+
   const completedToday = habits.filter((h) => h.history[todayKey()]).length;
   const completionRate = habits.length ? Math.round((completedToday / habits.length) * 100) : 0;
   const longestStreak = habits.reduce((m, h) => Math.max(m, calcStreak(h)), 0);
@@ -121,7 +147,6 @@ export default function Habits() {
           {/* Header */}
           <header className="habits-header">
             <div className="brand">
-              <div className="brand-circle">B</div>
               <div>
                 <h1 className="brand-title">My Habits</h1>
                 <p className="brand-sub">Build consistent routines for academic and personal growth</p>
@@ -129,28 +154,61 @@ export default function Habits() {
             </div>
           </header>
 
-          {/* Controls */}
-          <section className="card card--violet controls">
-            <div className="controls-row">
-              <div className="search-wrap">
-                <input
-                  className="input search-input"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search habits"
-                />
-                <Search size={16} className="search-icon" />
+          {/* FILTER BAR + ADD HABIT */}
+          <section className="filterbar card">
+            <div className="filterbar-row">
+              {/* Filters */}
+              <div className="filter-group">
+                <div className="filterbar-title">
+                  <span className="filter-icon">⚗️</span>
+                  <span>Filters:</span>
+                </div>
+
+                <select
+                  className="filter-select"
+                  value={catFilter}
+                  onChange={(e) => setCatFilter(e.target.value)}
+                >
+                  <option value="all">All Categories</option>
+                  <option value="general">General</option>
+                  <option value="study">Study</option>
+                  <option value="health">Health</option>
+                  <option value="mind">Mind</option>
+                </select>
+
+                <select
+                  className="filter-select"
+                  value={rateFilter}
+                  onChange={(e) => setRateFilter(e.target.value)}
+                >
+                  <option value="all">All Rates</option>
+                  <option value="high">High (80%+)</option>
+                  <option value="medium">Medium (50–79%)</option>
+                  <option value="low">Low (&lt;50%)</option>
+                </select>
+
+                <select
+                  className="filter-select"
+                  value={streakFilter}
+                  onChange={(e) => setStreakFilter(e.target.value)}
+                >
+                  <option value="all">All Streaks</option>
+                  <option value="sHigh">High (10+ days)</option>
+                  <option value="sMed">Medium (5–9 days)</option>
+                  <option value="sLow">Low (&lt;5 days)</option>
+                </select>
               </div>
 
-              <div className="add-wrap">
+              {/* Add habit */}
+              <div className="add-group">
                 <input
-                  className="input"
+                  className="input add-input"
                   value={newHabit}
                   onChange={(e) => setNewHabit(e.target.value)}
                   placeholder="Add a habit"
                 />
                 <select
-                  className="select"
+                  className="select add-select"
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
                 >
@@ -159,7 +217,7 @@ export default function Habits() {
                   <option value="health">health</option>
                   <option value="mind">mind</option>
                 </select>
-                <button className="btn" onClick={addHabit}>
+                <button className="btn add-btn" onClick={addHabit}>
                   <PlusCircle size={16} />
                   Add
                 </button>
@@ -285,7 +343,7 @@ export default function Habits() {
             ))}
           </AnimatePresence>
 
-          {/* <footer className="footer">draff✨</footer> */}
+          <footer className="footer">✨</footer>
         </div>
       </div>
     </div>
