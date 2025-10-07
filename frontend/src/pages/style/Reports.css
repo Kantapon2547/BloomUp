@@ -6,11 +6,21 @@
 }
 
 /* make layout align with Sidebar */
-.reports-root{ background: linear-gradient(to right, #ede9fe, #dbeafe); min-height: 100vh; }
-.reports-grid{
-  max-width: 1200px; margin: 0 auto; padding: 16px;
-  display: grid; grid-template-columns: 260px 1fr; gap: 16px;
+.reports-root {
+  background: linear-gradient(to right, #ede9fe, #dbeafe);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center; /* horizontal center */
+  padding: 32px 16px;      /* top-bottom and horizontal padding */
 }
+
+/* .reports-grid {
+  display: grid;
+  grid-template-columns: 300px; 
+  gap: 24px;
+  width: 100%;
+  max-width: 1400px;
+} */
 
 /* when sidebar collapsed (class added by Sidebar.js) */
 body.sidebar-collapsed .reports-grid{ grid-template-columns: 72px 1fr !important; }

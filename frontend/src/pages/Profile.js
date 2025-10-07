@@ -138,14 +138,6 @@ const Profile = () => {
             </>
           )}
 
-          <div className="btn-center">
-            <button
-              onClick={() => navigate("/habits")}
-              className="btn back"
-            >
-              Back
-            </button>
-          </div>
         </div>
       </div>
     </div>
