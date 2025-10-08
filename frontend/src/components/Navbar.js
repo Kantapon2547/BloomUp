@@ -1,32 +1,44 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom"; // <-- use NavLink
 import { FiLogOut } from "react-icons/fi";
 import "./Navbar.css";
 
 const Navbar = ({ onLogout }) => {
+  const navLinks = [
+    { path: "/home", label: "Home" },
+    { path: "/gratitude", label: "Gratitude" },
+    { path: "/calendar", label: "Mood" },
+    { path: "/reports", label: "Report" },
+    { path: "/habits", label: "Habit" },
+    { path: "/profile", label: "Profile" },
+  ];
+
   return (
     <nav className="navbar">
-  <div className="navbar-left">
-    <h1 className="navbar-title">BloomUp</h1>
-  </div>
+      <div className="navbar-left">
+        <h1 className="navbar-title">BloomUp</h1>
+      </div>
 
-  <div className="navbar-right">
-    <div className="navbar-center">
-      <Link to="/home" className="nav-link">Home</Link>
-      <Link to="/gratitude" className="nav-link">Gratitude</Link>
-      <Link to="/calendar" className="nav-link">Mood</Link>
-      <Link to="/reports" className="nav-link">Report</Link>
-      <Link to="/habits" className="nav-link">Habit</Link>
-      <Link to="/profile" className="nav-link">Profile</Link>
-    </div>
+      <div className="navbar-right">
+        <div className="navbar-center">
+          {navLinks.map((link) => (
+            <NavLink
+              key={link.path}
+              to={link.path}
+              className={({ isActive }) =>
+                isActive ? "nav-link active" : "nav-link"
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </div>
 
-    <button className="logout-btn" onClick={onLogout}>
-        <FiLogOut size={20} />
-    </button>
-
-  </div>
-</nav>
-
+        <button className="logout-btn" onClick={onLogout}>
+          <FiLogOut size={20} />
+        </button>
+      </div>
+    </nav>
   );
 };
 

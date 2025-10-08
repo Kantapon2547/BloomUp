@@ -19,7 +19,7 @@ function buildMonthGrid(year, month) {
   return cells;
 }
 
-// Sample mood data
+// Mood data combined from local sample and saved mood from Home
 const sampleMoods = {};
 [
   [2024, 11, 1, "😊"], [2024, 11, 2, "🙂"], [2024, 11, 3, "😁"],
@@ -43,6 +43,15 @@ export default function Calendar() {
 
   // Stats
   const moodCounts = useMemo(() => {
+    // integrate saved mood from localStorage for the current date
+    try {
+      const saved = JSON.parse(localStorage.getItem("home.mood") || "null");
+      if (saved && saved.date) {
+        const map = ["😢","😐","🙂","😊","😄"]; // align with Home
+        const emo = map[saved.value];
+        if (emo) sampleMoods[saved.date] = emo;
+      }
+    } catch {}
     const counts = {};
     for (let d = 1; d <= daysInMonth; d++) {
       const emo = sampleMoods[dateKey(date.year, date.month, d)];
