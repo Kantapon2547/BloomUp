@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlusCircle, Trash2, Trophy, Sun, CheckCircle2 } from "lucide-react";
 import "./style/Habits.css";
@@ -7,29 +7,118 @@ const fmt = (d) => d.toISOString().slice(0, 10);
 const todayKey = () => fmt(new Date());
 const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return fmt(d); };
 
+function Dropdown({ label, value, onChange, options, placeholder="Select", className="" }) {
+  const [open, setOpen] = useState(false);
+  const [hoverIdx, setHoverIdx] = useState(-1);
+  const [query, setQuery] = useState("");
+  const wrapRef = useRef(null);
+  const btnRef = useRef(null);
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (!wrapRef.current?.contains(e.target)) { setOpen(false); setQuery(""); setHoverIdx(-1); }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const filtered = options;
+
+  const current = options.find(o => o.value === value);
+
+  const onKeyDown = (e) => {
+    if (!open && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setOpen(true); return; }
+    if (!open) return;
+
+    if (e.key === "Escape") { setOpen(false); return; }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHoverIdx((i) => Math.min(i + 1, filtered.length - 1));
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHoverIdx((i) => Math.max(i - 1, 0));
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const pick = filtered[Math.max(0, hoverIdx)];
+      if (pick) { onChange(pick.value); setOpen(false); setQuery(""); }
+    }
+  };
+
+  return (
+    <div ref={wrapRef} className={`dd ${className}`} data-open={open ? "true" : "false"}>
+      {label && <div className="dd-label">{label}</div>}
+
+      <button
+        ref={btnRef}
+        type="button"
+        className="dd-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => { setOpen(o => !o); setHoverIdx(-1); }}
+        onKeyDown={onKeyDown}
+      >
+        <span className={`dd-value ${current ? "" : "is-placeholder"}`}>
+          {current ? current.label : placeholder}
+        </span>
+        <svg className="dd-caret" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div className="dd-pop">
+          <ul className="dd-list" role="listbox">
+            {filtered.length === 0 && <li className="dd-empty">No results</li>}
+            {filtered.map((opt, i) => {
+              const active = opt.value === value;
+              const hover  = i === hoverIdx;
+              return (
+                <li
+                  key={opt.value}
+                  className={`dd-item ${active ? "is-active":""} ${hover ? "is-hover":""}`}
+                  role="option"
+                  aria-selected={active}
+                  onMouseEnter={()=>setHoverIdx(i)}
+                  onClick={()=>{ onChange(opt.value); setOpen(false); setQuery(""); }}
+                >
+                  <span className="dd-dot" aria-hidden="true" />
+                  <span>{opt.label}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Habits() {
   const [habits, setHabits] = useState([]);
   const [newHabit, setNewHabit] = useState("");
   const [newCategory, setNewCategory] = useState("general");
   const [bursts, setBursts] = useState([]);
+
   const [catFilter, setCatFilter] = useState("all");
   const [rateFilter, setRateFilter] = useState("all");
   const [streakFilter, setStreakFilter] = useState("all");
 
   useEffect(() => {
-    try { const raw = localStorage.getItem("habit-tracker@v3"); if (raw) setHabits(JSON.parse(raw));
+    try {
+      const raw = localStorage.getItem("habit-tracker@v3");
+      if (raw) setHabits(JSON.parse(raw));
       else setHabits([
         { name: "drink water", category: "health", history: {}, createdAt: todayKey(), bestStreak: 0 },
-        { name: "study", category: "study", history: {}, createdAt: todayKey(), bestStreak: 0 },
+        { name: "study",        category: "study",  history: {}, createdAt: todayKey(), bestStreak: 0 },
       ]);
     } catch {}
   }, []);
-
   useEffect(() => { localStorage.setItem("habit-tracker@v3", JSON.stringify(habits)); }, [habits]);
 
   const weekDates = useMemo(() => {
-    const now = new Date();
-    const start = new Date(now);
+    const now = new Date(); const start = new Date(now);
     start.setDate(now.getDate() - now.getDay());
     return Array.from({ length: 7 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return fmt(d); });
   }, []);
@@ -88,27 +177,68 @@ export default function Habits() {
             <div className="filterbar-row">
               <div className="filter-group">
                 <div className="filterbar-title"><span className="filter-icon">⚗️</span>Filters:</div>
-                <select className="filter-select" value={catFilter} onChange={e=>setCatFilter(e.target.value)}>
-                  <option value="all">All Categories</option><option value="general">General</option><option value="study">Study</option><option value="health">Health</option><option value="mind">Mind</option>
-                </select>
-                <select className="filter-select" value={rateFilter} onChange={e=>setRateFilter(e.target.value)}>
-                  <option value="all">All Rates</option><option value="high">High (80%+)</option><option value="medium">Medium (50–79%)</option><option value="low">Low (&lt;50%)</option>
-                </select>
-                <select className="filter-select" value={streakFilter} onChange={e=>setStreakFilter(e.target.value)}>
-                  <option value="all">All Streaks</option><option value="sHigh">High (10+ days)</option><option value="sMed">Medium (5–9 days)</option><option value="sLow">Low (&lt;5 days)</option>
-                </select>
+
+                <Dropdown
+                  value={catFilter}
+                  onChange={setCatFilter}
+                  options={[
+                    { value: "all",     label: "All Categories" },
+                    { value: "general", label: "General" },
+                    { value: "study",   label: "Study" },
+                    { value: "health",  label: "Health" },
+                    { value: "mind",    label: "Mind" },
+                  ]}
+                  placeholder="All Categories"
+                />
+
+                <Dropdown
+                  value={rateFilter}
+                  onChange={setRateFilter}
+                  options={[
+                    { value: "all",    label: "All Rates" },
+                    { value: "high",   label: "High (80%+)" },
+                    { value: "medium", label: "Medium (50–79%)" },
+                    { value: "low",    label: "Low (<50%)" },
+                  ]}
+                  placeholder="All Rates"
+                />
+
+                <Dropdown
+                  value={streakFilter}
+                  onChange={setStreakFilter}
+                  options={[
+                    { value: "all",   label: "All Streaks" },
+                    { value: "sHigh", label: "High (10+ days)" },
+                    { value: "sMed",  label: "Medium (5–9 days)" },
+                    { value: "sLow",  label: "Low (<5 days)" },
+                  ]}
+                  placeholder="All Streaks"
+                />
               </div>
 
+              {/* Add Habit */}
               <div className="add-group">
-                <input className="input add-input" value={newHabit} onChange={e=>setNewHabit(e.target.value)} placeholder="Add a habit"/>
-                <select className="select add-select" value={newCategory} onChange={e=>setNewCategory(e.target.value)}>
-                  <option value="general">general</option><option value="study">study</option><option value="health">health</option><option value="mind">mind</option>
-                </select>
+                <input className="input add-input" value={newHabit} onChange={e=>setNewHabit(e.target.value)} placeholder="Add a habit" />
+
+                <Dropdown
+                  className="add-dd"
+                  value={newCategory}
+                  onChange={setNewCategory}
+                  options={[
+                    { value: "general", label: "general" },
+                    { value: "study",   label: "study" },
+                    { value: "health",  label: "health" },
+                    { value: "mind",    label: "mind" },
+                  ]}
+                  placeholder="category"
+                />
+
                 <button className="btn add-btn" onClick={addHabit}><PlusCircle size={16}/>Add</button>
               </div>
             </div>
           </section>
 
+          {/* ---------- Summary ---------- */}
           <section className="card card--violet summary">
             <div className="summary-head">
               <div className="summary-title">Today's Progress</div>
@@ -177,8 +307,6 @@ export default function Habits() {
               <motion.div key={id} initial={{opacity:0,scale:0.8,y:0,x:Math.random()*50-25}} animate={{opacity:1,scale:1,y:-20}} exit={{opacity:0}} transition={{duration:0.8}} className="sparkle">✨</motion.div>
             ))}
           </AnimatePresence>
-
-          <footer className="footer">✨</footer>
         </div>
       </div>
     </div>
