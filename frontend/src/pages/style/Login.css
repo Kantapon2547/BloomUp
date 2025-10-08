@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: linear-gradient(to right, #ede9fe, #dbeafe); /* gradient background */
+  background: linear-gradient(to right, #ede9fe, #dbeafe);
   font-family: Arial, sans-serif;
 }
 
@@ -27,7 +27,6 @@
   font-size: 28px;
   border-radius: 14px;
   margin-bottom: 12px;
-  margin-left: 1000px;
 }
 
 h1 {

@@ -1,11 +1,10 @@
 .cal-page {
   display: flex;
-  justify-content: center;      /* Centers horizontally */
-  align-items: flex-start;      /* Centers vertically, use center for full center */
+  justify-content: center;     
+  align-items: flex-start;     
   min-height: 100vh;
   background: #f5f7fa;
   font-family: "Inter", system-ui, sans-serif;
-  /* padding-top: 6rem;            Space for navbar */
   box-sizing: border-box;
 }
 
@@ -14,7 +13,8 @@
   flex-direction: column;
   width: 100%;
   max-width: 900px;
-  margin: 0 auto;             
+  margin: 0 auto;
+  gap: 1.5rem;                
   padding: 2rem;                
   background: transparent;  
   box-sizing: border-box;
@@ -43,6 +43,7 @@
   border-radius: 16px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.08);
   border: none;
+  opacity: 0;
 }
 
 .card-head, .card-head-only {
@@ -123,6 +124,7 @@
   position: relative;
   transition: all 0.2s;
   cursor: pointer;
+  min-height: 60px;       
 }
 
 .day-cell:hover {
@@ -232,3 +234,7 @@
 
 .kv-key { color: #6b7280; }
 .kv-val { font-weight: 600; color: #1f2937; }
+
+.card-body, .cal-grid {
+  overflow: visible; /* prevents clipping */
+}
