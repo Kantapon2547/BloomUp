@@ -1,4 +1,3 @@
-# app/routers/habits.py
 from datetime import date
 from typing import List, Optional
 
@@ -12,7 +11,7 @@ from ..security import get_current_user
 
 router = APIRouter(prefix="/habits", tags=["Habits"])
 
-# -------- helpers --------
+# helpers
 def _user_id(u: models.User) -> int:
     """Extract the integer user_id from the authenticated User object."""
     user_id = getattr(u, "user_id", None)
@@ -20,9 +19,7 @@ def _user_id(u: models.User) -> int:
         raise HTTPException(status_code=500, detail="Authenticated user lacks user_id")
     return user_id
 
-# Accept both FE payload styles:
-# - { "name": "drink water", "category": "health", "is_active": true }
-# - { "habit_name": "drink water", "category_id": "health", "is_active": true }
+
 class HabitCreateIn(BaseModel):
     name: Optional[str] = None
     habit_name: Optional[str] = None
@@ -44,7 +41,8 @@ class HabitCreateIn(BaseModel):
         active = True if self.is_active is None else bool(self.is_active)
         return schemas.HabitCreate(name=raw_name, category=cat, is_active=active)
 
-# -------- routes --------
+
+# routes 
 @router.get("/", response_model=List[schemas.HabitOut])
 def list_habits(
     db: Session = Depends(get_db),
