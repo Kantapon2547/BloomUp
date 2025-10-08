@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import "./DemoDashboard.css"
+import "./style/DemoDashboard.css"
+import { Link, useNavigate } from "react-router-dom";
+
 
 export default function DemoDashboard() {
   const [activeMood, setActiveMood] = useState(3)
@@ -39,10 +41,14 @@ export default function DemoDashboard() {
           <h1>
             Transform Your Life with <span className="highlight">BloomUp</span>
           </h1>
-          <p>Your personal growth companion that helps you build lasting habits, practice gratitude, and track your journey.</p>
+          <p>
+            Your personal growth companion that helps you build lasting habits,<br />
+            practice gratitude, and track your journey.
+          </p>
+
           <div className="hero-buttons">
           <button
-            className="secondary-btn px-8 py-2"
+            className="secondary-btn"
             onClick={() => window.location.href = '/signup'}
           >
             Start Your Journey

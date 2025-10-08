@@ -1,21 +1,49 @@
 /* Layout */
-.login-container {
+.signup-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: linear-gradient(to right, #ede9fe, #dbeafe); /* gradient background */
+  background: linear-gradient(to right, #ede9fe, #dbeafe); /* same as login */
   font-family: Arial, sans-serif;
 }
 
-.logo-section {
-  text-align: center;
+.signup-logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 20px;
+  text-align: center;
 }
 
-.logo {
+.signup-logo {
+  width: 56px;
+  height: 56px;
+  background-color: #7c3aed;
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  margin-left: 60px;
+}
+
+
+.signup-heading {
+  font-size: 26px;
+  font-weight: bold;
+  color: #111;
+  margin: 0;
+}
+
+/* Logo Box */
+.signup-logo {
   width: 48px;
   height: 48px;
   background-color: #7c3aed;
@@ -24,22 +52,28 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto;
   font-size: 24px;
   border-radius: 12px;
+  margin-bottom: 10px; /* space under logo */
 }
 
-h1 {
-  margin-top: 10px;
+/* Heading */
+.signup-heading {
+  font-size: 24px;
+  font-weight: bold;
+  color: #111;
+  margin: 0;
 }
 
-p {
-  color: #6b7280;
+/* Subtitle */
+.signup-subtitle {
   font-size: 14px;
+  color: #6b7280;
+  margin-top: 4px;
 }
 
 /* Card */
-.login-card {
+.signup-card {
   background-color: white;
   padding: 24px;
   border-radius: 20px;
@@ -49,18 +83,19 @@ p {
   text-align: center;
 }
 
-.input-group {
+/* Input Groups */
+.signup-input-group {
   margin-bottom: 15px;
   text-align: left;
 }
 
-label {
+.signup-input-group label {
   display: block;
   font-size: 14px;
   margin-bottom: 5px;
 }
 
-input {
+.signup-input-group input {
   width: 92%;
   padding: 10px 14px;
   border: 1px solid #d1d5db;
@@ -68,14 +103,14 @@ input {
   font-size: 14px;
 }
 
-input:focus {
+.signup-input-group input:focus {
   outline: none;
   border-color: #7c3aed; /* purple accent */
   box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
 }
 
 /* Button */
-.login-card button {
+.signup-card button {
   width: 100%;
   padding: 12px;
   background: linear-gradient(to right, #8b5cf6, #7c3aed); /* purple gradient */
@@ -88,45 +123,38 @@ input:focus {
   transition: all 0.2s ease-in-out;
 }
 
-.login-card button:hover {
+.signup-card button:hover {
   background: linear-gradient(to right, #7c3aed, #6d28d9);
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(124, 58, 237, 0.3);
 }
 
-.login-card button:disabled {
+.signup-card button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.error {
+/* Error Message */
+.signup-error {
   color: red;
   font-size: 12px;
+  margin-bottom: 10px;
 }
 
 /* Links */
 .signup-link {
   margin-top: 10px;
   font-size: 14px;
+  text-align: center;
 }
 
-.link {
+.signup-link a {
   color: #7c3aed;
   font-weight: bold;
   cursor: pointer;
   text-decoration: none;
 }
 
-.link:hover {
+.signup-link a:hover {
   text-decoration: underline;
-}
-
-.demo-dashboard {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 12px;
-}
-
-.demo-dashboard span {
-  font-family: monospace;
 }

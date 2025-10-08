@@ -1,0 +1,234 @@
+.cal-page {
+  display: flex;
+  justify-content: center;      /* Centers horizontally */
+  align-items: flex-start;      /* Centers vertically, use center for full center */
+  min-height: 100vh;
+  background: #f5f7fa;
+  font-family: "Inter", system-ui, sans-serif;
+  /* padding-top: 6rem;            Space for navbar */
+  box-sizing: border-box;
+}
+
+.cal-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;             
+  padding: 2rem;                
+  background: transparent;  
+  box-sizing: border-box;
+}
+
+
+.cal-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.cal-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin-bottom: 0.2rem;
+}
+
+.cal-subtitle {
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  border: none;
+}
+
+.card-head, .card-head-only {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.card-head-only {
+  justify-content: flex-start;
+  gap: 10px;
+  border-bottom: none;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.calendar-card {
+  margin-bottom: 20px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: none;
+  background: #e0e7ff;
+  color: #1f2937;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  background: #c7d2fe;
+}
+
+.week-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.week-name {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #6b7280;
+  padding: 8px 0;
+  font-weight: 600;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+}
+
+.day-cell {
+  aspect-ratio: 1/1;
+  border-radius: 10px;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.day-cell:hover {
+  background: #eef2ff;
+}
+
+.day-empty {
+  background: transparent;
+}
+
+.day-number {
+  font-size: 0.9rem;
+  color: #4b5563;
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-weight: 600;
+}
+
+.day-emoji {
+  font-size: 1.3rem;
+}
+
+.day-today {
+  border: 2px solid #6366f1;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 900px) {
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+}
+
+.summary-list, .insights {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.summary-emoji {
+  font-size: 1.4rem;
+}
+
+.summary-text .summary-label {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.summary-text .summary-sub {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.stat {
+  width: 12px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.stat.tough { background: #ef4444; }
+.stat.okay { background: #fbbf24; }
+.stat.good { background: #10b981; }
+.stat.great { background: #6366f1; }
+.stat.amazing { background: #f97316; }
+
+.insight-positive {
+  text-align: center;
+  background: #e0f2fe;
+  padding: 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  color: #0c4a6e;
+}
+
+.insight-number {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.insight-label {
+  font-size: 0.95rem;
+  color: #1e3a8a;
+  margin-top: 4px;
+}
+
+.kv {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+}
+
+.kv-key { color: #6b7280; }
+.kv-val { font-weight: 600; color: #1f2937; }
