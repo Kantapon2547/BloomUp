@@ -15,13 +15,22 @@ const GratitudeJar = () => {
   const [entries, setEntries] = useState([]);
   const [text, setText] = useState("");
   const [category, setCategory] = useState("");
+  const [error, setError] = useState("");
 
   const addEntry = () => {
     if (!text.trim()) return;
+
+    // Require category selection
+    if (!category) {
+      setError("⚠️ Please select a category before adding your entry.");
+      return;
+    }
+
+    setError("");
     const newEntry = {
       id: Date.now(),
       text,
-      category: category || "General",
+      category,
       date: new Date().toLocaleDateString(),
     };
     setEntries([newEntry, ...entries]);
@@ -29,14 +38,12 @@ const GratitudeJar = () => {
     setCategory("");
   };
 
-  // Delete function
   const deleteEntry = (id) => {
     setEntries(entries.filter((entry) => entry.id !== id));
   };
 
   return (
     <div className="app-container">
-
       <main className="main-content">
         <h1 className="page-title">
           Gratitude Jar <span className="heart">💜</span>
@@ -49,7 +56,7 @@ const GratitudeJar = () => {
         <div className="stats-container">
           <div className="stat-card purple">
             <h2>{entries.length}</h2>
-            <p>Total Entries</p>
+            <p>Total {entries.length <= 1 ? "Entry" : "Entries"}</p>
           </div>
           <div className="stat-card blue">
             <h2>
@@ -77,13 +84,16 @@ const GratitudeJar = () => {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
-            <option value="">Select Category (optional)</option>
+            <option value="">Select Category</option>
             {Object.keys(categoryColors).map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
               </option>
             ))}
           </select>
+
+          {/* Validation message */}
+          {error && <p className="error-text">{error}</p>}
 
           <button onClick={addEntry}>Add Entry</button>
         </div>
@@ -106,7 +116,6 @@ const GratitudeJar = () => {
               <p>{entry.text}</p>
               <div className="entry-footer">
                 <span className="tag">💜 Grateful moment</span>
-                {/* Delete Icon */}
                 <span
                   className="delete-icon"
                   onClick={() => deleteEntry(entry.id)}
@@ -117,6 +126,15 @@ const GratitudeJar = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* 💡 Daily Gratitude Tip */}
+        <div className="daily-tip">
+          <h3>Daily Gratitude Tip</h3>
+          <p>
+            "Try to notice three small things each day that bring you joy — they don't have to be big moments,
+            sometimes the smallest things create the most happiness."
+          </p>
         </div>
       </main>
     </div>
