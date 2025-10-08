@@ -2,12 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .db import Base, engine
-from .routers import auth, users, habits # <-- ADD 'habits' HERE
+from .routers import auth, users, habits, gratitude
 import os
 
 app = FastAPI(title="BloomUp API")
 
-# create tables (this will now create 'habits' and 'habit_logs' too)
 Base.metadata.create_all(bind=engine)
 
 # CORS
@@ -31,4 +30,5 @@ def root():
 # include routers
 app.include_router(auth.router)
 app.include_router(users.router)
-app.include_router(habits.router) # <-- ADD THE NEW HABITS ROUTER
+app.include_router(habits.router) 
+app.include_router(gratitude.router)

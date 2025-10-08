@@ -65,7 +65,8 @@ def get_current_user(
     """
     Dependency function to retrieve the authenticated user from the JWT token.
     """
-    from . import crud # Local import to avoid circular dependency issues
+    from . import crud 
+    # Local import to avoid circular dependency issues
     email = decode_token(token) 
     user = crud.get_user_by_email(db, email=email)
 

@@ -78,8 +78,8 @@ def delete_user_habit(db: Session, habit_id: int, user_id: int) -> bool:
     db.commit()
     return True
 
-# completion
 def log_habit_completion(db: Session, habit_id: int, user_id: int, completed_on: date):
+    # completion
     db_completion = models.HabitCompletion(
         habitid=habit_id,
         user_id=user_id,
@@ -89,7 +89,6 @@ def log_habit_completion(db: Session, habit_id: int, user_id: int, completed_on:
     db.commit()
     db.refresh(db_completion)
     return db_completion
-
 
 def remove_habit_completion(db: Session, habit_id: int, user_id: int, completed_on: date) -> bool:
     stmt = delete(models.HabitCompletion).where(
@@ -102,3 +101,66 @@ def remove_habit_completion(db: Session, habit_id: int, user_id: int, completed_
     result = db.execute(stmt)
     db.commit()
     return result.rowcount > 0
+
+
+# Gratitude
+def get_user_gratitude_entries(db: Session, user_id: int) -> List[dict]:
+    """Get all gratitude entries for a user, formatted for frontend."""
+    entries = (
+        db.query(models.GratitudeEntry)
+        .filter(models.GratitudeEntry.user_id == user_id)
+        .order_by(models.GratitudeEntry.created_at.desc())
+        .all()
+    )
+    
+    return [
+        {
+            "id": entry.gratitude_id,
+            "text": entry.body,
+            "category": entry.category or "",
+            "date": entry.created_at.strftime("%d/%m/%Y"),  # DD/MM/YYYY
+        }
+        for entry in entries
+    ]
+
+def create_gratitude_entry(
+    db: Session, 
+    user_id: int, 
+    text: str, 
+    category: Optional[str] = None
+) -> dict:
+    """Create a new gratitude entry."""
+    entry = models.GratitudeEntry(
+        user_id=user_id,
+        body=text,
+        category=category,
+    )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    
+    return {
+        "id": entry.gratitude_id,
+        "text": entry.body,
+        "category": entry.category or "",
+        "date": entry.created_at.strftime("%m/%d/%Y"),
+    }
+
+
+def delete_gratitude_entry(db: Session, entry_id: int, user_id: int) -> bool:
+    """Delete a gratitude entry (only if owned by user)."""
+    entry = (
+        db.query(models.GratitudeEntry)
+        .filter(
+            models.GratitudeEntry.gratitude_id == entry_id,
+            models.GratitudeEntry.user_id == user_id,
+        )
+        .first()
+    )
+    
+    if not entry:
+        return False
+    
+    db.delete(entry)
+    db.commit()
+    return True

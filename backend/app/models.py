@@ -33,6 +33,13 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    # User ↔ GratitudeEntry
+    gratitude_entries = relationship(
+        "GratitudeEntry",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
 
 class Habit(Base):
     __tablename__ = "habits"
@@ -87,4 +94,21 @@ class HabitCompletion(Base):
     __table_args__ = (
         UniqueConstraint("habit_id", "user_id", "completed_on",
                          name="uq_completion_per_day"),
+    )
+
+
+class GratitudeEntry(Base):
+    __tablename__ = "gratitude_entries"
+
+    gratitude_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"),
+                     nullable=False, index=True)
+    body = Column(Text, nullable=False)
+    category = Column(String, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    # GratitudeEntry ↔ User
+    user = relationship(
+        "User",
+        back_populates="gratitude_entries",
     )
