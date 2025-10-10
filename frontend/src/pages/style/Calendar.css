@@ -1,7 +1,7 @@
 .cal-page {
   display: flex;
-  justify-content: center;     
-  align-items: flex-start;     
+  justify-content: center;
+  align-items: flex-start;
   min-height: 100vh;
   background: #f5f7fa;
   font-family: "Inter", system-ui, sans-serif;
@@ -14,12 +14,11 @@
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-  gap: 1.5rem;                
-  padding: 2rem;                
-  background: transparent;  
+  gap: 1.5rem;
+  padding: 2rem;
+  background: transparent;
   box-sizing: border-box;
 }
-
 
 .cal-header {
   text-align: center;
@@ -124,7 +123,7 @@
   position: relative;
   transition: all 0.2s;
   cursor: pointer;
-  min-height: 60px;       
+  min-height: 60px;
 }
 
 .day-cell:hover {
@@ -159,7 +158,9 @@
 }
 
 @media (min-width: 900px) {
-  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .summary-list, .insights {
@@ -200,11 +201,25 @@
   border-radius: 6px;
 }
 
-.stat.tough { background: #ef4444; }
-.stat.okay { background: #fbbf24; }
-.stat.good { background: #10b981; }
-.stat.great { background: #6366f1; }
-.stat.amazing { background: #f97316; }
+.stat.tough {
+  background: #ef4444;
+}
+
+.stat.okay {
+  background: #fbbf24;
+}
+
+.stat.good {
+  background: #10b981;
+}
+
+.stat.great {
+  background: #6366f1;
+}
+
+.stat.amazing {
+  background: #f97316;
+}
 
 .insight-positive {
   text-align: center;
@@ -232,8 +247,14 @@
   font-size: 0.95rem;
 }
 
-.kv-key { color: #6b7280; }
-.kv-val { font-weight: 600; color: #1f2937; }
+.kv-key {
+  color: #6b7280;
+}
+
+.kv-val {
+  font-weight: 600;
+  color: #1f2937;
+}
 
 .card-body, .cal-grid {
   overflow: visible; /* prevents clipping */

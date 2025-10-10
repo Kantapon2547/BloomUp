@@ -59,7 +59,6 @@ export default function Calendar() {
     );
   }, []);
   
-  
 
   // --- Animate month label on change ---
   useEffect(() => {
