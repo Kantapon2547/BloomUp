@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect} from "react";
 import "./style/GratitudeJar.css";
 
 const categoryColors = {
@@ -33,6 +33,18 @@ const GratitudeJar = () => {
   const deleteEntry = (id) => {
     setEntries(entries.filter((entry) => entry.id !== id));
   };
+
+  
+
+useEffect(() => {
+  const saved = JSON.parse(localStorage.getItem("gratitude.entries") || "[]");
+  setEntries(saved);
+}, []);
+
+useEffect(() => {
+  localStorage.setItem("gratitude.entries", JSON.stringify(entries));
+}, [entries]);
+
 
   return (
     <div className="app-container">

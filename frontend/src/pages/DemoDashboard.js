@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 import "./style/DemoDashboard.css"
-import { Link, useNavigate } from "react-router-dom";
-
 
 export default function DemoDashboard() {
   const [activeMood, setActiveMood] = useState(3)
