@@ -131,3 +131,22 @@ input:focus {
 .demo-dashboard span {
   font-family: monospace;
 }
+
+/* 🆕 Back Arrow */
+.back-arrow {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.back-arrow:hover {
+  color: white;
+  transform: translateX(-3px);
+}

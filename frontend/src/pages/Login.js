@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./style/Login.css";
+import { FiArrowLeft } from "react-icons/fi"; // 🆕 optional if using react-icons
 
 export function Login({ onLoginSuccess }) {
   const navigate = useNavigate();
@@ -11,9 +12,7 @@ export function Login({ onLoginSuccess }) {
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:8000";
 
-  // Prefill email if coming from signup
   const prefillEmail = location.state?.email || "";
-
   const [email, setEmail] = useState(prefillEmail);
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -36,23 +35,18 @@ export function Login({ onLoginSuccess }) {
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.detail || "Login failed");
-      }
+      if (!res.ok) throw new Error(data?.detail || "Login failed");
 
-      // Save token if backend returns one
       if (data.access_token) {
         localStorage.setItem("token", data.access_token);
       }
 
-      // when success, go to homepage
       if (onLoginSuccess) {
         const loggedInUser = { email };
         localStorage.setItem("user", JSON.stringify(loggedInUser));
         onLoginSuccess(loggedInUser);
         navigate("/home", { replace: true });
       }
-
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -62,6 +56,11 @@ export function Login({ onLoginSuccess }) {
 
   return (
     <div className="login-container">
+      {/* 🆕 Back Arrow */}
+      <div className="back-arrow" onClick={() => navigate("/demo")}>
+        <FiArrowLeft size={22} /> {/* or use "←" instead */}
+      </div>
+
       <div className="logo-section">
         <div className="logo">B</div>
         <h1>BloomUp</h1>
