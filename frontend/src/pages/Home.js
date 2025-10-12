@@ -171,7 +171,6 @@ export default function Home({ user }) {
     style: { cursor: "pointer" },
   }), []);
 
-  // Simplified progress bar animation without bounce
   const animateProgressBar = useCallback((targetWidth, duration = 1.2) => {
     if (!progressFillRef.current) return;
 
@@ -344,7 +343,6 @@ export default function Home({ user }) {
                   <div
                     className="progress-fill"
                     ref={progressFillRef}
-                    // Remove the inline style that sets width to 0
                   />
                 </div>
               </div>

@@ -144,7 +144,6 @@
   color: var(--gray-600);
   margin-bottom: var(--spacing-xs);
 }
-/* Add to your Home.css file */
 
 .progress-bar-container {
   position: relative;
@@ -169,7 +168,7 @@
     #f093fb 100%);
   border-radius: 6px;
   position: relative;
-  transition: none; /* GSAP handles all animations */
+  transition: none;
   transform-origin: left center;
   box-shadow: 
     0 0 20px rgba(102, 126, 234, 0.4),
@@ -195,52 +194,12 @@
   pointer-events: none;
 }
 
-/* Progress milestones */
-.progress-milestones {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 8px;
-  position: relative;
-}
-
-.milestone {
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.4);
-  transition: all 0.3s ease;
-  position: relative;
-  padding-top: 15px;
-}
-
-.milestone::before {
-  content: '';
-  position: absolute;
-  top: -18px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 2px;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
-}
-
-.milestone.reached {
-  color: #667eea;
-  font-weight: 600;
-}
-
-.milestone.reached::before {
-  background: #667eea;
-  height: 12px;
-}
-
-/* Enhanced progress card hover effects */
 .progress-card:hover .progress-fill {
   box-shadow: 
     0 0 30px rgba(102, 126, 234, 0.6),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-/* Smooth percentage counter animation */
 .progress-info span:last-child {
   transition: all 0.5s ease;
   font-weight: 600;
