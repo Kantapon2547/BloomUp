@@ -65,6 +65,7 @@ export default function Home({ user }) {
   // Derived state
   const completedHabits = completed.filter(Boolean).length;
   const totalHabits = habits.length;
+  const progressPercentage = totalHabits ? (completedHabits / totalHabits) * 100 : 0;
   const randomQuote = MOTIVATION_QUOTES[Math.floor(Math.random() * MOTIVATION_QUOTES.length)];
   const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "User";
 
@@ -93,6 +94,7 @@ export default function Home({ user }) {
     }
   }, [todayStr]);
 
+  // Simplified toggleHabit without bounce animation
   const toggleHabit = useCallback((index) => {
     const newCompleted = [...completed];
     newCompleted[index] = !newCompleted[index];
@@ -118,13 +120,6 @@ export default function Home({ user }) {
     } catch (error) {
       console.error("Failed to toggle habit:", error);
     }
-
-    // Animation
-    gsap.fromTo(
-      `.habit-card:nth-child(${index + 2})`,
-      { scale: 0.95 },
-      { scale: 1, duration: 0.3, ease: "power2.out" }
-    );
   }, [completed, habits]);
 
   // Mood handlers
@@ -176,6 +171,17 @@ export default function Home({ user }) {
     style: { cursor: "pointer" },
   }), []);
 
+  // Simplified progress bar animation without bounce
+  const animateProgressBar = useCallback((targetWidth, duration = 1.2) => {
+    if (!progressFillRef.current) return;
+
+    gsap.to(progressFillRef.current, {
+      width: `${targetWidth}%`,
+      duration: duration,
+      ease: "power2.inOut"
+    });
+  }, []);
+
   // Effects
   useEffect(() => {
     // Clean up overlays and filters
@@ -199,11 +205,16 @@ export default function Home({ user }) {
       const storedStreak = JSON.parse(localStorage.getItem(LS_KEYS.streak) || "null");
       
       // Load random gratitude
-      const allEntries = JSON.parse(localStorage.getItem("gratitude.entries") || "[]");
-      const gratitudeText = allEntries.length > 0 
-        ? allEntries[Math.floor(Math.random() * allEntries.length)].text
-        : "Take a moment to feel grateful today.";
-      setRandomGratitude(gratitudeText);
+      try {
+        const allEntries = JSON.parse(localStorage.getItem("gratitudeEntries") || "[]");
+        const gratitudeText =
+          allEntries.length > 0
+            ? allEntries[Math.floor(Math.random() * allEntries.length)].text
+            : "Take a moment to feel grateful today.";
+        setRandomGratitude(gratitudeText);
+      } catch {
+        setRandomGratitude("Take a moment to feel grateful today.");
+      }
 
       // Set mood if saved today
       if (storedMood && storedMood.date === todayStr) {
@@ -230,7 +241,7 @@ export default function Home({ user }) {
   }, [syncFromHabits, todayStr]);
 
   useEffect(() => {
-    // Initial animations
+    // Initial animations without bounce
     const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
     gsap.set([".home-header", ".left-col > div", ".right-col > div"], { opacity: 1 });
     
@@ -239,14 +250,19 @@ export default function Home({ user }) {
       .from(".right-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.7");
   }, []);
 
+  // Progress bar effect - Set initial width immediately, then animate changes
   useEffect(() => {
-    // Progress bar animation
-    gsap.to(progressFillRef.current, {
-      width: `${totalHabits ? (completedHabits / totalHabits) * 100 : 0}%`,
-      duration: 0.8,
-      ease: "power2.out",
-    });
-  }, [completedHabits, totalHabits]);
+    // Set the initial width immediately on component mount
+    if (progressFillRef.current) {
+      progressFillRef.current.style.width = `${progressPercentage}%`;
+    }
+  }, []);
+
+  useEffect(() => {
+    // Animate progress bar when progress changes
+    const duration = 0.8;
+    animateProgressBar(progressPercentage, duration);
+  }, [progressPercentage, animateProgressBar]);
 
   useEffect(() => {
     // Streak calculation
@@ -320,15 +336,17 @@ export default function Home({ user }) {
               <div className="progress-info">
                 <span>Today's Progress</span>
                 <span>
-                  {totalHabits ? Math.round((completedHabits / totalHabits) * 100) : 0}%
+                  {Math.round(progressPercentage)}%
                 </span>
               </div>
-              <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  ref={progressFillRef}
-                  style={{ width: 0 }}
-                />
+              <div className="progress-bar-container">
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    ref={progressFillRef}
+                    // Remove the inline style that sets width to 0
+                  />
+                </div>
               </div>
             </div>
 
@@ -361,6 +379,7 @@ export default function Home({ user }) {
           </div>
 
           <div className="right-col" ref={rightColRef}>
+            
             <div
               className="streak-card"
               {...makeCardInteractive(() => navigate("/reports"))}
@@ -402,7 +421,7 @@ export default function Home({ user }) {
                 </div>
               )}
             </div>
-
+            
             <div
               className="gratitude-card"
               {...makeCardInteractive(() => navigate("/gratitude"))}

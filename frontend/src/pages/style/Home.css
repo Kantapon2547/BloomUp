@@ -144,19 +144,111 @@
   color: var(--gray-600);
   margin-bottom: var(--spacing-xs);
 }
+/* Add to your Home.css file */
+
+.progress-bar-container {
+  position: relative;
+  width: 100%;
+}
 
 .progress-bar {
-  background: var(--gray-200);
+  position: relative;
+  width: 100%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
   overflow: hidden;
-  padding-bottom: 0;
-  margin-bottom: 0;
+  backdrop-filter: blur(10px);
 }
 
 .progress-fill {
-  background: var(--gradient-progress);
   height: 100%;
-  border-radius: var(--radius-full);
-  transition: width 1.3s ease;
+  background: linear-gradient(90deg, 
+    #667eea 0%, 
+    #764ba2 50%, 
+    #f093fb 100%);
+  border-radius: 6px;
+  position: relative;
+  transition: none; /* GSAP handles all animations */
+  transform-origin: left center;
+  box-shadow: 
+    0 0 20px rgba(102, 126, 234, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Floating particles */
+.progress-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.progress-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Progress milestones */
+.progress-milestones {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  position: relative;
+}
+
+.milestone {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  padding-top: 15px;
+}
+
+.milestone::before {
+  content: '';
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.milestone.reached {
+  color: #667eea;
+  font-weight: 600;
+}
+
+.milestone.reached::before {
+  background: #667eea;
+  height: 12px;
+}
+
+/* Enhanced progress card hover effects */
+.progress-card:hover .progress-fill {
+  box-shadow: 
+    0 0 30px rgba(102, 126, 234, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Smooth percentage counter animation */
+.progress-info span:last-child {
+  transition: all 0.5s ease;
+  font-weight: 600;
+}
+
+.progress-card:hover .progress-info span:last-child {
+  transform: scale(1.1);
+  color: #667eea;
 }
 
 /* Habit Card */
@@ -202,32 +294,53 @@
 
 .habit-meta {
   display: flex;
-  gap: var(--spacing-xs);
+  gap: 14px;
   font-size: 0.75rem;
   margin-top: 0.3rem;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 /* Tag System */
 .tag {
-  padding: 2px 6px;
-  border-radius: var(--radius-full);
-  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1.5px solid;
+  text-transform: lowercase;
+}
+
+.tag.general { 
+  background: #dbeafe; 
+  color: #1e40af; 
+  border-color: #93c5fd; 
 }
 
 .tag.study { 
-  background: #f3e8ff; 
-  color: #7c3aed; 
+  background: #e0f2fe; 
+  color: #0369a1; 
+  border-color: #7dd3fc; 
 }
 
 .tag.health { 
   background: #dcfce7; 
-  color: var(--green); 
+  color: #15803d; 
+  border-color: #86efac; 
+}
+
+.tag.mind { 
+  background: #ede9fe; 
+  color: #5b21b6; 
+  border-color: #c4b5fd; 
 }
 
 .tag.personal { 
   background: #dbeafe; 
-  color: #2563eb; 
+  color: #1e40af; 
+  border-color: #93c5fd; 
 }
+
 
 /* Mood Card */
 .mood-list {
@@ -291,13 +404,19 @@
 
 /* Gratitude Card */
 .gratitude-card {
-  background: var(--gradient-gratitude);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-lg);
+  background: var(--gradient-gratitude, linear-gradient(to right, #fde68a, #fcd34d));
+  border-radius: var(--radius-md, 12px);
+  padding: 16px 20px;
   font-style: italic;
-  color: var(--gray-800);
-  border: 1px solid #fed7aa;
+  color: var(--gray-800, #1f2937);
+  border: 1px solid #fcd34d;
   text-align: center;
+
+  white-space: normal;
+  word-break: break-word; 
+  overflow-wrap: break-word;  
+  overflow: hidden;
+  max-width: 100%;
 }
 
 /* Quote Card */
@@ -308,6 +427,13 @@
   border-left: 3px solid var(--violet);
   padding-left: var(--spacing-md);
   margin: 0;
+
+
+  white-space: normal;
+  word-break: break-word; 
+  overflow-wrap: break-word;  
+  overflow: hidden;
+  max-width: 100%;
 }
 
 /* Streak Card */
@@ -315,6 +441,10 @@
   text-align: center; 
   padding-top: 2.5rem;
   justify-content: center;
+
+  color: #ea580c;
+  font-weight: 600;
+  font-size: 13.5px;
 }
 
 .streak-number {
@@ -328,6 +458,7 @@
   padding-top: var(--spacing-sm);
   color: var(--gray-600); 
 }
+
 
 /* ===== TYPOGRAPHY SPACING ===== */
 .progress-card h3,
