@@ -66,7 +66,7 @@ export default function Home({ user }) {
   const completedHabits = completed.filter(Boolean).length;
   const totalHabits = habits.length;
   const progressPercentage = totalHabits ? (completedHabits / totalHabits) * 100 : 0;
-  const randomQuote = MOTIVATION_QUOTES[Math.floor(Math.random() * MOTIVATION_QUOTES.length)];
+  const [dailyQuote, setDailyQuote] = useState("");
   const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "User";
 
   // Data synchronization
@@ -304,14 +304,11 @@ export default function Home({ user }) {
     .sort((a, b) => a.done - b.done);
 
   // Get daily quote
-  const dailyQuote = (() => {
-    try {
-      const quote = JSON.parse(localStorage.getItem(LS_KEYS.dailyQuote) || "null");
-      return quote?.date === todayStr ? quote.text : randomQuote;
-    } catch {
-      return randomQuote;
-    }
-  })();
+  
+useEffect(() => {
+  const randomText = MOTIVATION_QUOTES[Math.floor(Math.random() * MOTIVATION_QUOTES.length)];
+  setDailyQuote(randomText);
+}, []);
 
   return (
     <div className="home-layout">
@@ -321,7 +318,7 @@ export default function Home({ user }) {
             <h1>{`${getGreeting()}, ${displayName}! 🌸`}</h1>
             <p>
               You've completed {completedHabits} of {totalHabits}{" "}
-              {totalHabits === 1 ? "task" : "tasks"} today.
+              {totalHabits <= 1 ? "task" : "tasks"} today.
             </p>
           </div>
         </header>
@@ -368,7 +365,7 @@ export default function Home({ user }) {
                       {habit.tag}
                     </span>
                     <span className="streak">
-                      🔥 {habit.streak} {habit.streak === 1 ? "day" : "days"} streak
+                      🔥 {habit.streak} {habit.streak <= 1 ? "day" : "days"} streak
                     </span>
                   </div>
                 </div>
@@ -385,7 +382,7 @@ export default function Home({ user }) {
               <h3>Streak</h3>
               <div className="streak-number">{overallStreak}</div>
               <p className="streak-sub">
-                {overallStreak === 1 ? "Day Active 🔥" : "Days Active 🔥"}
+                {overallStreak <= 1 ? "Day Active 🔥" : "Days Active 🔥"}
               </p>
             </div>
 
