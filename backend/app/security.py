@@ -1,10 +1,15 @@
 import jwt
+import os
+
 from jwt import ExpiredSignatureError, InvalidTokenError
 from datetime import datetime, timedelta
-from fastapi import HTTPException, Depends
+from fastapi import HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-import os
+from . import models
+from .db import get_db
+
 
 BCRYPT_MAX_BYTES = 72
 JWT_SECRET = os.getenv("JWT_SECRET", "change_me")
@@ -52,3 +57,23 @@ def get_current_email(token: str = Depends(oauth2_scheme)) -> str:
     if not email:
         raise HTTPException(status_code=401, detail="Could not validate credentials")
     return email
+
+def get_current_user(
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme),
+) -> models.User:
+    """
+    Dependency function to retrieve the authenticated user from the JWT token.
+    """
+    from . import crud 
+    # Local import to avoid circular dependency issues
+    email = decode_token(token) 
+    user = crud.get_user_by_email(db, email=email)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user

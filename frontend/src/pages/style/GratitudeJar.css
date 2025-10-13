@@ -1,4 +1,4 @@
-/* 🌸 Full-width background */
+/* Overall Layout */
 .app-container {
   display: flex;
   justify-content: center;
@@ -34,7 +34,7 @@
   margin-bottom: 30px;
 }
 
-/* 📊 Stats Section */
+/* Stats Section */
 .stats-container {
   display: flex;
   justify-content: space-between;
@@ -66,8 +66,9 @@
 
 .stat-card.purple h2 { color: #7a5af8; }
 .stat-card.blue h2 { color: #2196f3; }
+.stat-card.green h2 { color: #4caf50; }
 
-/* 📝 Entry Form */
+/* Entry Form */
 .entry-form {
   background: white;
   padding: 25px;
@@ -206,6 +207,7 @@
   margin: 0 auto;
 }
 
+/* Entry Cards */
 .entry-card {
   background: white;
   padding: 16px;

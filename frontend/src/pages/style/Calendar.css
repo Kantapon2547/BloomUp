@@ -1,11 +1,10 @@
 .cal-page {
   display: flex;
-  justify-content: center;      /* Centers horizontally */
-  align-items: flex-start;      /* Centers vertically, use center for full center */
+  justify-content: center;      
+  align-items: flex-start;      
   min-height: 100vh;
   background: #f5f7fa;
   font-family: "Inter", system-ui, sans-serif;
-  /* padding-top: 6rem;            Space for navbar */
   box-sizing: border-box;
 }
 
