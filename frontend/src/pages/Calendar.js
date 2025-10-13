@@ -19,18 +19,6 @@ function buildMonthGrid(year, month) {
   return cells;
 }
 
-// Sample mood data
-const sampleMoods = {};
-[
-  [2024, 11, 1, "😊"], [2024, 11, 2, "🙂"], [2024, 11, 3, "😁"],
-  [2024, 11, 4, "🙂"], [2024, 11, 5, "🙂"], [2024, 11, 6, "😊"],
-  [2024, 11, 7, "😁"], [2024, 11, 8, "😭"], [2024, 11, 9, "🙂"],
-  [2024, 11, 10, "😊"], [2024, 11, 11, "😁"], [2024, 11, 12, "😊"],
-  [2024, 11, 13, "🙂"], [2024, 11, 14, "😁"], [2024, 11, 15, "😊"],
-  [2024, 11, 16, "😐"], [2024, 11, 17, "🙂"], [2024, 11, 18, "😁"],
-  [2024, 11, 19, "😊"], [2024, 11, 20, "🙂"], [2025, 9, 2, "😁"]
-].forEach(([y, m, d, emo]) => (sampleMoods[dateKey(y, m, d)] = emo));
-
 const LEGEND = [
   ["😭", "Tough"], ["😐", "Okay"], ["🙂", "Good"], ["😊", "Great"], ["😁", "Amazing"],
 ];
@@ -52,7 +40,94 @@ export default function Calendar() {
   const cells = useMemo(() => buildMonthGrid(date.year, date.month), [date]);
   const daysInMonth = new Date(date.year, date.month + 1, 0).getDate();
 
-  // Stats
+  const calRef = useRef(null);
+  const monthRef = useRef(null);
+  const cardRefs = useRef([]);
+
+  // --- Load moods from backend ---
+  useEffect(() => {
+    const loadMoods = async () => {
+      try {
+        const res = await fetch(`${API}/moods/`, { headers: authHeaders() });
+        if (res.ok) {
+          const data = await res.json();
+          const moodMap = {};
+          data.forEach(m => {
+            moodMap[m.date] = m.mood;
+          });
+          setMoods(moodMap);
+        }
+      } catch (e) {
+        console.error("Failed to load moods:", e);
+      }
+    };
+    loadMoods();
+  }, []);
+
+  // --- Load local mood saved from Home.js ---
+  useEffect(() => {
+    try {
+      const LS_KEY = "home.mood";
+      const stored = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+      if (stored && stored.date && typeof stored.value === "number") {
+        const emojis = ["😭", "😐", "🙂", "😊", "😁"];
+        const moodEmoji = emojis[stored.value];
+        if (moodEmoji) {
+          setMoods(prev => ({
+            ...prev,
+            [stored.date]: moodEmoji,
+          }));
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load local mood:", e);
+    }
+  }, []);
+
+  // --- Update instantly when Home saves mood ---
+  useEffect(() => {
+    const reloadMood = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem("home.mood") || "null");
+        if (stored && stored.date && typeof stored.value === "number") {
+          const emojis = ["😭", "😐", "🙂", "😊", "😁"];
+          const moodEmoji = emojis[stored.value];
+          if (moodEmoji) {
+            setMoods(prev => ({ ...prev, [stored.date]: moodEmoji }));
+          }
+        }
+      } catch {}
+    };
+    window.addEventListener("moodUpdated", reloadMood);
+    return () => window.removeEventListener("moodUpdated", reloadMood);
+  }, []);
+
+  useEffect(() => {
+    if (!calRef.current) return;
+    gsap.set(calRef.current, { opacity: 1, visibility: "visible" });
+    gsap.fromTo(
+      cardRefs.current,
+      { opacity: 0, y: 40 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        ease: "power2.out",
+        stagger: 0.15,
+      }
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!monthRef.current) return;
+    gsap.set(monthRef.current, { opacity: 1, y: 0 });
+    gsap.fromTo(
+      monthRef.current,
+      { opacity: 0, y: 15 },
+      { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }
+    );
+  }, [date]);
+
   const moodCounts = useMemo(() => {
     const counts = {};
     for (let d = 1; d <= daysInMonth; d++) {
@@ -148,23 +223,19 @@ export default function Calendar() {
           <div className="card insights-card" ref={el => (cardRefs.current[2] = el)}>
             <div className="card-head-only"><h3 className="card-title">Monthly Insights</h3></div>
             <div className="card-body">
-              <div className="insights">
-                <div className="insight-positive">
-                  <div className="insight-number">{positivePct}%</div>
-                  <div className="insight-label">Positive mood days</div>
-                </div>
-                <div className="insight-kvs">
-                  <div className="kv">
-                    <span className="kv-key">Most common mood:</span>
-                    <span className="kv-val">
-                      {Object.entries(moodCounts).sort((a,b)=>b[1]-a[1])[0]?.[0] || "—"}
-                    </span>
-                  </div>
-                  <div className="kv">
-                    <span className="kv-key">Days tracked:</span>
-                    <span className="kv-val">{totalTracked} / {daysInMonth}</span>
-                  </div>
-                </div>
+              <div className="insight-positive">
+                <div className="insight-number">{positivePct}%</div>
+                <div className="insight-label">Positive mood days</div>
+              </div>
+              <div className="kv">
+                <span className="kv-key">Most common mood:</span>
+                <span className="kv-val">
+                  {Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "—"}
+                </span>
+              </div>
+              <div className="kv">
+                <span className="kv-key">Days tracked:</span>
+                <span className="kv-val">{totalTracked} / {daysInMonth}</span>
               </div>
             </div>
           </div>
