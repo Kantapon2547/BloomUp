@@ -8,7 +8,15 @@
   padding: 40px 20px;
   font-family: "Poppins", sans-serif;
   box-sizing: border-box;
+  animation: gradientBG 15s ease infinite;
 }
+
+@keyframes gradientBG {
+  0% {background-position: 0% 50%;}
+  50% {background-position: 100% 50%;}
+  100% {background-position: 0% 50%;}
+}
+
 
 /* 🌿 Centered content card */
 .main-content {
@@ -18,13 +26,20 @@
   margin: 0 auto;
   padding: 30px 40px;
   background: linear-gradient(to right, #ede9fe, #dbeafe);
+  animation: gradientBG 15s ease infinite;
+}
+
+@keyframes gradientBG {
+  0% {background-position: 0% 50%;}
+  50% {background-position: 100% 50%;}
+  100% {background-position: 0% 50%;}
 }
 
 /* 🏷️ Page Title */
 .page-title {
   font-size: 26px;
   font-weight: bold;
-  color: #4a2f7b;
+  color: ##000000;
   margin-bottom: 8px;
 }
 
@@ -56,6 +71,15 @@
 .stat-card h2 {
   font-size: 28px;
   margin: 0;
+  animation: colorPulse 3s ease-in-out infinite;
+}
+
+@keyframes colorPulse {
+  0% { color: #7a5af8; }
+  25% { color: #2196f3; }
+  50% { color: #ff5722; }
+  75% { color: #66bb6a; }
+  100% { color: #7a5af8; }
 }
 
 .stat-card p {
@@ -79,13 +103,13 @@
 .entry-form h3 {
   font-weight: 600;
   color: #4a2f7b;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 /* 🖊️ Textarea & Normal Select (new gray style) */
 .entry-form textarea,
 .entry-form select:not(.custom-dropdown select) {
-  width: 98%;
+  width: 100%;
   padding: 12px;
   margin-bottom: 14px;
   border: 1px solid #ddd;
@@ -182,6 +206,7 @@
 
 /* Add Button */
 .entry-form button {
+  margin-top: 4px;
   background-color: #7a5af8;
   color: #fff;
   border: none;
@@ -212,6 +237,7 @@
   border-radius: 12px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  margin-top: 12px;
 }
 
 .entry-card:hover {
@@ -253,22 +279,28 @@
 }
 
 .delete-icon {
+  width: 18px;
+  height: 18px;
+  margin-left: 8px;
   cursor: pointer;
-  font-size: 16px;
-  transition: color 0.2s;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  vertical-align: middle;
 }
 
-.delete-icon:hover { color: red; }
-
-.error-text {
-  color: #e63946;
-  font-weight: 500;
-  margin-top: 8px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
+.delete-icon:hover {
+  transform: scale(1.1);
+  opacity: 0.8;
 }
 
+.error-message {
+  color: #eab308; /* warm yellow or warning color */
+  font-size: 13px;
+  margin-top: 6px;
+  margin-bottom: 19px; /* ⬆️ slightly more breathing room */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 /* 💻 Responsive */
 @media (max-width: 768px) {
   .main-content { padding: 20px; }

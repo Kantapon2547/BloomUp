@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./style/Login.css";
-import { FiArrowLeft } from "react-icons/fi"; // 🆕 optional if using react-icons
 
 export function Login({ onLoginSuccess }) {
   const navigate = useNavigate();
@@ -56,21 +55,23 @@ export function Login({ onLoginSuccess }) {
 
   return (
     <div className="login-container">
-      {/* 🆕 Back Arrow */}
+      {/* 🆕 Back Arrow using arrow_back.png */}
       <div className="back-arrow" onClick={() => navigate("/demo")}>
-        <FiArrowLeft size={22} /> {/* or use "←" instead */}
+        <img
+          src="/arrow_back.png"
+          alt="Back"
+          className="arrow-icon"
+        />
       </div>
 
       <div className="logo-section">
         <div className="logo">B</div>
-        <h1>BloomUp</h1>
-        <p>Your personal habit tracker for student success</p>
+        <h1>Welcome Back</h1>
+        <p>Sign in to continue your wellness journey</p>
       </div>
 
       <div className="login-card">
-        <h2>Welcome Back</h2>
-        <p>Sign in to continue your wellness journey</p>
-
+      <h2>Sign In</h2>
         <form onSubmit={handleSubmit}>
           <div className="input-group">
             <label>Email</label>
@@ -114,23 +115,6 @@ export function Login({ onLoginSuccess }) {
           >
             Sign up
           </span>
-        </p>
-      </div>
-
-      <div className="demo-dashboard">
-        <p
-          className="clickable-text"
-          onClick={() => navigate("/demo")}
-          style={{
-            color: "#007bff",
-            cursor: "pointer",
-            textDecoration: "underline",
-          }}
-        >
-          Try Demo Dashboard
-        </p>
-        <p>
-          Admin login: <span>admin@bloomup.com</span> (any password)
         </p>
       </div>
     </div>

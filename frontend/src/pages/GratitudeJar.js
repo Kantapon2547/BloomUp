@@ -56,7 +56,7 @@ const GratitudeJar = () => {
 
   const today = formatDate(new Date());
 
-  // Close dropdown if click outside
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setOpen(false);
@@ -152,13 +152,13 @@ const GratitudeJar = () => {
               <p className="entry-text">{entry.text}</p>
               <div className="entry-footer">
                 <span className="tag">💜 Grateful moment</span>
-                <span
+                <img
+                  src="/delete_icon.png"
+                  alt="Delete"
                   className="delete-icon"
                   onClick={() => deleteEntry(entry.id)}
                   title="Delete entry"
-                >
-                  🗑️
-                </span>
+                />
               </div>
             </div>
           ))}
