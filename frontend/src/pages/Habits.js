@@ -7,7 +7,7 @@ const USE_API_DEFAULT = true;
 const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 const AUTH_TOKEN = import.meta?.env?.VITE_API_TOKEN || "";
 const LS_KEY = "habit-tracker@hybrid";
-const CATEGORIES = ["General", "Study", "Health", "Mindfulness"];
+const CATEGORIES = ["General", "Study", "Health", "Mind"];
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
