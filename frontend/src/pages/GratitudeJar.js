@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./style/GratitudeJar.css";
-import { Heart } from "lucide-react";
+import { Heart, Trash2 } from "lucide-react";
 
 const categoryColors = {
   "Simple Pleasures": "simple-pleasures",
@@ -52,7 +52,16 @@ const GratitudeJar = () => {
     setCategory("");
   };
 
-  const deleteEntry = (id) => setEntries(entries.filter((entry) => entry.id !== id));
+  // Delete with animation
+  const deleteEntry = (id) => {
+    const element = document.getElementById(`entry-${id}`);
+    if (element) {
+      element.classList.add("removing"); // start animation
+      setTimeout(() => {
+        setEntries(entries.filter((entry) => entry.id !== id));
+      }, 300); // match CSS transition duration
+    }
+  };
 
   const today = formatDate(new Date());
 
@@ -72,7 +81,7 @@ const GratitudeJar = () => {
           Gratitude Jar <Heart className="w-8 h-8 text-purple-500" />
         </h1>
         <p className="page-description">
-          Reflect on the positive moments in your day.
+          Reflect on the positive moments in your day
         </p>
 
         {/* Stats */}
@@ -142,7 +151,7 @@ const GratitudeJar = () => {
         <h2 className="collection-title">Your Gratitude Collection</h2>
         <div className="entries-grid">
           {entries.map((entry) => (
-            <div key={entry.id} className="entry-card">
+            <div key={entry.id} id={`entry-${entry.id}`} className="entry-card">
               <div className="entry-header">
                 <span className={`category ${categoryColors[entry.category] || "general"}`}>
                   {entry.category}
@@ -150,16 +159,11 @@ const GratitudeJar = () => {
                 <span className="date">{entry.date}</span>
               </div>
               <p className="entry-text">{entry.text}</p>
-              <div className="entry-footer">
-                <span className="tag">💜 Grateful moment</span>
-                <img
-                  src="/delete_icon.png"
-                  alt="Delete"
-                  className="delete-icon"
-                  onClick={() => deleteEntry(entry.id)}
-                  title="Delete entry"
-                />
-              </div>
+              <Trash2
+                className="delete-icon"
+                onClick={() => deleteEntry(entry.id)}
+                title="Delete entry"
+              />
             </div>
           ))}
         </div>
