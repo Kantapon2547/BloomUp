@@ -20,10 +20,27 @@ const MOTIVATION_QUOTES = [
   "Consistency is the mother of mastery.",
 ];
 
-const MOOD_EMOJIS = ["😭", "😐", "🙂", "😊", "😁"];
+const MOOD_EMOJIS = ["😭", "😕", "🙂", "😊", "😄"];
+
+// API config
+const API = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+const authHeaders = () => {
+  const token = localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
 
 // Helper functions
-const getTodayString = () => new Date().toISOString().slice(0, 10);
+const getTodayString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 const getGreeting = () => {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -43,6 +60,9 @@ const calculateStreak = (habit) => {
   return streak;
 };
 
+// Convert mood index (0-4) to score (1-5)
+const moodIndexToScore = (index) => index + 1;
+
 export default function Home({ user }) {
   const navigate = useNavigate();
   const todayStr = getTodayString();
@@ -61,6 +81,8 @@ export default function Home({ user }) {
   const [saveFeedback, setSaveFeedback] = useState("");
   const [randomGratitude, setRandomGratitude] = useState(null);
   const [habits, setHabits] = useState([]);
+  const [savingMood, setSavingMood] = useState(false);
+  const [todayMoodId, setTodayMoodId] = useState(null);
 
   // Derived state
   const completedHabits = completed.filter(Boolean).length;
@@ -94,7 +116,7 @@ export default function Home({ user }) {
     }
   }, [todayStr]);
 
-  // Simplified toggleHabit without bounce animation
+  // Toggle habit
   const toggleHabit = useCallback((index) => {
     const newCompleted = [...completed];
     newCompleted[index] = !newCompleted[index];
@@ -128,18 +150,106 @@ export default function Home({ user }) {
     setMoodSaved(false);
   }, []);
 
-  const handleSaveMood = useCallback(() => {
+  const handleSaveMood = useCallback(async () => {
     if (selectedMood === null) return;
 
+    setSavingMood(true);
     try {
+      const moodScore = moodIndexToScore(selectedMood);
+      const payload = {
+        mood_score: moodScore,
+        note: null,
+        logged_on: todayStr,
+      };
+
+      console.log("Saving mood to backend:", payload);
+
+      // If we already have today's mood ID, update it directly
+      if (todayMoodId) {
+        console.log("Updating existing mood:", todayMoodId);
+        
+        const updateRes = await fetch(`${API}/mood/${todayMoodId}`, {
+          method: "PUT",
+          headers: authHeaders(),
+          body: JSON.stringify({
+            mood_score: moodScore,
+            note: null,
+          }),
+        });
+
+        if (!updateRes.ok) {
+          setSaveFeedback("Failed to update mood");
+          console.error("Update failed:", updateRes.status);
+          return;
+        }
+
+        console.log("Mood updated successfully");
+        setSaveFeedback("Mood updated for today");
+      } else {
+        // Try to create new mood
+        const res = await fetch(`${API}/mood/`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("API Error:", res.status, errorText);
+          
+          // If mood already exists, fetch it and update
+          if (res.status === 400) {
+            console.log("Mood already exists, fetching to update...");
+            const listRes = await fetch(`${API}/mood/?limit=365`, { 
+              headers: authHeaders() 
+            });
+            const moods = await listRes.json();
+            const existingMood = moods.find(m => m.logged_on === todayStr);
+            
+            if (existingMood) {
+              console.log("Found existing mood, updating:", existingMood.mood_id);
+              setTodayMoodId(existingMood.mood_id);
+              
+              const updateRes = await fetch(`${API}/mood/${existingMood.mood_id}`, {
+                method: "PUT",
+                headers: authHeaders(),
+                body: JSON.stringify({
+                  mood_score: moodScore,
+                  note: null,
+                }),
+              });
+
+              if (!updateRes.ok) {
+                setSaveFeedback("Failed to update mood");
+                return;
+              }
+
+              console.log("Mood updated successfully");
+              setSaveFeedback("Mood updated for today");
+            }
+          } else {
+            setSaveFeedback("Failed to save mood");
+            return;
+          }
+        } else {
+          const data = await res.json();
+          console.log("Mood saved successfully:", data);
+          setTodayMoodId(data.mood_id);
+          setSaveFeedback("Mood saved for today");
+        }
+      }
+
+      // Save to localStorage as backup
       localStorage.setItem(
         LS_KEYS.mood,
         JSON.stringify({ date: todayStr, value: selectedMood })
       );
+
+      // Dispatch event so Calendar can refresh
       window.dispatchEvent(new Event("moodUpdated"));
+
       setMoodSaved(true);
 
-      setSaveFeedback("Mood saved for today");
       gsap.fromTo(
         ".mood-save-feedback",
         { y: -10, opacity: 0 },
@@ -157,8 +267,11 @@ export default function Home({ user }) {
       }, 1500);
     } catch (error) {
       console.error("Failed to save mood:", error);
+      setSaveFeedback("Error saving mood");
+    } finally {
+      setSavingMood(false);
     }
-  }, [selectedMood, todayStr]);
+  }, [selectedMood, todayStr, todayMoodId]);
 
   // UI helpers
   const makeCardInteractive = useCallback((onActivate) => ({
@@ -183,7 +296,6 @@ export default function Home({ user }) {
 
   // Effects
   useEffect(() => {
-    // Clean up overlays and filters
     document.querySelectorAll(".overlay, .backdrop, .filter").forEach((el) => el.remove());
     ["body", "#root", ".home-layout", ".home-main", ".home-grid"].forEach((selector) => {
       document.querySelectorAll(selector).forEach((el) => {
@@ -196,14 +308,12 @@ export default function Home({ user }) {
   }, []);
 
   useEffect(() => {
-    // Initial data load
     try {
       syncFromHabits();
 
       const storedMood = JSON.parse(localStorage.getItem(LS_KEYS.mood) || "null");
       const storedStreak = JSON.parse(localStorage.getItem(LS_KEYS.streak) || "null");
       
-      // Load random gratitude
       try {
         const allEntries = JSON.parse(localStorage.getItem("gratitudeEntries") || "[]");
         const gratitudeText =
@@ -215,17 +325,42 @@ export default function Home({ user }) {
         setRandomGratitude("Take a moment to feel grateful today.");
       }
 
-      // Set mood if saved today
+      // Fetch today's mood from backend to get its ID
+      const fetchTodayMood = async () => {
+        try {
+          console.log("Fetching today's mood...");
+          const res = await fetch(`${API}/mood/?limit=365&start_date=${todayStr}`, { headers: authHeaders() });
+          if (res.ok) {
+            const moods = await res.json();
+            console.log("Moods fetched:", moods);
+            
+            // Find mood for today specifically
+            const todayMood = moods.find(m => m.logged_on === todayStr);
+            if (todayMood) {
+              console.log("Found today's mood:", todayMood);
+              setTodayMoodId(todayMood.mood_id);
+              setSelectedMood(todayMood.mood_score - 1); // Convert score back to index
+              setMoodSaved(true);
+            } else {
+              console.log("No mood found for today");
+              setTodayMoodId(null);
+            }
+          }
+        } catch (e) {
+          console.log("Error fetching mood:", e);
+          setTodayMoodId(null);
+        }
+      };
+      fetchTodayMood();
+
       if (storedMood && storedMood.date === todayStr) {
         setMoodSaved(true);
       }
 
-      // Set streak
       if (storedStreak && typeof storedStreak.count === "number") {
         setOverallStreak(storedStreak.count);
       }
 
-      // Set daily quote
       const storedDailyQuote = JSON.parse(localStorage.getItem(LS_KEYS.dailyQuote) || "null");
       if (!storedDailyQuote || storedDailyQuote.date !== todayStr) {
         const text = MOTIVATION_QUOTES[Math.floor(Math.random() * MOTIVATION_QUOTES.length)];
@@ -240,7 +375,6 @@ export default function Home({ user }) {
   }, [syncFromHabits, todayStr]);
 
   useEffect(() => {
-    // Initial animations without bounce
     const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
     gsap.set([".home-header", ".left-col > div", ".right-col > div"], { opacity: 1 });
     
@@ -249,22 +383,18 @@ export default function Home({ user }) {
       .from(".right-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.7");
   }, []);
 
-  // Progress bar effect - Set initial width immediately, then animate changes
   useEffect(() => {
-    // Set the initial width immediately on component mount
     if (progressFillRef.current) {
       progressFillRef.current.style.width = `${progressPercentage}%`;
     }
   }, []);
 
   useEffect(() => {
-    // Animate progress bar when progress changes
     const duration = 0.8;
     animateProgressBar(progressPercentage, duration);
   }, [progressPercentage, animateProgressBar]);
 
   useEffect(() => {
-    // Streak calculation
     try {
       localStorage.setItem(LS_KEYS.completed, JSON.stringify(completed));
       const hasProgressToday = completed.some(Boolean);
@@ -290,7 +420,6 @@ export default function Home({ user }) {
   }, [completed, todayStr]);
 
   useEffect(() => {
-    // Sync habits on focus
     const handleFocus = () => syncFromHabits();
     window.addEventListener("focus", handleFocus);
     handleFocus();
@@ -409,9 +538,9 @@ export default function Home({ user }) {
                   <button
                     className="save-btn"
                     onClick={handleSaveMood}
-                    disabled={moodSaved}
+                    disabled={moodSaved || savingMood}
                   >
-                    {moodSaved ? "Saved" : "Save Mood"}
+                    {savingMood ? "Saving..." : moodSaved ? "Saved" : "Save Mood"}
                   </button>
                   <div aria-live="polite" className="mood-save-feedback">
                     {saveFeedback}
