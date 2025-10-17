@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import "./style/Signup.css";
 
 export function Signup() {
@@ -28,7 +29,6 @@ export function Signup() {
     e.preventDefault();
     setError("");
 
-    // client-side validation
     if (!form.full_name.trim()) return setError("Full name is required.");
     if (!form.email.trim()) return setError("Email is required.");
     if (form.password.length < 8)
@@ -49,12 +49,8 @@ export function Signup() {
       });
 
       const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.detail || "Sign up failed");
 
-      if (!res.ok) {
-        throw new Error(data?.detail || "Sign up failed");
-      }
-
-      // redirect with email prefilled
       navigate("/login", { state: { email: data.email || form.email } });
     } catch (err) {
       setError(err.message || "Something went wrong.");
@@ -64,92 +60,104 @@ export function Signup() {
   }
 
   return (
-    <div className="signup-container">
-      <div className="signup-logo-section">
-        <div className="signup-logo-heading">
-          <div className="signup-logo">B</div>
-          <h1 className="signup-heading">Create Account</h1>
+    <div className="signup-page-wrapper">
+      {/* 🌸 Left Section */}
+      <div className="signup-left-section">
+        <div className="back-arrow" onClick={() => navigate("/login")}>
+          <ArrowLeft size={26} color="black" />
         </div>
-        <p className="signup-subtitle">
-          Join BloomUp and start building habits 🚀
-        </p>
+        <div className="signup-illustration">
+          <img
+            src="https://images.rawpixel.com/image_social_square/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIzLTA4L3Jhd3BpeGVsX29mZmljZV8yNl9taW5pbWFsX2Flc3RoZXRpY19iYWNrZ3JvdW5kX29mX2hvbG9ncmFwaHlfdF8wZGZjNTNlZi00MGVjLTRkMTQtODM0OS1mODYxYWNkMDViMGVfMS5qcGc.jpg"
+            alt="Illustration"
+            className="illustration-img"
+          />
+          <h2>Welcome to BloomUp 🌱</h2>
+          <p>Join us and start growing better habits every day!</p>
+        </div>
       </div>
 
-      <div className="signup-card">
-        <form onSubmit={handleSubmit}>
-          <div className="signup-input-group">
-            <label htmlFor="full_name">Full Name</label>
-            <input
-              type="text"
-              id="full_name"
-              name="full_name"
-              placeholder="Enter your full name"
-              value={form.full_name}
-              onChange={handleChange}
-              required
-            />
+      {/* 🧾 Right Section */}
+      <div className="signup-right-section">
+        <div className="signup-card">
+          <div className="signup-logo-section">
+            <div className="signup-logo">B</div>
+            <h1 className="signup-heading">Create Account</h1>
+            <p className="signup-subtitle">
+              Join BloomUp and start building better habits 🌱
+            </p>
           </div>
 
-          <div className="signup-input-group">
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              placeholder="Enter your email"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
+          <form onSubmit={handleSubmit}>
+            <div className="signup-input-group">
+              <label htmlFor="full_name">Full Name</label>
+              <input
+                type="text"
+                id="full_name"
+                name="full_name"
+                placeholder="Enter your full name"
+                value={form.full_name}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="signup-input-group">
+              <label htmlFor="email">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="Enter your email"
+                value={form.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="signup-input-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                placeholder="Enter your password"
+                value={form.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="signup-input-group">
+              <label htmlFor="confirm_password">Confirm Password</label>
+              <input
+                type="password"
+                id="confirm_password"
+                name="confirm_password"
+                placeholder="Confirm your password"
+                value={form.confirm_password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            {error && <p className="signup-error">{error}</p>}
+
+            <button type="submit" disabled={submitting}>
+              {submitting ? "Signing up..." : "Sign Up"}
+            </button>
+          </form>
+
+          {/* 👇 Already have an account */}
+          <div className="signin-link">
+            <p>
+              Already have an account?{" "}
+              <span onClick={() => navigate("/login")} className="signin-text">
+                Sign in
+              </span>
+            </p>
           </div>
-
-          <div className="signup-input-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              placeholder="Enter your password"
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="signup-input-group">
-            <label htmlFor="confirm_password">Confirm Password</label>
-            <input
-              type="password"
-              id="confirm_password"
-              name="confirm_password"
-              placeholder="Confirm your password"
-              value={form.confirm_password}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          {error && <p className="signup-error">{error}</p>}
-
-          <button type="submit" disabled={submitting}>
-            {submitting ? "Signing up..." : "Sign Up"}
-          </button>
-        </form>
-
-        <p className="login-link">
-          Already have an account?{" "}
-          <span
-            className="clickable-text"
-            onClick={() => navigate("/login")}
-            style={{
-              color: "#007bff",
-              cursor: "pointer",
-              textDecoration: "underline",
-            }}
-          >
-            Sign in
-          </span>
-        </p>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
+import { jwtDecode } from "jwt-decode";
 import "./style/Login.css";
 
 export function Login({ onLoginSuccess }) {
@@ -53,69 +55,120 @@ export function Login({ onLoginSuccess }) {
     }
   };
 
+  // ✅ Google login success handler
+  const handleGoogleSuccess = async (credentialResponse) => {
+    const decoded = jwtDecode(credentialResponse.credential);
+    console.log("Google User:", decoded);
+
+    // Optionally send credential to backend for verification:
+    // const res = await fetch(`${API}/auth/google-login`, {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({ token: credentialResponse.credential }),
+    // });
+
+    const loggedInUser = {
+      email: decoded.email,
+      name: decoded.name,
+      picture: decoded.picture,
+    };
+
+    localStorage.setItem("user", JSON.stringify(loggedInUser));
+    if (onLoginSuccess) onLoginSuccess(loggedInUser);
+    navigate("/home", { replace: true });
+  };
+
+  const handleGoogleError = () => {
+    setError("Google login failed. Please try again.");
+  };
+
   return (
-    <div className="login-container">
-      {/* 🆕 Back Arrow using arrow_back.png */}
-      <div className="back-arrow" onClick={() => navigate("/demo")}>
-        <img
-          src="/arrow_back.png"
-          alt="Back"
-          className="arrow-icon"
-        />
+    <div className="login-page-wrapper">
+      {/* Left Section */}
+      <div className="left-section">
+        <div className="illustration">
+          <img
+            src="https://images.rawpixel.com/image_social_square/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIzLTA4L3Jhd3BpeGVsX29mZmljZV8yNl9taW5pbWFsX2Flc3RoZXRpY19iYWNrZ3JvdW5kX29mX2hvbG9ncmFwaHlfdF8wZGZjNTNlZi00MGVjLTRkMTQtODM0OS1mODYxYWNkMDViMGVfMS5qcGc.jpg"
+            alt="Illustration"
+            className="illustration-img"
+          />
+          <h2>Welcome to BloomUp 🌱</h2>
+          <p>Join us and start growing better habits every day!</p>
+        </div>
       </div>
 
-      <div className="logo-section">
-        <div className="logo">B</div>
-        <h1>Welcome Back</h1>
-        <p>Sign in to continue your wellness journey</p>
-      </div>
-
-      <div className="login-card">
-      <h2>Sign In</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label>Email</label>
-            <input
-              type="email"
-              placeholder="student@university.edu"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+      {/* Right Section */}
+      <div className="right-section">
+        <div className="login-card">
+          {/* Back Arrow */}
+          <div className="back-arrow" onClick={() => navigate("/demo")}>
+            <img src="/arrow_back.png" alt="Back" className="arrow-icon" />
           </div>
 
-          <div className="input-group">
-            <label>Password</label>
-            <input
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+          {/* Logo + Header */}
+          <div className="logo-section">
+            <div className="logo">B</div>
+            <h1>Welcome Back</h1>
+            <p>Sign in to continue your wellness journey</p>
           </div>
 
-          {error && <p className="error">{error}</p>}
+          {/* Email/Password Login */}
+          <form onSubmit={handleSubmit}>
+            <div className="input-group">
+              <label>Email</label>
+              <input
+                type="email"
+                placeholder="student@university.edu"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
 
-          <button type="submit" disabled={isLoading}>
-            {isLoading ? "Signing in..." : "Sign In"}
-          </button>
-        </form>
+            <div className="input-group">
+              <label>Password</label>
+              <input
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
 
-        <p className="signup-link">
-          Don’t have an account?{" "}
-          <span
-            className="clickable-text"
-            onClick={() => navigate("/signup")}
-            style={{
-              color: "#007bff",
-              cursor: "pointer",
-              textDecoration: "underline",
-            }}
-          >
-            Sign up
-          </span>
-        </p>
+            {error && <p className="error">{error}</p>}
+
+            <button type="submit" disabled={isLoading}>
+              {isLoading ? "Signing in..." : "Sign In"}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="divider">
+            <span>OR</span>
+          </div>
+
+          {/* Google Login Button */}
+          <div className="google-login">
+            <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
+          </div>
+
+          <p className="signup-link">
+            Don’t have an account?{" "}
+            <span
+              className="clickable-text"
+              onClick={() => navigate("/signup")}
+              style={{
+                color: "#7c3aed",
+                cursor: "pointer",
+                textDecoration: "underline",
+                fontWeight: "600",
+              }}
+            >
+              Sign up
+            </span>
+          </p>
+        </div>
       </div>
     </div>
   );
