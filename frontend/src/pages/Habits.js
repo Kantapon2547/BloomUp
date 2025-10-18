@@ -8,6 +8,7 @@ const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 const AUTH_TOKEN = import.meta?.env?.VITE_API_TOKEN || "";
 const LS_KEY = "habit-tracker@hybrid";
 const CATEGORIES = ["General", "Study", "Health", "Mind"];
+const DURATIONS = ["15 mins", "30 mins", "45 mins", "1 hour", "1.5 hours", "2 hours", "3 hours"];
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -30,6 +31,7 @@ const normalizeHabit = (h) => ({
   name: h.name ?? "",
   category: h.category ?? "General",
   icon: h.icon ?? "📚",
+  duration: h.duration ?? "30 mins",
   history: h.history ?? {},
 });
 
@@ -140,7 +142,8 @@ const weekOf = (date) => {
 const todayKey = () => new Date().toISOString().slice(0, 10);
 const thisWeek = () => weekOf(new Date());
 const pct = (n) => Math.round(n * 100);
-const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+const plural = (n, w) => `${n} ${w}${n > 1 ? "s" : ""}`;
+
 
 function bestStreak(history = {}) {
   const days = Object.keys(history).sort();
@@ -224,12 +227,14 @@ function HabitModal({ open, onClose, onSubmit, initial }) {
   const [name, setName] = useState(initial?.name || "");
   const [category, setCategory] = useState(initial?.category || "General");
   const [icon, setIcon] = useState(initial?.icon || "📚");
+  const [duration, setDuration] = useState(initial?.duration || "30 mins");
 
   useEffect(() => {
     if (open) {
       setName(initial?.name || "");
       setCategory(initial?.category || "General");
       setIcon(initial?.icon || "📚");
+      setDuration(initial?.duration || "30 mins");
     }
   }, [initial, open]);
 
@@ -246,12 +251,29 @@ function HabitModal({ open, onClose, onSubmit, initial }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <h3>Category</h3>
+          <div className="row-two">
+            <div className="field">
+              <h3>Category</h3>
+              <Dropdown value={category} items={CATEGORIES} onChange={setCategory} />
+            </div>
+            <div className="field">
+              <h3>Duration</h3>
+              <Dropdown value={duration} items={DURATIONS} onChange={setDuration} />
+            </div>
+          </div>
+
+          {/* <h3>Category</h3>
           <Dropdown
             value={category}
             items={CATEGORIES}
             onChange={setCategory}
           />
+          <h3>Duration</h3>
+          <Dropdown
+            value={duration}
+            items={DURATIONS}
+            onChange={setDuration}
+          /> */}
           <h3>Choose Icon</h3>
           <div className="icon-grid pretty">
             {["📚", "✏️", "📖", "🎓", "💻", "💪", "🧠", "🧘", "🥗", "🚰", "💖", "🛏️"].map(
@@ -275,7 +297,7 @@ function HabitModal({ open, onClose, onSubmit, initial }) {
             className="btn confirm"
             onClick={() => {
               if (!name.trim()) return;
-              onSubmit({ name: name.trim(), category, icon });
+              onSubmit({ name: name.trim(), category, icon, duration });
             }}
           >
             {initial ? "Save Changes" : "Add Habit"}
@@ -292,6 +314,7 @@ export default function HabitsPage() {
   const [catFilter, setCatFilter] = useState("All Categories");
   const [rateFilter, setRateFilter] = useState("All Rates");
   const [streakFilter, setStreakFilter] = useState("All Streaks");
+  const [durationFilter, setDurationFilter] = useState("All Durations");
   const [openModal, setOpenModal] = useState(false);
   const [editing, setEditing] = useState(null);
 
@@ -312,9 +335,16 @@ export default function HabitsPage() {
   const totals = useMemo(() => {
     const total = habits.length || 0;
     const doneToday = habits.filter((h) => h.history?.[today]).length;
-    const completion = total === 0 ? 0 : Math.round((doneToday / total) * 100);
+    
+    // Calculate average completion rate for all habits this week
+    let avgCompletion = 0;
+    if (total > 0) {
+      const totalRate = habits.reduce((sum, h) => sum + weekRate(h), 0);
+      avgCompletion = Math.round(totalRate / total);
+    }
+    
     const best = Math.max(...habits.map((h) => bestStreak(h.history || {})), 0);
-    return { total, doneToday, completion, best };
+    return { total, doneToday, completion: avgCompletion, best };
   }, [habits, today]);
 
   const filtered = useMemo(() => {
@@ -335,9 +365,12 @@ export default function HabitsPage() {
         if (streakFilter === "4–7 days" && !(s >= 4 && s <= 7)) return false;
         if (streakFilter === "8+ days" && !(s >= 8)) return false;
       }
+      if (durationFilter !== "All Durations" && h.duration !== durationFilter) {
+        return false;
+      }
       return true;
     });
-  }, [habits, catFilter, rateFilter, streakFilter]);
+  }, [habits, catFilter, rateFilter, streakFilter, durationFilter]);
 
   const grouped = useMemo(() => {
     const map = new Map();
@@ -362,10 +395,10 @@ export default function HabitsPage() {
   };
 
   const removeHabit = async (id) => {
-    if (!window.confirm("Delete this habit?")) return;
     await storage.remove(id);
     setHabits((x) => x.filter((h) => h.id !== id));
   };
+
 
   const toggle = async (id, date, newDone) => {
     await storage.toggleHistory(id, date, newDone);
@@ -422,7 +455,7 @@ export default function HabitsPage() {
               COMPLETION
             </div>
             <div className="stat-big">{totals.completion}%</div>
-            <div className="stat-sub">completion rate</div>
+            <div className="stat-sub">avg this week</div>
           </div>
           <div className="stat-card stack">
             <div className="stat-title">
@@ -456,6 +489,11 @@ export default function HabitsPage() {
             items={["All Streaks", "0–3 days", "4–7 days", "8+ days"]}
             onChange={setStreakFilter}
           />
+          <Dropdown
+            value={durationFilter}
+            items={["All Durations", ...DURATIONS]}
+            onChange={setDurationFilter}
+          />
         </div>
       </section>
 
@@ -488,12 +526,12 @@ export default function HabitsPage() {
                       <span className="hl-emoji">{h.icon || "📚"}</span>
                     </div>
                     <div className="hl-title">
-                      <div className={`habit-name ${h.history?.[today] ? "is-done" : ""}`}>
+                      <div className={`habit-name ${h.history?.[today] ? "is-done" : ""}`} >
                         {h.name}
                       </div>
                       <div className="habit-tags">
                         <span className={`chip ${h.category.toLowerCase()}`}>{h.category}</span>
-                        <span className="chip chip-daily">daily</span>
+                        <span className="chip chip-daily">{h.duration}</span>
                       </div>
                     </div>
                   </div>
@@ -506,20 +544,19 @@ export default function HabitsPage() {
                           weekday: "short",
                         });
                         return (
-                          <button
+                          <div
                             key={d}
-                            type="button"
                             className={`week-chip ${done ? "is-done" : ""}`}
-                            onClick={() => toggle(h.id, d, !done)}
                             title={new Date(d).toLocaleDateString(undefined, {
                               weekday: "long",
                               month: "long",
                               day: "numeric",
                             })}
+                            style={{ cursor: 'default' }}
                           >
                             <span className="wk-big">{big}</span>
                             <span className="wk-small">{small}</span>
-                          </button>
+                          </div>
                         );
                       })}
                     </div>
