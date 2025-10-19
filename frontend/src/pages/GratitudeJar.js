@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import "./style/GratitudeJar.css";
-import { Heart } from "lucide-react";
+import { Heart, Trash2 } from "lucide-react";
 
 // Constants
 const categoryColors = {
@@ -136,19 +136,20 @@ const GratitudeJar = () => {
     }
   };
 
-  const deleteEntry = async (id) => {
-    try {
-      await gratitudeAPI.deleteEntry(id);
-      setEntries(entries.filter((entry) => entry.id !== id));
-    } catch (err) {
-      console.error("Failed to delete entry:", err);
-      setError(ERROR_MESSAGES.DELETE_FAILED);
+  // Delete with animation
+  const deleteEntry = (id) => {
+    const element = document.getElementById(`entry-${id}`);
+    if (element) {
+      element.classList.add("removing"); // start animation
+      setTimeout(() => {
+        setEntries(entries.filter((entry) => entry.id !== id));
+      }, 300); // match CSS transition duration
     }
   };
 
   const today = formatDate(new Date());
 
-  // Close dropdown if click outside
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setOpen(false);
@@ -176,7 +177,7 @@ const GratitudeJar = () => {
           Gratitude Jar <Heart className="w-8 h-8 text-purple-500" />
         </h1>
         <p className="page-description">
-          Reflect on the positive moments in your day.
+          Reflect on the positive moments in your day
         </p>
 
         {/* Stats */}
@@ -246,7 +247,7 @@ const GratitudeJar = () => {
         <h2 className="collection-title">Your Gratitude Collection</h2>
         <div className="entries-grid">
           {entries.map((entry) => (
-            <div key={entry.id} className="entry-card">
+            <div key={entry.id} id={`entry-${entry.id}`} className="entry-card">
               <div className="entry-header">
                 <span className={`category ${categoryColors[entry.category] || "general"}`}>
                   {entry.category}
@@ -254,15 +255,11 @@ const GratitudeJar = () => {
                 <span className="date">{entry.date}</span>
               </div>
               <p className="entry-text">{entry.text}</p>
-              <div className="entry-footer">
-                <span
-                  className="delete-icon"
-                  onClick={() => deleteEntry(entry.id)}
-                  title="Delete entry"
-                >
-                  🗑️
-                </span>
-              </div>
+              <Trash2
+                className="delete-icon"
+                onClick={() => deleteEntry(entry.id)}
+                title="Delete entry"
+              />
             </div>
           ))}
         </div>
