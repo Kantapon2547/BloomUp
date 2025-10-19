@@ -4,14 +4,7 @@ import { gsap } from "gsap";
 import "./style/Home.css";
 
 // Constants
-const LS_KEYS = {
-  habits: "home.habits",
-  completed: "home.completed",
-  mood: "home.mood",
-  streak: "home.streak",
-  dailyQuote: "home.dailyQuote",
-};
-
+const LS_KEY = "habit-tracker@hybrid";
 const MOTIVATION_QUOTES = [
   "Small steps every day lead to big changes every year.",
   "Progress, not perfection, is the goal.",
@@ -19,11 +12,11 @@ const MOTIVATION_QUOTES = [
   "Every day is a new opportunity to grow.",
   "Consistency is the mother of mastery.",
 ];
-
 const MOOD_EMOJIS = ["😭", "😐", "🙂", "😊", "😁"];
 
 // Helper functions
 const getTodayString = () => new Date().toISOString().slice(0, 10);
+
 const getGreeting = () => {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -32,15 +25,23 @@ const getGreeting = () => {
 };
 
 const calculateStreak = (habit) => {
-  let streak = 0;
-  for (let i = 0; ; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    const dateKey = date.toISOString().slice(0, 10);
-    if (habit.history?.[dateKey]) streak++;
-    else break;
+  const days = Object.keys(habit.history || {}).sort();
+  let current = 0;
+  let prev = null;
+  
+  for (const d of days) {
+    if (!habit.history[d]) continue;
+    if (!prev) {
+      current = 1;
+    } else {
+      const nd = new Date(prev);
+      nd.setDate(nd.getDate() + 1);
+      const expected = nd.toISOString().slice(0, 10);
+      current = expected === d ? current + 1 : 1;
+    }
+    prev = d;
   }
-  return streak;
+  return current;
 };
 
 export default function Home({ user }) {
@@ -49,36 +50,34 @@ export default function Home({ user }) {
 
   // Refs
   const headerRef = useRef(null);
-  const leftColRef = useRef(null);
-  const rightColRef = useRef(null);
   const progressFillRef = useRef(null);
 
   // State
+  const [habits, setHabits] = useState([]);
   const [completed, setCompleted] = useState([]);
   const [selectedMood, setSelectedMood] = useState(null);
-  const [overallStreak, setOverallStreak] = useState(0);
   const [moodSaved, setMoodSaved] = useState(false);
   const [saveFeedback, setSaveFeedback] = useState("");
+  const [overallStreak, setOverallStreak] = useState(0);
   const [randomGratitude, setRandomGratitude] = useState(null);
-  const [habits, setHabits] = useState([]);
+  const [dailyQuote, setDailyQuote] = useState("");
 
   // Derived state
   const completedHabits = completed.filter(Boolean).length;
   const totalHabits = habits.length;
   const progressPercentage = totalHabits ? (completedHabits / totalHabits) * 100 : 0;
-  const [dailyQuote, setDailyQuote] = useState("");
   const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "User";
 
   // Data synchronization
   const syncFromHabits = useCallback(() => {
     try {
-      const raw = JSON.parse(localStorage.getItem("habit-tracker@v3") || "null") || [];
+      const raw = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
       
       if (Array.isArray(raw)) {
         const processedHabits = raw.map((habit) => ({
+          id: habit.id,
           name: habit.name,
-          description: "",
-          tag: (habit.category || "general").replace(/^./, (c) => c.toUpperCase()),
+          category: habit.category || "General",
           streak: calculateStreak(habit),
         }));
 
@@ -88,27 +87,31 @@ export default function Home({ user }) {
         setHabits([]);
         setCompleted([]);
       }
-    } catch {
+    } catch (error) {
+      console.error("Failed to sync habits:", error);
       setHabits([]);
       setCompleted([]);
     }
   }, [todayStr]);
 
-  // Simplified toggleHabit without bounce animation
+  // Toggle habit completion
   const toggleHabit = useCallback((index) => {
     const newCompleted = [...completed];
     newCompleted[index] = !newCompleted[index];
     setCompleted(newCompleted);
 
     try {
-      const raw = JSON.parse(localStorage.getItem("habit-tracker@v3") || "null") || [];
+      const raw = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
       if (Array.isArray(raw) && raw[index]) {
-        const todayKey = getTodayString();
-        raw[index].history = { 
-          ...(raw[index].history || {}), 
-          [todayKey]: newCompleted[index] 
-        };
-        localStorage.setItem("habit-tracker@v3", JSON.stringify(raw));
+        raw[index].history = raw[index].history || {};
+        
+        if (newCompleted[index]) {
+          raw[index].history[todayStr] = true;
+        } else {
+          delete raw[index].history[todayStr];
+        }
+        
+        localStorage.setItem(LS_KEY, JSON.stringify(raw));
         
         const updatedHabits = [...habits];
         updatedHabits[index] = {
@@ -120,7 +123,7 @@ export default function Home({ user }) {
     } catch (error) {
       console.error("Failed to toggle habit:", error);
     }
-  }, [completed, habits]);
+  }, [completed, habits, todayStr]);
 
   // Mood handlers
   const handleMoodClick = useCallback((moodIndex) => {
@@ -133,13 +136,12 @@ export default function Home({ user }) {
 
     try {
       localStorage.setItem(
-        LS_KEYS.mood,
+        "home.mood",
         JSON.stringify({ date: todayStr, value: selectedMood })
       );
-      window.dispatchEvent(new Event("moodUpdated"));
       setMoodSaved(true);
-
       setSaveFeedback("Mood saved for today");
+      
       gsap.fromTo(
         ".mood-save-feedback",
         { y: -10, opacity: 0 },
@@ -152,95 +154,105 @@ export default function Home({ user }) {
           opacity: 0,
           duration: 0.5,
           ease: "power2.in",
+          onComplete: () => setSaveFeedback("")
         });
-        setTimeout(() => setSaveFeedback(""), 500);
       }, 1500);
     } catch (error) {
       console.error("Failed to save mood:", error);
     }
   }, [selectedMood, todayStr]);
 
-  // UI helpers
+  // Animate progress bar
+  const animateProgressBar = useCallback((targetWidth) => {
+    if (!progressFillRef.current) return;
+    gsap.to(progressFillRef.current, {
+      width: `${targetWidth}%`,
+      duration: 0.8,
+      ease: "power2.inOut"
+    });
+  }, []);
+
+  // Create interactive card props
   const makeCardInteractive = useCallback((onActivate) => ({
     role: "button",
     tabIndex: 0,
     onClick: onActivate,
     onKeyDown: (e) => {
-      if (e.key === "Enter" || e.key === " ") onActivate();
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onActivate();
+      }
     },
     style: { cursor: "pointer" },
   }), []);
 
-  const animateProgressBar = useCallback((targetWidth, duration = 1.2) => {
-    if (!progressFillRef.current) return;
+  // Fetch gratitude data
+  useEffect(() => {
+    const fetchGratitude = async () => {
+      try {
+        const res = await fetch("/gratitude/", {
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        });
 
-    gsap.to(progressFillRef.current, {
-      width: `${targetWidth}%`,
-      duration: duration,
-      ease: "power2.inOut"
-    });
+        if (!res.ok) throw new Error("Failed to fetch gratitude");
+
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const randomEntry = data[Math.floor(Math.random() * data.length)];
+          setRandomGratitude(randomEntry.text);
+        } else {
+          setRandomGratitude("Take a moment to feel grateful today.");
+        }
+      } catch (error) {
+        console.error("Error fetching gratitude:", error);
+        setRandomGratitude("Take a moment to feel grateful today.");
+      }
+    };
+
+    fetchGratitude();
   }, []);
 
-  // Effects
+  // Initialize data on mount
   useEffect(() => {
-    // Clean up overlays and filters
-    document.querySelectorAll(".overlay, .backdrop, .filter").forEach((el) => el.remove());
-    ["body", "#root", ".home-layout", ".home-main", ".home-grid"].forEach((selector) => {
-      document.querySelectorAll(selector).forEach((el) => {
-        el.style.opacity = "1";
-        el.style.filter = "none";
-        el.style.transition = "none";
-        el.style.backdropFilter = "none";
-      });
-    });
-  }, []);
-
-  useEffect(() => {
-    // Initial data load
     try {
       syncFromHabits();
 
-      const storedMood = JSON.parse(localStorage.getItem(LS_KEYS.mood) || "null");
-      const storedStreak = JSON.parse(localStorage.getItem(LS_KEYS.streak) || "null");
-      
-      // Load random gratitude
-      try {
-        const allEntries = JSON.parse(localStorage.getItem("gratitudeEntries") || "[]");
-        const gratitudeText =
-          allEntries.length > 0
-            ? allEntries[Math.floor(Math.random() * allEntries.length)].text
-            : "Take a moment to feel grateful today.";
-        setRandomGratitude(gratitudeText);
-      } catch {
-        setRandomGratitude("Take a moment to feel grateful today.");
-      }
-
-      // Set mood if saved today
-      if (storedMood && storedMood.date === todayStr) {
+      // Only set mood if it was saved today
+      const storedMood = JSON.parse(localStorage.getItem("home.mood") || "null");
+      if (storedMood?.date === todayStr && storedMood?.value !== undefined) {
+        setSelectedMood(storedMood.value);
         setMoodSaved(true);
+      } else {
+        setSelectedMood(null);
+        setMoodSaved(false);
       }
 
-      // Set streak
-      if (storedStreak && typeof storedStreak.count === "number") {
+      const storedStreak = JSON.parse(localStorage.getItem("home.streak") || "null");
+      if (storedStreak?.count) {
         setOverallStreak(storedStreak.count);
       }
 
-      // Set daily quote
-      const storedDailyQuote = JSON.parse(localStorage.getItem(LS_KEYS.dailyQuote) || "null");
+      const storedDailyQuote = JSON.parse(localStorage.getItem("home.dailyQuote") || "null");
       if (!storedDailyQuote || storedDailyQuote.date !== todayStr) {
         const text = MOTIVATION_QUOTES[Math.floor(Math.random() * MOTIVATION_QUOTES.length)];
-        localStorage.setItem(
-          LS_KEYS.dailyQuote,
-          JSON.stringify({ date: todayStr, text })
-        );
+        localStorage.setItem("home.dailyQuote", JSON.stringify({ date: todayStr, text }));
+        setDailyQuote(text);
+      } else {
+        setDailyQuote(storedDailyQuote.text);
       }
     } catch (error) {
       console.error("Initialization error:", error);
     }
+
+    // Sync on window focus
+    const handleFocus = () => syncFromHabits();
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, [syncFromHabits, todayStr]);
 
+  // Initial animations
   useEffect(() => {
-    // Initial animations without bounce
     const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
     gsap.set([".home-header", ".left-col > div", ".right-col > div"], { opacity: 1 });
     
@@ -249,66 +261,39 @@ export default function Home({ user }) {
       .from(".right-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.7");
   }, []);
 
-  // Progress bar effect - Set initial width immediately, then animate changes
+  // Animate progress bar when percentage changes
   useEffect(() => {
-    // Set the initial width immediately on component mount
-    if (progressFillRef.current) {
-      progressFillRef.current.style.width = `${progressPercentage}%`;
-    }
-  }, []);
-
-  useEffect(() => {
-    // Animate progress bar when progress changes
-    const duration = 0.8;
-    animateProgressBar(progressPercentage, duration);
+    animateProgressBar(progressPercentage);
   }, [progressPercentage, animateProgressBar]);
 
+  // Calculate streak
   useEffect(() => {
-    // Streak calculation
-    try {
-      localStorage.setItem(LS_KEYS.completed, JSON.stringify(completed));
-      const hasProgressToday = completed.some(Boolean);
-      const stored = JSON.parse(localStorage.getItem(LS_KEYS.streak) || "null");
-      const lastActiveDate = stored?.lastActiveDate;
-      let count = stored?.count || 0;
+    if (!completed.some(Boolean)) return;
 
-      if (hasProgressToday && lastActiveDate !== todayStr) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().slice(0, 10);
-        count = lastActiveDate === yesterdayStr ? count + 1 : 1;
-        
-        localStorage.setItem(
-          LS_KEYS.streak,
-          JSON.stringify({ count, lastActiveDate: todayStr })
-        );
-        setOverallStreak(count);
-      }
+    try {
+      const stored = JSON.parse(localStorage.getItem("home.streak") || "null");
+      const lastActiveDate = stored?.lastActiveDate;
+      
+      if (lastActiveDate === todayStr) return;
+
+      let count = stored?.count || 0;
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().slice(0, 10);
+      
+      count = lastActiveDate === yesterdayStr ? count + 1 : 1;
+      
+      localStorage.setItem("home.streak", JSON.stringify({ count, lastActiveDate: todayStr }));
+      setOverallStreak(count);
     } catch (error) {
       console.error("Streak calculation error:", error);
     }
   }, [completed, todayStr]);
 
-  useEffect(() => {
-    // Sync habits on focus
-    const handleFocus = () => syncFromHabits();
-    window.addEventListener("focus", handleFocus);
-    handleFocus();
-    
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [syncFromHabits]);
-
-  // Sorted habits for display
+  // Sort habits (completed last)
   const sortedHabits = habits
     .map((habit, index) => ({ ...habit, index, done: completed[index] }))
     .sort((a, b) => a.done - b.done);
-
-  // Get daily quote
-  
-useEffect(() => {
-  const randomText = MOTIVATION_QUOTES[Math.floor(Math.random() * MOTIVATION_QUOTES.length)];
-  setDailyQuote(randomText);
-}, []);
 
   return (
     <div className="home-layout">
@@ -318,54 +303,44 @@ useEffect(() => {
             <h1>{`${getGreeting()}, ${displayName}! 🌸`}</h1>
             <p>
               You've completed {completedHabits} of {totalHabits}{" "}
-              {totalHabits <= 1 ? "task" : "tasks"} today.
+              {totalHabits === 1 ? "task" : "tasks"} today.
             </p>
           </div>
         </header>
-
         <section className="home-grid">
-          <div className="left-col" ref={leftColRef}>
-            <div
-              className="progress-card"
-              {...makeCardInteractive(() => navigate("/habits"))}
-            >
+          <div className="left-col">
+            <div className="progress-card" {...makeCardInteractive(() => navigate("/habits"))}>
               <div className="progress-info">
                 <span>Today's Progress</span>
-                <span>
-                  {Math.round(progressPercentage)}%
-                </span>
+                <span>{Math.round(progressPercentage)}%</span>
               </div>
               <div className="progress-bar-container">
                 <div className="progress-bar">
-                  <div
-                    className="progress-fill"
-                    ref={progressFillRef}
-                  />
+                  <div className="progress-fill" ref={progressFillRef} />
                 </div>
               </div>
             </div>
 
             {sortedHabits.map((habit) => (
-              <div
-                className={`habit-card ${habit.done ? "done" : ""}`}
-                key={habit.index}
-              >
+              <div className={`habit-card ${habit.done ? "done" : ""}`} key={habit.index}>
                 <button
                   className="habit-check"
                   onClick={() => toggleHabit(habit.index)}
                   aria-pressed={habit.done}
+                  aria-label={`Mark ${habit.name} as ${habit.done ? "incomplete" : "complete"}`}
                 >
-                  {habit.done ? "✓" : ""}
+                  {habit.done && <span className="material-symbols-outlined">check</span>}
                 </button>
                 <div className="habit-info">
-                  <h3>{habit.name}</h3>
-                  <p>{habit.description}</p>
-                  <div className="habit-meta">
-                    <span className={`tag ${habit.tag.toLowerCase()}`}>
-                      {habit.tag}
+                  <div className="habit-left">
+                    <h3>{habit.name}</h3>
+                    <span className={`tag ${habit.category.toLowerCase()}`}>
+                      {habit.category}
                     </span>
+                  </div>
+                  <div className="habit-right">
                     <span className="streak">
-                      🔥 {habit.streak} {habit.streak <= 1 ? "day" : "days"} streak
+                      🔥 {habit.streak} {habit.streak <= 1 ? "day" : "days"}
                     </span>
                   </div>
                 </div>
@@ -373,12 +348,8 @@ useEffect(() => {
             ))}
           </div>
 
-          <div className="right-col" ref={rightColRef}>
-            
-            <div
-              className="streak-card"
-              {...makeCardInteractive(() => navigate("/reports"))}
-            >
+          <div className="right-col">
+            <div className="streak-card" {...makeCardInteractive(() => navigate("/reports"))}>
               <h3>Streak</h3>
               <div className="streak-number">{overallStreak}</div>
               <p className="streak-sub">
@@ -394,13 +365,14 @@ useEffect(() => {
                     key={index}
                     onClick={() => handleMoodClick(index)}
                     className={`mood-btn ${selectedMood === index ? "selected" : ""}`}
+                    aria-label={`Select mood ${emoji}`}
                   >
                     {emoji}
                   </button>
                 ))}
               </div>
               
-              {(selectedMood !== null || moodSaved) && (
+              {selectedMood !== null && (
                 <div className="mood-save">
                   <p>You're feeling {MOOD_EMOJIS[selectedMood]}</p>
                   <button
@@ -417,10 +389,7 @@ useEffect(() => {
               )}
             </div>
             
-            <div
-              className="gratitude-card"
-              {...makeCardInteractive(() => navigate("/gratitude"))}
-            >
+            <div className="gratitude-card" {...makeCardInteractive(() => navigate("/gratitude"))}>
               <h3>Today's Gratitude 🙏</h3>
               <p>"{randomGratitude || "Take a moment to feel grateful today."}"</p>
             </div>
