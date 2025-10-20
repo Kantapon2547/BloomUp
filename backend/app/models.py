@@ -40,6 +40,13 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    # User ↔ MoodLog
+    mood_logs = relationship(
+        "MoodLog",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
 
 class Habit(Base):
     __tablename__ = "habits"
@@ -112,3 +119,33 @@ class GratitudeEntry(Base):
         "User",
         back_populates="gratitude_entries",
     )
+
+
+class MoodLog(Base):
+    __tablename__ = "mood_logs"
+
+    mood_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    mood_score = Column(Integer, nullable=False)  # 1-10 scale
+    logged_on = Column(Date, nullable=False, index=True)
+    note = Column(Text, nullable=True)
+
+    # MoodLog ↔ User
+    user = relationship(
+        "User",
+        back_populates="mood_logs",
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", 
+            "logged_on",
+            name="uq_mood_per_day"
+        ),
+    )
+    

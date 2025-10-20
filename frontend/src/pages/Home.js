@@ -15,7 +15,11 @@ const MOTIVATION_QUOTES = [
 const MOOD_EMOJIS = ["😭", "😐", "🙂", "😊", "😁"];
 
 // Helper functions
-const getTodayString = () => new Date().toISOString().slice(0, 10);
+const getTodayString = () => {
+  // Get current time in Bangkok timezone
+  const bangkokTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" });
+  return new Date(bangkokTime).toISOString().slice(0, 10);
+};
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -99,31 +103,44 @@ export default function Home({ user }) {
     const newCompleted = [...completed];
     newCompleted[index] = !newCompleted[index];
     setCompleted(newCompleted);
-
+  
     try {
       const raw = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
       if (Array.isArray(raw) && raw[index]) {
         raw[index].history = raw[index].history || {};
         
         if (newCompleted[index]) {
+          // Mark as complete
           raw[index].history[todayStr] = true;
         } else {
+          // Unmark as complete
           delete raw[index].history[todayStr];
         }
-        
+  
         localStorage.setItem(LS_KEY, JSON.stringify(raw));
-        
+  
+        // Update streaks per habit
         const updatedHabits = [...habits];
         updatedHabits[index] = {
           ...updatedHabits[index],
           streak: calculateStreak(raw[index]),
         };
         setHabits(updatedHabits);
+  
+        // Check if all habits are unchecked → reset streak
+        const anyCompleted = newCompleted.some(Boolean);
+        if (!anyCompleted) {
+          const userKey = `home.streak.${user?.email || "default"}`;
+          const reset = { count: 0, lastActiveDate: null };
+          localStorage.setItem(userKey, JSON.stringify(reset));
+          setOverallStreak(0);
+        }
       }
     } catch (error) {
       console.error("Failed to toggle habit:", error);
     }
-  }, [completed, habits, todayStr]);
+  }, [completed, habits, todayStr, user]);
+  
 
   // Mood handlers
   const handleMoodClick = useCallback((moodIndex) => {
@@ -131,14 +148,81 @@ export default function Home({ user }) {
     setMoodSaved(false);
   }, []);
 
-  const handleSaveMood = useCallback(() => {
+  const handleSaveMood = useCallback(async () => {
     if (selectedMood === null) return;
 
     try {
+      // Save to localStorage first
       localStorage.setItem(
         "home.mood",
-        JSON.stringify({ date: todayStr, value: selectedMood })
+        JSON.stringify({ 
+          date: todayStr, 
+          value: selectedMood,
+          user: user?.email || "default"
+        })
       );
+
+      // Convert emoji index (0-4) to mood score (1-5)
+      const moodScore = selectedMood + 1;
+
+      // Save to database
+      const token = localStorage.getItem("token");
+      const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
+      
+      const response = await fetch(`${API}/mood/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          mood_score: moodScore,
+          logged_on: todayStr,
+          note: null
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        // If mood already exists for today, update it instead
+        if (response.status === 400 && errorData.detail?.includes("already exists")) {
+          console.log("Mood already exists, updating instead");
+          // Get today's mood to find its ID
+          const todayResponse = await fetch(`${API}/mood/today`, {
+            headers: {
+              "Authorization": `Bearer ${token}`
+            }
+          });
+          
+          if (todayResponse.ok) {
+            const todayMood = await todayResponse.json();
+            if (todayMood) {
+              // Update existing mood
+              const updateResponse = await fetch(`${API}/mood/${todayMood.mood_id}`, {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  mood_score: moodScore,
+                  note: null
+                })
+              });
+              
+              if (!updateResponse.ok) {
+                throw new Error("Failed to update mood");
+              }
+            }
+          }
+        } else {
+          throw new Error(errorData.detail || "Failed to save mood");
+        }
+      }
+
+      // Dispatch event to notify Calendar component
+      window.dispatchEvent(new CustomEvent("moodUpdated"));
+
       setMoodSaved(true);
       setSaveFeedback("Mood saved for today");
       
@@ -159,8 +243,13 @@ export default function Home({ user }) {
       }, 1500);
     } catch (error) {
       console.error("Failed to save mood:", error);
+      setSaveFeedback("Failed to save mood");
+      
+      setTimeout(() => {
+        setSaveFeedback("");
+      }, 2000);
     }
-  }, [selectedMood, todayStr]);
+  }, [selectedMood, todayStr, user]);
 
   // Animate progress bar
   const animateProgressBar = useCallback((targetWidth) => {
@@ -185,6 +274,56 @@ export default function Home({ user }) {
     },
     style: { cursor: "pointer" },
   }), []);
+
+  // Check and reset mood based on user and date
+  const checkAndResetMood = useCallback(async () => {
+    const storedMood = JSON.parse(localStorage.getItem("home.mood") || "null");
+    const currentUserEmail = user?.email || "default";
+    
+    // Reset mood if it's a different user or a different day
+    if (storedMood?.user !== currentUserEmail || storedMood?.date !== todayStr) {
+      setSelectedMood(null);
+      setMoodSaved(false);
+      localStorage.removeItem("home.mood");
+      
+      // Try to load mood from database for today
+      try {
+        const token = localStorage.getItem("token");
+        const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
+        
+        const response = await fetch(`${API}/mood/today`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const todayMood = await response.json();
+          if (todayMood && todayMood.logged_on === todayStr) {
+            // Convert mood score (1-5) back to emoji index (0-4)
+            const emojiIndex = Math.max(0, Math.min(4, todayMood.mood_score - 1));
+            setSelectedMood(emojiIndex);
+            setMoodSaved(true);
+            
+            // Update localStorage
+            localStorage.setItem(
+              "home.mood",
+              JSON.stringify({ 
+                date: todayStr, 
+                value: emojiIndex,
+                user: currentUserEmail
+              })
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load mood from database:", error);
+      }
+    } else if (storedMood?.value !== undefined) {
+      setSelectedMood(storedMood.value);
+      setMoodSaved(true);
+    }
+  }, [todayStr, user]);
 
   // Fetch gratitude data
   useEffect(() => {
@@ -213,24 +352,33 @@ export default function Home({ user }) {
     fetchGratitude();
   }, []);
 
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const userKey = `home.streak.${user.email}`;
+    const stored = JSON.parse(localStorage.getItem(userKey) || "null");
+
+    if (!stored) {
+      const initialStreak = { count: 0, lastActiveDate: null };
+      localStorage.setItem(userKey, JSON.stringify(initialStreak));
+      setOverallStreak(0);
+    } else {
+      setOverallStreak(stored.count || 0);
+    }
+  }, [user]);
+
   // Initialize data on mount
   useEffect(() => {
     try {
       syncFromHabits();
 
-      // Only set mood if it was saved today
-      const storedMood = JSON.parse(localStorage.getItem("home.mood") || "null");
-      if (storedMood?.date === todayStr && storedMood?.value !== undefined) {
-        setSelectedMood(storedMood.value);
-        setMoodSaved(true);
-      } else {
-        setSelectedMood(null);
-        setMoodSaved(false);
-      }
-
-      const storedStreak = JSON.parse(localStorage.getItem("home.streak") || "null");
-      if (storedStreak?.count) {
-        setOverallStreak(storedStreak.count);
+      // Check and reset mood based on user and date
+      checkAndResetMood();
+      
+      const userKey = `home.streak.${user?.email || "default"}`;
+      const stored = JSON.parse(localStorage.getItem(userKey) || "null");
+      if (stored?.count) {
+        setOverallStreak(stored.count);
       }
 
       const storedDailyQuote = JSON.parse(localStorage.getItem("home.dailyQuote") || "null");
@@ -246,10 +394,13 @@ export default function Home({ user }) {
     }
 
     // Sync on window focus
-    const handleFocus = () => syncFromHabits();
+    const handleFocus = () => {
+      syncFromHabits();
+      checkAndResetMood();
+    };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [syncFromHabits, todayStr]);
+  }, [syncFromHabits, todayStr, checkAndResetMood]);
 
   // Initial animations
   useEffect(() => {
@@ -271,24 +422,26 @@ export default function Home({ user }) {
     if (!completed.some(Boolean)) return;
 
     try {
-      const stored = JSON.parse(localStorage.getItem("home.streak") || "null");
+      const userKey = `home.streak.${user?.email || "default"}`;
+      const stored = JSON.parse(localStorage.getItem(userKey) || "null");
       const lastActiveDate = stored?.lastActiveDate;
-      
+
       if (lastActiveDate === todayStr) return;
 
       let count = stored?.count || 0;
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = yesterday.toISOString().slice(0, 10);
-      
+
       count = lastActiveDate === yesterdayStr ? count + 1 : 1;
-      
-      localStorage.setItem("home.streak", JSON.stringify({ count, lastActiveDate: todayStr }));
+
+      localStorage.setItem(userKey, JSON.stringify({ count, lastActiveDate: todayStr }));
       setOverallStreak(count);
+
     } catch (error) {
       console.error("Streak calculation error:", error);
     }
-  }, [completed, todayStr]);
+  }, [completed, todayStr, user]);
 
   // Sort habits (completed last)
   const sortedHabits = habits

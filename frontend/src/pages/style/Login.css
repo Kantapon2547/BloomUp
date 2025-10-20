@@ -90,6 +90,11 @@
   margin-bottom: 20px;
 }
 
+.divider{
+  font-size: 13px;
+  padding: 8px;
+}
+
 /* Input group */
 .input-group {
   text-align: left;

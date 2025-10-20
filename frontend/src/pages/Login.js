@@ -56,7 +56,7 @@ export function Login({ onLoginSuccess }) {
     }
   };
 
-  // ✅ Google login success handler
+  // Google login success handler
   const handleGoogleSuccess = async (credentialResponse) => {
     const decoded = jwtDecode(credentialResponse.credential);
     console.log("Google User:", decoded);

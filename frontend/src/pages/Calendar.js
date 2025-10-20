@@ -20,23 +20,47 @@ function buildMonthGrid(year, month) {
 }
 
 const LEGEND = [
-  ["😭", "Tough"], ["😐", "Okay"], ["🙂", "Good"], ["😊", "Great"], ["😁", "Amazing"],
+  ["😭", "Tough"],
+  ["😕", "Okay"],
+  ["🙂", "Good"],
+  ["😊", "Great"],
+  ["😄", "Amazing"],
 ];
 
 const API = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const authHeaders = () => {
   const token = localStorage.getItem("token");
-  return {
+  console.log("📍 authHeaders called");
+  console.log("   Token exists:", !!token);
+  console.log("   Token prefix:", token ? token.substring(0, 20) + "..." : "none");
+  
+  const headers = {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
+  
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+    console.log("   Authorization header set: Bearer " + token.substring(0, 20) + "...");
+  } else {
+    console.log("   ⚠️  No token found in localStorage!");
+  }
+  
+  return headers;
+};
+
+const scoreToEmoji = (score) => {
+  const emojis = ["😭", "😕", "🙂", "😊", "😄"];
+  return emojis[Math.max(0, Math.min(4, score - 1))];
 };
 
 export default function Calendar() {
   const today = new Date();
   const [date, setDate] = useState({ year: today.getFullYear(), month: today.getMonth() });
   const [moods, setMoods] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const cells = useMemo(() => buildMonthGrid(date.year, date.month), [date]);
   const daysInMonth = new Date(date.year, date.month + 1, 0).getDate();
 
@@ -44,78 +68,78 @@ export default function Calendar() {
   const monthRef = useRef(null);
   const cardRefs = useRef([]);
 
-  // --- Load moods from backend ---
-  useEffect(() => {
-    const loadMoods = async () => {
-      try {
-        const res = await fetch(`${API}/moods/`, { headers: authHeaders() });
-        if (res.ok) {
-          const data = await res.json();
-          const moodMap = {};
-          data.forEach(m => {
-            moodMap[m.date] = m.mood;
-          });
-          setMoods(moodMap);
-        }
-      } catch (e) {
-        console.error("Failed to load moods:", e);
+  // Load moods from backend
+  const loadMoods = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem("token");
+      console.log("Token in storage:", token ? "✓ Found" : "✗ Missing");
+      console.log("Auth headers:", authHeaders());
+      console.log("Fetching moods from:", `${API}/mood/?limit=365`);
+      
+      const res = await fetch(`${API}/mood/?limit=365`, { headers: authHeaders() });
+      
+      if (!res.ok) {
+        throw new Error(`Failed to fetch moods: ${res.status}`);
       }
-    };
+      
+      const data = await res.json();
+      console.log("Moods data received:", data);
+      
+      const moodMap = {};
+      data.forEach(m => {
+        const emoji = scoreToEmoji(m.mood_score);
+        moodMap[m.logged_on] = emoji;
+        console.log(`Date: ${m.logged_on}, Score: ${m.mood_score}, Emoji: ${emoji}`);
+      });
+      
+      console.log("Mood map:", moodMap);
+      setMoods(moodMap);
+    } catch (e) {
+      console.error("Failed to load moods:", e);
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load on mount
+  useEffect(() => {
     loadMoods();
   }, []);
 
-  // --- Load local mood saved from Home.js ---
+  // Listen for mood updates from Mood.js
   useEffect(() => {
-    try {
-      const LS_KEY = "home.mood";
-      const stored = JSON.parse(localStorage.getItem(LS_KEY) || "null");
-      if (stored && stored.date && typeof stored.value === "number") {
-        const emojis = ["😭", "😐", "🙂", "😊", "😁"];
-        const moodEmoji = emojis[stored.value];
-        if (moodEmoji) {
-          setMoods(prev => ({
-            ...prev,
-            [stored.date]: moodEmoji,
-          }));
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load local mood:", e);
-    }
-  }, []);
-
-  // --- Update instantly when Home saves mood ---
-  useEffect(() => {
-    const reloadMood = () => {
-      try {
-        const stored = JSON.parse(localStorage.getItem("home.mood") || "null");
-        if (stored && stored.date && typeof stored.value === "number") {
-          const emojis = ["😭", "😐", "🙂", "😊", "😁"];
-          const moodEmoji = emojis[stored.value];
-          if (moodEmoji) {
-            setMoods(prev => ({ ...prev, [stored.date]: moodEmoji }));
-          }
-        }
-      } catch {}
+    const handleMoodUpdate = () => {
+      console.log("Mood updated event detected, reloading...");
+      loadMoods();
     };
-    window.addEventListener("moodUpdated", reloadMood);
-    return () => window.removeEventListener("moodUpdated", reloadMood);
+    
+    window.addEventListener("moodUpdated", handleMoodUpdate);
+    return () => window.removeEventListener("moodUpdated", handleMoodUpdate);
   }, []);
 
+  // Animations
   useEffect(() => {
     if (!calRef.current) return;
     gsap.set(calRef.current, { opacity: 1, visibility: "visible" });
-    gsap.fromTo(
-      cardRefs.current,
-      { opacity: 0, y: 40 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.8,
-        ease: "power2.out",
-        stagger: 0.15,
-      }
-    );
+    
+    const validRefs = cardRefs.current.filter(Boolean);
+    if (validRefs.length > 0) {
+      gsap.fromTo(
+        validRefs,
+        { opacity: 0, y: 40 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: "power2.out",
+          stagger: 0.15,
+        }
+      );
+    }
   }, []);
 
   useEffect(() => {
@@ -128,6 +152,7 @@ export default function Calendar() {
     );
   }, [date]);
 
+  // Calculate mood statistics
   const moodCounts = useMemo(() => {
     const counts = {};
     for (let d = 1; d <= daysInMonth; d++) {
@@ -138,7 +163,7 @@ export default function Calendar() {
   }, [date, daysInMonth, moods]);
 
   const totalTracked = Object.values(moodCounts).reduce((a, b) => a + b, 0);
-  const positiveEmos = new Set(["🙂", "😊", "😁"]);
+  const positiveEmos = new Set(["🙂", "😊", "😄"]);
   const positiveCount = Object.entries(moodCounts)
     .filter(([emo]) => positiveEmos.has(emo))
     .reduce((acc, [, c]) => acc + c, 0);
@@ -147,9 +172,48 @@ export default function Calendar() {
   const onPrev = () => setDate(({ year, month }) =>
     month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 }
   );
+  
   const onNext = () => setDate(({ year, month }) =>
     month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 }
   );
+
+  if (loading) {
+    return (
+      <div className="cal-page" ref={calRef}>
+        <div className="cal-content">
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <h2>Loading mood calendar...</h2>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="cal-page" ref={calRef}>
+        <div className="cal-content">
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <h2 style={{ color: '#dc2626', marginBottom: '16px' }}>Error: {error}</h2>
+            <button 
+              onClick={loadMoods}
+              style={{
+                padding: '10px 20px',
+                background: '#8b5cf6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="cal-page" ref={calRef}>
@@ -230,7 +294,7 @@ export default function Calendar() {
               <div className="kv">
                 <span className="kv-key">Most common mood:</span>
                 <span className="kv-val">
-                  {Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "—"}
+                  {Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "–"}
                 </span>
               </div>
               <div className="kv">
