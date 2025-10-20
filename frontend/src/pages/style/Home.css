@@ -53,7 +53,7 @@
 .home-main {
   flex: 1;
   padding: 2rem 2rem 6rem;
-  max-width: 1100px;
+  max-width: 1030px;
   margin: 0 auto;
   transition: all var(--transition-slow);
 }

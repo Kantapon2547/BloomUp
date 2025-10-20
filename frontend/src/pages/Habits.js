@@ -558,12 +558,12 @@ export default function HabitsPage() {
     <div className="habits-container">
       <div className="page-head">
         <div className="head-left">
-          <h1 className="brand-title">My Habits</h1>
+          {/* <h1 className="brand-title">My Habits</h1>
           <p className="brand-sub">
             Build consistent routines for academic and personal growth
-          </p>
+          </p> */}
         </div>
-
+{/* 
       <div className="head-actions">
         <button
           type="button"
@@ -580,7 +580,7 @@ export default function HabitsPage() {
           <DownloadCloud size={18} />
           <span>Export</span>
         </button>
-      </div>
+      </div> */}
     </div>
 
       {/* <div className="top-row">

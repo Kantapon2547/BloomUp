@@ -173,12 +173,12 @@ const GratitudeJar = () => {
   return (
     <div className="app-container">
       <main className="main-content">
-        <h1 className="page-title">
+        {/* <h1 className="page-title">
           Gratitude Jar <Heart className="w-8 h-8 text-purple-500" />
         </h1>
         <p className="page-description">
           Reflect on the positive moments in your day
-        </p>
+        </p> */}
 
         {/* Stats */}
         <div className="stats-container">

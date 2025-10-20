@@ -218,10 +218,10 @@ export default function Calendar() {
   return (
     <div className="cal-page" ref={calRef}>
       <div className="cal-content">
-        <header className="cal-header">
+        {/* <header className="cal-header">
           <h1 className="cal-title">Mood Calendar</h1>
           <p className="cal-subtitle">Track your emotional journey over time</p>
-        </header>
+        </header> */}
 
         <section className="card calendar-card" ref={el => (cardRefs.current[0] = el)}>
           <div className="card-head" ref={monthRef}>

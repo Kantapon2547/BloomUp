@@ -24,7 +24,7 @@
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-  padding: 30px 40px;
+  /* padding: 30px 40px; */
   background: linear-gradient(to right, #ede9fe, #dbeafe);
   animation: gradientBG 15s ease infinite;
 }
