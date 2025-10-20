@@ -27,7 +27,8 @@ def update_me(patch: schemas.UserUpdate, db: Session = Depends(get_db), email: s
     if patch.profile_picture is not None: user.profile_picture = patch.profile_picture
     if patch.password: user.password_hash = hash_password(patch.password)
 
-    db.commit(); db.refresh(user)
+    db.commit()
+    db.refresh(user)
     return user
 
 # Avatar upload
@@ -52,5 +53,6 @@ async def upload_avatar(file: UploadFile = File(...), db: Session = Depends(get_
         raise HTTPException(status_code=404, detail="User not found")
 
     user.profile_picture = f"{BACKEND_BASE_URL}/uploads/{fname}"
-    db.commit(); db.refresh(user)
+    db.commit()
+    db.refresh(user)
     return user
