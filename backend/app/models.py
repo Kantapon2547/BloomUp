@@ -1,10 +1,13 @@
+# pylint: disable=missing-class-docstring
 from sqlalchemy import (
     Column, Integer, String, Date, Boolean, Text, ForeignKey,
     UniqueConstraint, DateTime
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import JSONB
 from .db import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -43,6 +46,13 @@ class User(Base):
     # User ↔ MoodLog
     mood_logs = relationship(
         "MoodLog",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    # User ↔ UserAchievement
+    user_achievements = relationship(
+        "UserAchievement",
         back_populates="user",
         cascade="all, delete-orphan",
     )
@@ -148,4 +158,80 @@ class MoodLog(Base):
             name="uq_mood_per_day"
         ),
     )
+
+
+# ==================== ACHIEVEMENT MODELS ====================
+
+class Achievement(Base):
+    __tablename__ = "achievements"
+
+    achievement_id = Column(Integer, primary_key=True, index=True)
+    key_name = Column(String(100), unique=True, nullable=False, index=True)
+    title = Column(String(150), nullable=False)
+    description = Column(Text)
+    icon = Column(String(32))
+    points = Column(Integer, default=0)
+    meta = Column(JSONB, default={})
     
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    
+    requirements = relationship(
+        "AchievementRequirement",
+        back_populates="achievement",
+        cascade="all, delete-orphan"
+    )
+    user_achievements = relationship(
+        "UserAchievement",
+        back_populates="achievement",
+        cascade="all, delete-orphan"
+    )
+
+
+class AchievementRequirement(Base):
+    __tablename__ = "achievement_requirements"
+
+    requirement_id = Column(Integer, primary_key=True, index=True)
+    achievement_id = Column(
+        Integer,
+        ForeignKey("achievements.achievement_id", ondelete="CASCADE"),
+        nullable=False
+    )
+    requirement_type = Column(String(50), nullable=False)
+    target_value = Column(Integer)
+    unit = Column(String(30))
+    extra_meta = Column(JSONB, default={})
+    
+    achievement = relationship("Achievement", back_populates="requirements")
+
+
+class UserAchievement(Base):
+    __tablename__ = "user_achievements"
+
+    user_achievement_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    achievement_id = Column(
+        Integer,
+        ForeignKey("achievements.achievement_id", ondelete="CASCADE"),
+        nullable=False
+    )
+    progress = Column(Integer, default=0)
+    progress_unit_value = Column(Integer, default=0)
+    is_earned = Column(Boolean, default=False)
+    earned_date = Column(DateTime, nullable=True)
+    meta = Column(JSONB, default={})
+    
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    
+    user = relationship("User", back_populates="user_achievements")
+    achievement = relationship("Achievement", back_populates="user_achievements")
+    
+    __table_args__ = (
+        UniqueConstraint("user_id", "achievement_id", name="uq_user_achievement"),
+    )

@@ -9,6 +9,7 @@ import logging
 from .. import schemas, crud, models
 from ..db import get_db
 from ..security import get_current_user
+from ..services.achievement_checker import check_mood_achievements
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ def _user_id(u: models.User) -> int:
     return user_id
 
 
-# Request/Response Models
+# Request/Response models
 class MoodLogCreate(BaseModel):
     mood_score: int = Field(ge=1, le=10, description="Mood score from 1-10")
     note: Optional[str] = Field(None, max_length=500)
@@ -136,6 +137,9 @@ def create_mood_log(
             logged_on=log_date
         )
         
+        # Check achievements after creating mood log
+        check_mood_achievements(db, user_id)
+        
         logger.info(f"Mood created successfully: {result.mood_id}")
         return result
     except Exception as e:
@@ -236,6 +240,9 @@ def update_mood_log(
         note=payload.note
     )
     
+    # Check achievements after updating mood log
+    check_mood_achievements(db, user_id)
+    
     return updated
 
 
@@ -255,6 +262,9 @@ def delete_mood_log(
             status_code=404,
             detail="Mood log not found or not owned by user"
         )
+    
+    # Check achievements after deleting mood log
+    check_mood_achievements(db, user_id)
     
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

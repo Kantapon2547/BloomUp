@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .db import Base, engine
-from .routers import auth, users, habits, gratitude, mood  
+from .routers import auth, users, habits, gratitude, mood, achievements
 import os
 
 app = FastAPI(title="BloomUp API")
@@ -45,4 +45,5 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(habits.router) 
 app.include_router(gratitude.router)
-app.include_router(mood.router)  
+app.include_router(mood.router)
+app.include_router(achievements.router)

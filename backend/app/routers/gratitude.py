@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from .. import schemas, crud, models
 from ..db import get_db
 from ..security import get_current_user
+from ..services.achievement_checker import check_gratitude_achievements
 
 router = APIRouter(prefix="/gratitude", tags=["Gratitude"])
 
@@ -37,12 +38,17 @@ def create_gratitude_entry(
             detail="Gratitude text cannot be empty"
         )
     
-    return crud.create_gratitude_entry(
+    result = crud.create_gratitude_entry(
         db,
         user_id=current_user.user_id,
         text=payload.text.strip(),
         category=payload.category if payload.category else None,
     )
+    
+    # Check achievements after creating entry
+    check_gratitude_achievements(db, current_user.user_id)
+    
+    return result
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -58,4 +64,8 @@ def delete_gratitude_entry(
             status_code=404,
             detail="Gratitude entry not found or not owned by user"
         )
+    
+    # Check achievements after deleting entry
+    check_gratitude_achievements(db, current_user.user_id)
+    
     return Response(status_code=status.HTTP_204_NO_CONTENT)
