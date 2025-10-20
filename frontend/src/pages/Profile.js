@@ -1,67 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { getMyProfile, updateProfile, uploadAvatar } from "../services/userService";
 import { getProfileStats } from "../services/statsService";
+import { getUserAchievements, getEarnedAchievements } from "../services/achievementService";
 import "./style/Profile.css";
 
 // Constants
-const ACHIEVEMENTS_DATA = {
-  firstHabit: {
-    id: "firstHabit",
-    title: "First Steps",
-    description: "Created your first habit",
-    icon: "🌱",
-    type: "bronze",
-    earned: true,
-    date: "2024-09-15",
-    requirement: { type: "habits", count: 1 }
-  },
-  streakMaster: {
-    id: "streakMaster",
-    title: "Streak Master",
-    description: "Maintained a 7-day streak",
-    icon: "🔥",
-    type: "silver",
-    earned: true,
-    date: "2024-10-05",
-    requirement: { type: "streak", count: 7 }
-  },
-  gratitudePro: {
-    id: "gratitudePro",
-    title: "Gratitude Pro",
-    description: "Logged 10 gratitude entries",
-    icon: "🙏",
-    type: "silver",
-    earned: true,
-    date: "2024-10-08",
-    requirement: { type: "gratitude", count: 10 }
-  },
-  consistencyKing: {
-    id: "consistencyKing",
-    title: "Consistency King",
-    description: "Tracked habits for 30 days",
-    icon: "👑",
-    type: "gold",
-    earned: false,
-    date: null,
-    requirement: { type: "daysTracked", count: 30 }
-  },
-  earlyBird: {
-    id: "earlyBird",
-    title: "Early Bird",
-    description: "Completed 5 morning habits",
-    icon: "🐦",
-    type: "bronze",
-    earned: false,
-    date: null,
-    requirement: { type: "morningHabits", count: 5 }
-  }
-};
-
 const STATS_CONFIG = [
-  { key: "activeHabits", icon: "eco", label: "ACTIVE HABITS" },
-  { key: "longestStreak", icon: "whatshot", label: "LONGEST STREAK" },
-  { key: "gratitudeEntries", icon: "favorite", label: "GRATITUDE ENTRIES" },
-  { key: "daysTracked", icon: "calendar_today", label: "DAYS TRACKED" }
+  { key: "activeHabits", icon: "target", label: "ACTIVE HABITS" }, 
+  { key: "longestStreak", icon: "local_fire_department", label: "LONGEST STREAK" },
+  { key: "gratitudeEntries", icon: "favorite", label: "GRATITUDE ENTRIES" }, 
+  { key: "daysTracked", icon: "calendar_month", label: "DAYS TRACKED" } 
 ];
 
 const RECENT_ACTIVITIES = [
@@ -71,22 +19,34 @@ const RECENT_ACTIVITIES = [
   { icon: "🏃‍♂️", text: "Completed evening run", time: "Yesterday" }
 ];
 
-// Helper Components
-const ProfileHeader = ({ profile, onEditClick, getMemberSinceText }) => (
+const ProfileHeader = ({ profile, onEditClick, onSettingsClick, getMemberSinceText }) => (
   <div className="profile-card profile-header-card">
     <div className="profile-header-content">
       <div className="profile-image-section">
         <div className="profile-image-container">
-          <img
-            src={profile.profile_picture || "/default-avatar.png"}
-            alt={profile.name}
-            className="profile-image"
-          />
+          {profile.profile_picture ? (
+            <img
+              src={profile.profile_picture}
+              alt={profile.name}
+              className="profile-image"
+            />
+          ) : (
+            <div className="profile-emoji-default">🌸</div>
+          )}
+        </div>
+        <div className="edit-profile-badge" onClick={onEditClick} title="Edit Profile">
+          ✏️
         </div>
       </div>
 
       <div className="profile-info-section">
-        <h1 className="profile-name-large">{profile.name}</h1>
+        <div className="profile-header-top">
+          <h1 className="profile-name-large">{profile.name}</h1>
+          <button className="settings-btn" onClick={onSettingsClick}>
+            ⚙️ Log out
+          </button>
+        </div>
+        
         <p className="profile-bio-text">{profile.bio || "No bio yet"}</p>
 
         <div className="profile-tags">
@@ -97,10 +57,6 @@ const ProfileHeader = ({ profile, onEditClick, getMemberSinceText }) => (
             Member since {getMemberSinceText()}
           </div>
         </div>
-
-        <button className="edit-profile-btn" onClick={onEditClick}>
-          Edit Profile
-        </button>
       </div>
     </div>
   </div>
@@ -112,7 +68,7 @@ const StatsSection = ({ stats }) => (
       {STATS_CONFIG.map(({ key, icon, label }) => (
         <div key={key} className="stat-card">
           <div className="stat-icon">
-            <span className="material-icons-outlined">{icon}</span>
+            <span className="material-icons">{icon}</span>
           </div>
           <div className="stat-number">{stats[key]}</div>
           <div className="stat-label">{label}</div>
@@ -122,27 +78,25 @@ const StatsSection = ({ stats }) => (
   </div>
 );
 
-const AchievementsCard = ({ achievements, onViewAll }) => {
-  const earnedAchievements = achievements.filter(a => a.earned);
-  
+const AchievementsCard = ({ achievements, earnedCount, totalCount, onViewAll }) => {
   return (
     <div className="profile-card achievements-card">
       <div className="card-header">
         <h2 className="card-title">Achievements</h2>
         <button className="view-all-btn" onClick={onViewAll}>
-          View All
+          {earnedCount}/{totalCount}
         </button>
       </div>
       <div className="achievements-content">
         <div className="achievement-progress">
           <div className="progress-number">
-            {earnedAchievements.length}/{achievements.length}
+            {earnedCount}/{totalCount}
           </div>
           <div className="progress-label">Total Achievements</div>
         </div>
         <div className="achievements-list">
-          {earnedAchievements.slice(0, 3).map(achievement => (
-            <AchievementItem key={achievement.id} achievement={achievement} />
+          {achievements.slice(0, 3).map(achievement => (
+            <AchievementItem key={achievement.achievement_id} achievement={achievement} />
           ))}
         </div>
       </div>
@@ -184,7 +138,7 @@ const ActivityItem = ({ activity }) => (
 );
 
 const AchievementsModal = ({ achievements, onClose }) => {
-  const earnedCount = achievements.filter(a => a.earned).length;
+  const earnedCount = achievements.filter(a => a.is_earned).length;
   const totalCount = achievements.length;
 
   return (
@@ -198,8 +152,8 @@ const AchievementsModal = ({ achievements, onClose }) => {
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
         <div className="achievements-grid">
-          {achievements.map(achievement => (
-            <AchievementModalItem key={achievement.id} achievement={achievement} />
+          {achievements.map((achievement) => (
+            <AchievementModalItem key={achievement.achievement_id} achievement={achievement} />
           ))}
         </div>
       </div>
@@ -208,30 +162,27 @@ const AchievementsModal = ({ achievements, onClose }) => {
 };
 
 const AchievementModalItem = ({ achievement }) => (
-  <div className={`achievement-card ${achievement.earned ? 'earned' : 'locked'}`}>
+  <div className={`achievement-card ${achievement.is_earned ? 'earned' : 'locked'}`}>
     <div className="achievement-icon-large">
-      {achievement.earned ? achievement.icon : "🔒"}
+      {achievement.is_earned ? achievement.icon : "🔒"}
     </div>
     <div className="achievement-content">
       <h3 className="achievement-title">{achievement.title}</h3>
       <p className="achievement-description">{achievement.description}</p>
-      {achievement.earned && achievement.date && (
+      {achievement.is_earned && achievement.earned_date && (
         <div className="achievement-date">
-          Earned {new Date(achievement.date).toLocaleDateString('en-US', { 
+          Earned {new Date(achievement.earned_date).toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric', 
             year: 'numeric' 
           })}
         </div>
       )}
-      {!achievement.earned && (
+      {!achievement.is_earned && (
         <div className="achievement-requirement">
-          Requirement: {achievement.requirement.count} {achievement.requirement.type}
+          Progress: {achievement.progress_unit_value} ({achievement.progress}%)
         </div>
       )}
-    </div>
-    <div className={`achievement-badge ${achievement.type}`}>
-      {achievement.type}
     </div>
   </div>
 );
@@ -262,14 +213,14 @@ const EditProfileModal = ({
               className="profile-image-edit"
             />
           </div>
-          <button className="change-image-btn-edit" onClick={onChangeImageClick}>
+          <button className="change-image-btn-edit" onClick={onChangeImageClick} type="button">
             Change Photo
           </button>
           <input
             type="file"
             ref={fileInputRef}
             onChange={onFileChange}
-            accept="image/*"
+            accept=".png,.jpeg,.jpg,image/png,image/jpeg"
             style={{ display: "none" }}
           />
         </div>
@@ -293,10 +244,10 @@ const EditProfileModal = ({
           />
 
           <div className="edit-buttons">
-            <button className="btn save-btn" onClick={onSave}>
+            <button className="btn save-btn" onClick={onSave} type="button">
               Save Changes
             </button>
-            <button className="btn cancel-btn" onClick={onCancel}>
+            <button className="btn cancel-btn" onClick={onCancel} type="button">
               Cancel
             </button>
           </div>
@@ -315,6 +266,7 @@ export default function ProfilePage() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [achievements, setAchievements] = useState([]);
+  const [earnedAchievements, setEarnedAchievements] = useState([]);
   const [showAchievementsModal, setShowAchievementsModal] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -343,9 +295,18 @@ export default function ProfilePage() {
         });
       }
 
-      // Convert ACHIEVEMENTS_DATA object to array and set achievements
-      const achievementsArray = Object.values(ACHIEVEMENTS_DATA);
-      setAchievements(achievementsArray);
+      // Fetch and earned all achievements from backend
+      try {
+        const allAchievements = await getUserAchievements();
+        setAchievements(allAchievements);
+        
+        const earned = await getEarnedAchievements();
+        setEarnedAchievements(earned);
+      } catch (e) {
+        console.error("Failed to load achievements:", e);
+        setAchievements([]);
+        setEarnedAchievements([]);
+      }
     } catch (e) {
       console.error("Failed to load profile data:", e);
       setError(`Failed to load profile: ${e.message}`);
@@ -356,12 +317,24 @@ export default function ProfilePage() {
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    if (name === "picture" && files.length > 0) {
+    if (files && files.length > 0) {
+      const file = files[0];
+      const validTypes = ['image/png', 'image/jpeg'];
+      
+      if (!validTypes.includes(file.type)) {
+        setError("Please upload only PNG or JPEG files");
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onload = () => {
-        setTempProfile({ ...tempProfile, picture: reader.result });
+        setTempProfile({ ...tempProfile, profile_picture: reader.result });
+        setError("");
       };
-      reader.readAsDataURL(files[0]);
+      reader.onerror = () => {
+        setError("Failed to read file");
+      };
+      reader.readAsDataURL(file);
     } else {
       setTempProfile({ ...tempProfile, [name]: value });
     }
@@ -369,15 +342,44 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     try {
-      const updated = await updateProfile({
+      let updatedData = {
         name: tempProfile.name,
         bio: tempProfile.bio,
-      });
+      };
+
+      // If profile picture was changed and is a data URL, upload it first
+      if (tempProfile.profile_picture && tempProfile.profile_picture.startsWith('data:')) {
+        try {
+          // Convert data URL to File object
+          const dataUrl = tempProfile.profile_picture;
+          const arr = dataUrl.split(',');
+          const mime = arr[0].match(/:(.*?);/)[1];
+          const bstr = atob(arr[1]);
+          const n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          for (let i = 0; i < n; i++) {
+            u8arr[i] = bstr.charCodeAt(i);
+          }
+          const file = new File([u8arr], 'avatar.jpg', { type: mime });
+          
+          // Pass the File object directly
+          await uploadAvatar(file);
+        } catch (uploadError) {
+          console.error("Failed to upload avatar:", uploadError);
+          console.error("Upload error details:", uploadError.response?.data || uploadError.message);
+          setError("Failed to upload profile picture. Please try again.");
+          return;
+        }
+      }
+
+      // Update the rest of the profile (name, bio)
+      const updated = await updateProfile(updatedData);
       setProfile(updated);
       setTempProfile(updated);
       setIsEditing(false);
+      setError("");
     } catch (e) {
-      setError(e.message);
+      setError(e.message || "Failed to save profile");
     }
   };
 
@@ -390,6 +392,10 @@ export default function ProfilePage() {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
+  };
+
+  const handleSettingsClick = () => {
+    console.log("Settings clicked");
   };
 
   const getMemberSinceText = () => {
@@ -407,7 +413,8 @@ export default function ProfilePage() {
     <div className="profile-page">
       <ProfileHeader 
         profile={profile} 
-        onEditClick={() => setIsEditing(true)} 
+        onEditClick={() => setIsEditing(true)}
+        onSettingsClick={handleSettingsClick}
         getMemberSinceText={getMemberSinceText} 
       />
 
@@ -417,7 +424,9 @@ export default function ProfilePage() {
           
           <div className="content-grid">
             <AchievementsCard 
-              achievements={achievements} 
+              achievements={earnedAchievements}
+              earnedCount={earnedAchievements.length}  
+              totalCount={achievements.length}  
               onViewAll={() => setShowAchievementsModal(true)} 
             />
             <RecentActivityCard />
