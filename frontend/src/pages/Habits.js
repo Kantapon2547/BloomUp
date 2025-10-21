@@ -7,8 +7,11 @@ const USE_API_DEFAULT = true;
 const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 const AUTH_TOKEN = import.meta?.env?.VITE_API_TOKEN || "";
 const LS_KEY = "habit-tracker@hybrid";
-const CATEGORIES = ["General", "Study", "Health", "Mind"];
+// const CATEGORIES = ["General", "Study", "Health", "Mind"];
 const DURATIONS = ["15 mins", "30 mins", "45 mins", "1 hour", "1.5 hours", "2 hours", "3 hours"];
+
+const CATS_LS = "habit-tracker@categories";
+const DEFAULT_CATEGORIES = ["General", "Study", "Health", "Mind"];
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -223,6 +226,103 @@ function Dropdown({ value, items, onChange, label }) {
   );
 }
 
+function CategorySelector({ value, onChange, categories, onCreate }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [showInput, setShowInput] = useState(false);
+  const ref = useRef(null);
+  
+  useClickOutside(ref, () => {
+    setIsOpen(false);
+    setShowInput(false);
+    setDraft("");
+  });
+
+  const handleSelect = (cat) => {
+    onChange(cat);
+    setIsOpen(false);
+  };
+
+  const handleAddNew = () => {
+    const name = draft.trim();
+    if (!name) return;
+    onCreate(name);
+    onChange(name);
+    setDraft("");
+    setShowInput(false);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="dd category-selector" ref={ref}>
+      <button
+        className="dd-trigger"
+        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+      >
+        <span>{value}</span>
+        <ChevronDown size={16} />
+      </button>
+      
+      {isOpen && (
+        <div className="dd-pop">
+          {!showInput ? (
+            <>
+              {categories.map((cat) => (
+                <div
+                  key={cat}
+                  className={`dd-item ${cat === value ? "is-active" : ""}`}
+                  onClick={() => handleSelect(cat)}
+                >
+                  {cat}
+                </div>
+              ))}
+              <div className="dd-divider" />
+              <div
+                className="dd-item dd-item--add"
+                onClick={() => setShowInput(true)}
+              >
+                <Plus size={16} />
+                <span>Add new category</span>
+              </div>
+            </>
+          ) : (
+            <div className="dd-add-form">
+              <input
+                className="input"
+                placeholder="e.g., Fitness, Work"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddNew();
+                  if (e.key === "Escape") { setShowInput(false); setDraft(""); }
+                }}
+                autoFocus
+              />
+              <div className="dd-add-actions">
+                <button
+                  type="button"
+                  className="btn btn-sm cancel"
+                  onClick={() => { setShowInput(false); setDraft(""); }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm confirm"
+                  onClick={handleAddNew}
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 async function generatePDFReport(habits, totals, week) {
   // Load jsPDF from CDN if not already loaded
   if (!window.jspdf) {
@@ -373,11 +473,12 @@ async function generatePDFReport(habits, totals, week) {
   doc.save(`habit-tracker-report-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
-function HabitModal({ open, onClose, onSubmit, initial }) {
+function HabitModal({ open, onClose, onSubmit, initial, categories, onCreateCategory }) {
   const [name, setName] = useState(initial?.name || "");
   const [category, setCategory] = useState(initial?.category || "General");
   const [icon, setIcon] = useState(initial?.icon || "📚");
   const [duration, setDuration] = useState(initial?.duration || "30 mins");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -385,6 +486,7 @@ function HabitModal({ open, onClose, onSubmit, initial }) {
       setCategory(initial?.category || "General");
       setIcon(initial?.icon || "📚");
       setDuration(initial?.duration || "30 mins");
+      setError("");
     }
   }, [initial, open]);
 
@@ -396,15 +498,22 @@ function HabitModal({ open, onClose, onSubmit, initial }) {
         <div className="modal-body">
           <h3>Habit Name</h3>
           <input
-            className="input"
+            className={`input ${error ? "is-invalid" : ""}`}
             placeholder="e.g., Study for 2 hours"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => { setName(e.target.value); setError(""); }}
           />
+          {error && <div className="field-error">{error}</div>}
+
           <div className="row-two">
             <div className="field">
               <h3>Category</h3>
-              <Dropdown value={category} items={CATEGORIES} onChange={setCategory} />
+              <CategorySelector
+                value={category}
+                onChange={setCategory}
+                categories={categories}
+                onCreate={onCreateCategory}
+              />
             </div>
             <div className="field">
               <h3>Duration</h3>
@@ -414,27 +523,24 @@ function HabitModal({ open, onClose, onSubmit, initial }) {
 
           <h3>Choose Icon</h3>
           <div className="icon-grid pretty">
-            {["📚", "✏️", "📖", "🎓", "💻", "💪", "🧠", "🧘", "🥗", "🚰", "💖", "🛏️"].map(
-              (i) => (
-                <div
-                  key={i}
-                  className={`icon-tile ${icon === i ? "active" : ""}`}
-                  onClick={() => setIcon(i)}
-                >
-                  <span className="icon-emoji">{i}</span>
-                </div>
-              )
-            )}
+            {["📚","✏️","📖","🎓","💻","💪","🧠","🧘","🥗","🚰","💖","🛏️"].map(i => (
+              <div
+                key={i}
+                className={`icon-tile ${icon === i ? "active" : ""}`}
+                onClick={() => setIcon(i)}
+              >
+                <span className="icon-emoji">{i}</span>
+              </div>
+            ))}
           </div>
         </div>
+
         <div className="modal-footer">
-          <button className="btn cancel" onClick={onClose}>
-            Cancel
-          </button>
+          <button className="btn cancel" onClick={onClose}>Cancel</button>
           <button
             className="btn confirm"
             onClick={() => {
-              if (!name.trim()) return;
+              if (!name.trim()) { setError("Please enter a habit name."); return; }
               onSubmit({ name: name.trim(), category, icon, duration });
             }}
           >
@@ -455,6 +561,22 @@ export default function HabitsPage() {
   const [durationFilter, setDurationFilter] = useState("All Durations");
   const [openModal, setOpenModal] = useState(false);
   const [editing, setEditing] = useState(null);
+
+    const [categories, setCategories] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(CATS_LS)) || DEFAULT_CATEGORIES;
+    } catch {
+      return DEFAULT_CATEGORIES;
+    }
+  });
+
+  const addCategoryGlobal = (name) => {
+    if (!categories.includes(name)) {
+      const next = [...categories, name];
+      setCategories(next);
+      localStorage.setItem(CATS_LS, JSON.stringify(next));
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -583,32 +705,6 @@ export default function HabitsPage() {
       </div>
     </div>
 
-      {/* <div className="top-row">
-        <h1 className="brand-title">My Habits</h1>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button 
-            className="add-top-btn report-btn" 
-            onClick={() => generatePDFReport(habits, totals, week)}
-            disabled={habits.length === 0}
-          >
-            <span className="add-top-btn__icon">
-              <Download size={16} />
-            </span>
-            Download Report
-          </button>
-          <button className="add-top-btn" onClick={() => setOpenModal(true)}>
-            <span className="add-top-btn__icon">
-              <Plus size={16} />
-            </span>
-            Add Habit
-          </button>
-        </div> */}
-      
-
-      {/* // <p className="brand-sub">
-      //   Build consistent routines for academic and personal growth
-      // </p> */}
-
       <section className="summary-section">
         <div className="summary-title">Today's Progress</div>
         <div className="progress-wrap" style={{ marginBottom: 16 }}>
@@ -656,7 +752,7 @@ export default function HabitsPage() {
         <div className="filter-dropdowns">
           <Dropdown
             value={catFilter}
-            items={["All Categories", ...CATEGORIES]}
+            items={["All Categories", ...categories]}
             onChange={setCatFilter}
           />
           <Dropdown
@@ -777,12 +873,16 @@ export default function HabitsPage() {
         open={openModal}
         onClose={() => setOpenModal(false)}
         onSubmit={addHabit}
+        categories={categories} 
+        onCreateCategory={addCategoryGlobal}
       />
       <HabitModal
         open={!!editing}
         onClose={() => setEditing(null)}
         initial={editing || undefined}
         onSubmit={(payload) => editHabit(editing.id, payload)}
+        categories={categories}
+        onCreateCategory={addCategoryGlobal}
       />
     </div>
   );
