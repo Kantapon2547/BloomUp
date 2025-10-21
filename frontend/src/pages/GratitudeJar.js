@@ -1,9 +1,8 @@
-// Make sure to import ImageIcon from lucide-react
 import React, { useState, useEffect, useRef } from "react";
 import "./style/GratitudeJar.css";
-import { Trash2, ImagePlus, X, ExternalLink } from "lucide-react"; // CHANGED: ImageIcon to ExternalLink
+import { Trash2, ImagePlus, X, ExternalLink } from "lucide-react";
 
-// The GratitudeDetailModal component remains unchanged.
+
 const GratitudeDetailModal = ({ entry, onClose }) => {
   useEffect(() => {
     const handleEsc = (event) => {
@@ -47,7 +46,6 @@ const categoryColors = {
 };
 
 const GratitudeJar = () => {
-  // ... (all your existing state and functions remain the same)
   const [entries, setEntries] = useState(() => {
     const saved = localStorage.getItem("gratitudeEntries");
     return saved ? JSON.parse(saved) : [];
