@@ -563,7 +563,7 @@ export default function HabitsPage() {
             Build consistent routines for academic and personal growth
           </p> */}
         </div>
-{/* 
+
       <div className="head-actions">
         <button
           type="button"
@@ -580,7 +580,7 @@ export default function HabitsPage() {
           <DownloadCloud size={18} />
           <span>Export</span>
         </button>
-      </div> */}
+      </div>
     </div>
 
       {/* <div className="top-row">
@@ -787,3 +787,5 @@ export default function HabitsPage() {
     </div>
   );
 }
+
+export { createStorage };
