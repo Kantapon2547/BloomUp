@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import "./style/Home.css";
+import Jar from '../components/Jar';
 
 // Constants
 const LS_KEY = "habit-tracker@hybrid";
@@ -450,6 +451,7 @@ export default function Home({ user }) {
 
   return (
     <div className="home-layout">
+      <Jar />
       <main className="home-main">
         <header className="home-header" ref={headerRef}>
           <div className="header-left">

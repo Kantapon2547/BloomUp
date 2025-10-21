@@ -47,7 +47,7 @@ const fadeIn = (targets, opts = {}) => {
 };
 
 /* ===== Reusable Components ===== */
-const AnimatedCard = React.memo(({ children }) => {
+const ReportsAnimatedCard = React.memo(({ children }) => {
   const ref = useRef(null);
   useEffect(() => {
     gsap.from(ref.current, { y: 20, opacity: 0, duration: 0.4, ease: "power2.out" });
@@ -55,7 +55,7 @@ const AnimatedCard = React.memo(({ children }) => {
   return (
     <div
       ref={ref}
-      className="kcard"
+      className="rp-kcard"
       onMouseEnter={() =>
         gsap.to(ref.current, { y: -4, boxShadow: "var(--shadow-hover)", duration: 0.3 })
       }
@@ -68,7 +68,7 @@ const AnimatedCard = React.memo(({ children }) => {
   );
 });
 
-const Donut = React.memo(({ value }) => {
+const ReportsDonut = React.memo(({ value }) => {
   const circleRef = useRef(null);
   const textRef = useRef(null);
 
@@ -113,7 +113,7 @@ const Donut = React.memo(({ value }) => {
   );
 });
 
-const BarChart = React.memo(({ data, periodMode }) => {
+const ReportsBarChart = React.memo(({ data, periodMode }) => {
   const barsRef = useRef([]);
   const numbersRef = useRef([]);
   const [hovered, setHovered] = useState(null);
@@ -142,8 +142,8 @@ const BarChart = React.memo(({ data, periodMode }) => {
   }, [hovered]);
 
   return (
-    <div className="chart-wrapper">
-      <svg viewBox={`0 0 ${data.length * spacing} 160`} className="svgb">
+    <div className="rp-chart-wrapper">
+      <svg viewBox={`0 0 ${data.length * spacing} 160`} className="rp-svgb">
         <line x1="0" y1="140" x2={data.length * spacing} y2="140" stroke="#E5E7EB" />
         {data.map((d, i) => {
           const label =
@@ -190,7 +190,7 @@ const BarChart = React.memo(({ data, periodMode }) => {
   );
 });
 
-const CategoryPieChart = React.memo(({ data }) => {
+const ReportsCategoryPieChart = React.memo(({ data }) => {
   const svgRef = useRef(null);
   const tooltipRef = useRef(null);
 
@@ -300,7 +300,7 @@ const CategoryPieChart = React.memo(({ data }) => {
 });
 
 // Chart Toggle Switch Component
-const ChartToggleSwitch = React.memo(({ chartType, onToggle }) => {
+const ReportsChartToggleSwitch = React.memo(({ chartType, onToggle }) => {
   const switchRef = useRef(null);
   const knobRef = useRef(null);
 
@@ -328,7 +328,7 @@ const ChartToggleSwitch = React.memo(({ chartType, onToggle }) => {
   };
 
   return (
-    <div className="chart-toggle">
+    <div className="rp-chart-toggle">
       <span
         className={`material-symbols-outlined ${chartType === "bar" ? "active" : ""}`}
         onClick={() => onToggle("bar")}
@@ -337,11 +337,11 @@ const ChartToggleSwitch = React.memo(({ chartType, onToggle }) => {
       </span>
       <div 
         ref={switchRef}
-        className={`switch ${chartType}`}
+        className={`rp-switch ${chartType}`}
         onClick={handleToggle}
         style={{ cursor: 'pointer' }}
       >
-        <div ref={knobRef} className="knob"></div>
+        <div ref={knobRef} className="rp-knob"></div>
       </div>
       <span
         className={`material-symbols-outlined ${chartType === "pie" ? "active" : ""}`}
@@ -397,7 +397,7 @@ export default function Reports() {
         return { name: h.name, category: h.category || "general", rate };
       })
       .sort((a, b) => b.rate - a.rate)
-      .slice(0, 5); // Always show exactly top 5, even if some have 0%
+      .slice(0, 5);
   }, [habits, period]);
 
   const categoryPct = useMemo(() => {
@@ -439,18 +439,18 @@ export default function Reports() {
         {/* Header */}
         <header className="reports-header">
           <div className="rp-controls">
-            <div className="seg">
+            <div className="rp-seg">
               {["week", "month"].map((m) => (
                 <button
                   key={m}
-                  className={`seg-btn ${periodMode === m ? "is-active" : ""}`}
+                  className={`rp-seg-btn ${periodMode === m ? "is-active" : ""}`}
                   onClick={() => setPeriodMode(m)}
                 >
                   {m === "week" ? "Weekly" : "Monthly"}
                 </button>
               ))}
             </div>
-            <div className="pager">
+            <div className="rp-pager">
               <button onClick={() => setCursor(addDays(period.start, periodMode === "week" ? -7 : -30))}>
                 &lt;
               </button>
@@ -467,48 +467,48 @@ export default function Reports() {
         </header>
 
         {/* KPI Cards */}
-        <div className="kpi">
-          <AnimatedCard>
-            <div className="kcap">Average Completion</div>
-            <div className="kbody">
-              <Donut value={avgCompletion} />
+        <div className="rp-kpi">
+          <ReportsAnimatedCard>
+            <div className="rp-kcap">Average Completion</div>
+            <div className="rp-kbody">
+              <ReportsDonut value={avgCompletion} />
             </div>
-          </AnimatedCard>
-          <AnimatedCard>
-            <div className="kcap">Habits Tracked</div>
-            <div className="kbig">{habits.length}</div>
-            <div className="kfoot">active habits</div>
-          </AnimatedCard>
-          <AnimatedCard>
-            <div className="kcap">Longest Streak</div>
-            <div className="kbig">{longestStreak}</div>
-            <div className="kfoot">across all habits</div>
-          </AnimatedCard>
+          </ReportsAnimatedCard>
+          <ReportsAnimatedCard>
+            <div className="rp-kcap">Habits Tracked</div>
+            <div className="rp-kbig">{habits.length}</div>
+            <div className="rp-kfoot">active habits</div>
+          </ReportsAnimatedCard>
+          <ReportsAnimatedCard>
+            <div className="rp-kcap">Longest Streak</div>
+            <div className="rp-kbig">{longestStreak}</div>
+            <div className="rp-kfoot">across all habits</div>
+          </ReportsAnimatedCard>
         </div>
 
         {/* Chart with toggle - Centered */}
-        <div ref={chartRef} className="card rp-chart">
-          <div className="card-head" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+        <div ref={chartRef} className="rp-card rp-chart">
+          <div className="rp-card-head" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
             <h3 style={{ margin: '0 auto', textAlign: 'center' }}>Daily Completion</h3>
             <div style={{ position: 'absolute', right: '20px' }}>
-              <ChartToggleSwitch chartType={chartType} onToggle={handleChartTypeToggle} />
+              <ReportsChartToggleSwitch chartType={chartType} onToggle={handleChartTypeToggle} />
             </div>
           </div>
           {chartType === "bar" ? (
-            <BarChart key={periodMode} data={dailyCompletion} periodMode={periodMode} />
+            <ReportsBarChart key={periodMode} data={dailyCompletion} periodMode={periodMode} />
           ) : (
-            <CategoryPieChart key={periodMode} data={categoryPct} />
+            <ReportsCategoryPieChart key={periodMode} data={categoryPct} />
           )}
         </div>
 
         {/* Two Columns */}
-        <div ref={twoColRef} className="twocol">
-          <div className="card">
-            <div className="card-head">
+        <div ref={twoColRef} className="rp-twocol">
+          <div className="rp-card">
+            <div className="rp-card-head">
               <h3>Top 5 Habits</h3>
             </div>
             {topHabits.length > 0 ? (
-              <table className="table">
+              <table className="rp-table">
                 <thead>
                   <tr>
                     <th>Habit</th>
@@ -522,29 +522,29 @@ export default function Reports() {
                       <td>{r.name}</td>
                       <td>{r.category}</td>
                       <td>
-                        <span className="pill">{r.rate}%</span>
+                        <span className="rp-pill">{r.rate}%</span>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <p className="muted empty-state">No habits tracked yet 📭</p>
+              <p className="rp-muted empty-state">No habits tracked yet 📭</p>
             )}
           </div>
 
-          <div className="card">
-            <div className="card-head">
+          <div className="rp-card">
+            <div className="rp-card-head">
               <h3>Category Breakdown</h3>
             </div>
-            <ul className="list">
+            <ul className="rp-list">
               {categoryPct.map((c) => (
-                <li key={c.cat} className="list-row">
-                  <span className="cap">{c.cat}</span>
-                  <div className="bar-container">
-                    <div className="bar-bg">
+                <li key={c.cat} className="rp-list-row">
+                  <span className="rp-cap">{c.cat}</span>
+                  <div className="rp-bar-container">
+                    <div className="rp-bar-bg">
                       <div
-                        className="bar-fill"
+                        className="rp-bar-fill"
                         style={{
                           width: `${c.rate}%`,
                           backgroundColor: c.rate === 0 ? "#E5E7EB" : "#7c3aed",
@@ -552,10 +552,10 @@ export default function Reports() {
                       />
                     </div>
                   </div>
-                  <span className="rate">{c.rate}%</span>
+                  <span className="rp-rate">{c.rate}%</span>
                 </li>
               ))}
-              {categoryPct.length === 0 && <li className="muted">No data</li>}
+              {categoryPct.length === 0 && <li className="rp-muted">No data</li>}
             </ul>
           </div>
         </div>
