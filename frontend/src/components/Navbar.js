@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink } from "react-router-dom"; // <-- use NavLink
+import { NavLink } from "react-router-dom";
 import { FiLogOut } from "react-icons/fi";
 import "./Navbar.css";
 
@@ -8,7 +8,7 @@ const Navbar = ({ onLogout }) => {
     { path: "/home", label: "Home" },
     { path: "/gratitude", label: "Gratitude" },
     { path: "/calendar", label: "Mood" },
-    { path: "/reports", label: "Report" },
+    // { path: "/reports", label: "Report" },
     { path: "/habits", label: "Habit" },
     { path: "/profile", label: "Profile" },
   ];
