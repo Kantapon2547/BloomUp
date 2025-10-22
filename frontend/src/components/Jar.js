@@ -8,6 +8,14 @@ import "./Jar.css";
 
 const starImages = [star1, star2, star3, star4];
 
+// check if a position is valid
+const isPositionValid = (x, y, usedPositions, minDistance) => {
+  return usedPositions.every(pos => {
+    const distance = Math.sqrt(Math.pow(pos.x - x, 2) + Math.pow(pos.y - y, 2));
+    return distance > minDistance;
+  });
+};
+
 function GratitudeJar() {
   const [isOpen, setIsOpen] = useState(false);
   const [gratitudeEntries, setGratitudeEntries] = useState([]);
@@ -33,10 +41,7 @@ function GratitudeJar() {
         randomY = (Math.random() - 0.5) * maxY; 
         
         // Check if this position is far enough from others
-        isValid = usedPositions.every(pos => {
-          const distance = Math.sqrt(Math.pow(pos.x - randomX, 2) + Math.pow(pos.y - randomY, 2));
-          return distance > minDistance;
-        });
+        isValid = isPositionValid(randomX, randomY, usedPositions, minDistance);
         
         attempts++;
       } while (!isValid && attempts < 50);
@@ -124,32 +129,46 @@ function GratitudeJar() {
     console.log("isOpen:", isOpen, "gratitudeEntries:", gratitudeEntries.length);
   }, [isOpen, gratitudeEntries]);
 
+  const handleJarClick = () => {
+    if (isOpen) {
+      const newPositions = generateStarPositions(gratitudeEntries);
+      setGratitudeEntries(newPositions);
+      
+      // Small delay to let positions update before shaking
+      setTimeout(() => {
+        setIsShaking(true);
+        setSelectedCard(null);
+        
+        setTimeout(() => {
+          setIsShaking(false);
+          if (newPositions.length > 0) {
+            const randomIndex = Math.floor(Math.random() * newPositions.length);
+            setSelectedCard(newPositions[randomIndex]);
+          }
+        }, 2000);
+      }, 100);
+    } else {
+      setSelectedCard(null);
+      setIsOpen(true);
+    }
+  };
+
+  const handleImageClick = () => {
+    setIsShaking(true);
+    setSelectedCard(null);
+    setTimeout(() => {
+      setIsShaking(false);
+      if (gratitudeEntries.length > 0) {
+        const randomIndex = Math.floor(Math.random() * gratitudeEntries.length);
+        setSelectedCard(gratitudeEntries[randomIndex]);
+      }
+    }, 2000);
+  };
+
   return (
     <>
       <button
-        onClick={() => {
-          if (isOpen) {
-            const newPositions = generateStarPositions(gratitudeEntries);
-            setGratitudeEntries(newPositions);
-            
-            // Small delay to let positions update before shaking
-            setTimeout(() => {
-              setIsShaking(true);
-              setSelectedCard(null);
-              
-              setTimeout(() => {
-                setIsShaking(false);
-                if (newPositions.length > 0) {
-                  const randomIndex = Math.floor(Math.random() * newPositions.length);
-                  setSelectedCard(newPositions[randomIndex]);
-                }
-              }, 2000);
-            }, 100);
-          } else {
-            setSelectedCard(null);
-            setIsOpen(true);
-          }
-        }}
+        onClick={handleJarClick}
         className="gratitude-jar-btn"
         aria-label="Open gratitude jar"
         title="Open Gratitude Jar"
@@ -180,44 +199,29 @@ function GratitudeJar() {
                   objectFit: 'contain',
                   cursor: 'pointer'
                 }}
-                onClick={() => {
-                  setIsShaking(true);
-                  setSelectedCard(null);
-                  setTimeout(() => {
-                    setIsShaking(false);
-                    if (gratitudeEntries.length > 0) {
-                      const randomIndex = Math.floor(Math.random() * gratitudeEntries.length);
-                      setSelectedCard(gratitudeEntries[randomIndex]);
-                    }
-                  }, 2000);
-                }}
+                onClick={handleImageClick}
               />
 
               {/* Stars Inside Jar */}
               <div className="jar-stars" ref={starsRef}>
                 {gratitudeEntries.length > 0 ? (
-                  gratitudeEntries.map((entry, index) => {
-                    const x = entry.posX;
-                    const y = entry.posY;
-
-                    return (
-                      <button
-                        key={entry.id || index}
-                        className={`jar-star ${isShaking ? "star-shaking" : ""}`}
-                        onClick={() => setSelectedCard(entry)}
-                        style={{
-                          "--star-delay": `${entry.delay}s`,
-                          "--position-x": `${entry.posX}px`,
-                          "--position-y": `${entry.posY}px`,
-                          "--rotation": `${entry.rotation}deg`,
-                        }}
-                        title={entry.text}
-                      >
-                        <img src={entry.starImage} alt="star" className="star-icon" />
-                        <span className="star-text">{entry.text}</span>
-                      </button>
-                    );
-                  })
+                  gratitudeEntries.map((entry, index) => (
+                    <button
+                      key={entry.id || index}
+                      className={`jar-star ${isShaking ? "star-shaking" : ""}`}
+                      onClick={() => setSelectedCard(entry)}
+                      style={{
+                        "--star-delay": `${entry.delay}s`,
+                        "--position-x": `${entry.posX}px`,
+                        "--position-y": `${entry.posY}px`,
+                        "--rotation": `${entry.rotation}deg`,
+                      }}
+                      title={entry.text}
+                    >
+                      <img src={entry.starImage} alt="star" className="star-icon" />
+                      <span className="star-text">{entry.text}</span>
+                    </button>
+                  ))
                 ) : (
                   <p className="no-gratitude">
                     No gratitudes yet. Add one to fill the jar! ✨
