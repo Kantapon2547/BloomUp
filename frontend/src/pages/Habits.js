@@ -596,6 +596,8 @@ export default function HabitsPage() {
     const total = habits.length || 0;
     const doneToday = habits.filter((h) => h.history?.[today]).length;
     
+    const todayPct = total > 0 ? Math.round((doneToday / total) * 100) : 0;
+
     let avgCompletion = 0;
     if (total > 0) {
       const totalRate = habits.reduce((sum, h) => sum + weekRate(h), 0);
@@ -603,7 +605,7 @@ export default function HabitsPage() {
     }
     
     const best = Math.max(...habits.map((h) => bestStreak(h.history || {})), 0);
-    return { total, doneToday, completion: avgCompletion, best };
+    return { total, doneToday,todayPct, completion: avgCompletion, best };
   }, [habits, today]);
 
   const filtered = useMemo(() => {
@@ -708,11 +710,11 @@ export default function HabitsPage() {
       <section className="summary-section">
         <div className="summary-title">Today's Progress</div>
         <div className="progress-wrap" style={{ marginBottom: 16 }}>
-          <span className="progress__pct">{totals.completion}%</span>
+          <span className="progress__pct">{totals.todayPct}%</span>
           <div className="progress">
             <div
               className="progress__bar"
-              style={{ width: `${totals.completion}%` }}
+              style={{ width: `${totals.todayPct}%` }}
             />
           </div>
         </div>
