@@ -323,155 +323,155 @@ function CategorySelector({ value, onChange, categories, onCreate }) {
   );
 }
 
-async function generatePDFReport(habits, totals, week) {
-  // Load jsPDF from CDN if not already loaded
-  if (!window.jspdf) {
-    const script1 = document.createElement('script');
-    script1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    document.head.appendChild(script1);
+// async function generatePDFReport(habits, totals, week) {
+//   // Load jsPDF from CDN if not already loaded
+//   if (!window.jspdf) {
+//     const script1 = document.createElement('script');
+//     script1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+//     document.head.appendChild(script1);
     
-    await new Promise((resolve) => {
-      script1.onload = resolve;
-    });
+//     await new Promise((resolve) => {
+//       script1.onload = resolve;
+//     });
     
-    const script2 = document.createElement('script');
-    script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js';
-    document.head.appendChild(script2);
+//     const script2 = document.createElement('script');
+//     script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js';
+//     document.head.appendChild(script2);
     
-    await new Promise((resolve) => {
-      script2.onload = resolve;
-    });
-  }
+//     await new Promise((resolve) => {
+//       script2.onload = resolve;
+//     });
+//   }
   
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+//   const { jsPDF } = window.jspdf;
+//   const doc = new jsPDF();
   
-  const today = new Date().toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
+//   const today = new Date().toLocaleDateString('en-US', { 
+//     year: 'numeric', 
+//     month: 'long', 
+//     day: 'numeric' 
+//   });
 
-  // Header
-  doc.setFontSize(22);
-  doc.setTextColor(124, 58, 237);
-  doc.text("Habit Tracker Progress Report", 20, 20);
+//   // Header
+//   doc.setFontSize(22);
+//   doc.setTextColor(124, 58, 237);
+//   doc.text("Habit Tracker Progress Report", 20, 20);
   
-  doc.setFontSize(10);
-  doc.setTextColor(107, 114, 128);
-  doc.text(`Generated on ${today}`, 20, 28);
+//   doc.setFontSize(10);
+//   doc.setTextColor(107, 114, 128);
+//   doc.text(`Generated on ${today}`, 20, 28);
 
-  // Summary Section
-  doc.setFontSize(16);
-  doc.setTextColor(17, 19, 37);
-  doc.text("Summary", 20, 45);
+//   // Summary Section
+//   doc.setFontSize(16);
+//   doc.setTextColor(17, 19, 37);
+//   doc.text("Summary", 20, 45);
 
-  doc.setFontSize(11);
-  doc.setTextColor(43, 51, 68);
-  doc.text(`Total Habits: ${totals.total}`, 20, 55);
-  doc.text(`Completed Today: ${totals.doneToday}`, 20, 62);
-  doc.text(`Weekly Completion Rate: ${totals.completion}%`, 20, 69);
-  doc.text(`Best Streak: ${totals.best} day${totals.best !== 1 ? 's' : ''}`, 20, 76);
+//   doc.setFontSize(11);
+//   doc.setTextColor(43, 51, 68);
+//   doc.text(`Total Habits: ${totals.total}`, 20, 55);
+//   doc.text(`Completed Today: ${totals.doneToday}`, 20, 62);
+//   doc.text(`Weekly Completion Rate: ${totals.completion}%`, 20, 69);
+//   doc.text(`Best Streak: ${totals.best} day${totals.best !== 1 ? 's' : ''}`, 20, 76);
 
-  // Habits Table
-  doc.setFontSize(16);
-  doc.text("Habits Details", 20, 92);
+//   // Habits Table
+//   doc.setFontSize(16);
+//   doc.text("Habits Details", 20, 92);
 
-  const tableData = habits.map(h => {
-    const rate = weekRate(h);
-    const streak = bestStreak(h.history || {});
-    const completedThisWeek = week.filter(d => h.history?.[d]).length;
+//   const tableData = habits.map(h => {
+//     const rate = weekRate(h);
+//     const streak = bestStreak(h.history || {});
+//     const completedThisWeek = week.filter(d => h.history?.[d]).length;
     
-    return [
-      h.name,
-      h.category,
-      h.duration,
-      `${streak} day${streak !== 1 ? 's' : ''}`,
-      `${completedThisWeek}/7`,
-      `${rate}%`
-    ];
-  });
+//     return [
+//       h.name,
+//       h.category,
+//       h.duration,
+//       `${streak} day${streak !== 1 ? 's' : ''}`,
+//       `${completedThisWeek}/7`,
+//       `${rate}%`
+//     ];
+//   });
 
-  doc.autoTable({
-    startY: 98,
-    head: [['Habit Name', 'Category', 'Duration', 'Best Streak', 'This Week', 'Rate']],
-    body: tableData,
-    theme: 'striped',
-    headStyles: {
-      fillColor: [124, 58, 237],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      fontSize: 10
-    },
-    bodyStyles: {
-      fontSize: 9,
-      textColor: [43, 51, 68]
-    },
-    alternateRowStyles: {
-      fillColor: [250, 248, 255]
-    },
-    margin: { left: 20, right: 20 }
-  });
+//   doc.autoTable({
+//     startY: 98,
+//     head: [['Habit Name', 'Category', 'Duration', 'Best Streak', 'This Week', 'Rate']],
+//     body: tableData,
+//     theme: 'striped',
+//     headStyles: {
+//       fillColor: [124, 58, 237],
+//       textColor: [255, 255, 255],
+//       fontStyle: 'bold',
+//       fontSize: 10
+//     },
+//     bodyStyles: {
+//       fontSize: 9,
+//       textColor: [43, 51, 68]
+//     },
+//     alternateRowStyles: {
+//       fillColor: [250, 248, 255]
+//     },
+//     margin: { left: 20, right: 20 }
+//   });
 
-  // Category Breakdown
-  const categoryStats = {};
-  habits.forEach(h => {
-    const cat = h.category || 'General';
-    if (!categoryStats[cat]) {
-      categoryStats[cat] = { count: 0, totalRate: 0 };
-    }
-    categoryStats[cat].count++;
-    categoryStats[cat].totalRate += weekRate(h);
-  });
+//   // Category Breakdown
+//   const categoryStats = {};
+//   habits.forEach(h => {
+//     const cat = h.category || 'General';
+//     if (!categoryStats[cat]) {
+//       categoryStats[cat] = { count: 0, totalRate: 0 };
+//     }
+//     categoryStats[cat].count++;
+//     categoryStats[cat].totalRate += weekRate(h);
+//   });
 
-  const finalY = doc.lastAutoTable.finalY + 15;
-  doc.setFontSize(16);
-  doc.text("Category Breakdown", 20, finalY);
+//   const finalY = doc.lastAutoTable.finalY + 15;
+//   doc.setFontSize(16);
+//   doc.text("Category Breakdown", 20, finalY);
 
-  const categoryData = Object.entries(categoryStats).map(([cat, stats]) => [
-    cat,
-    stats.count,
-    `${Math.round(stats.totalRate / stats.count)}%`
-  ]);
+//   const categoryData = Object.entries(categoryStats).map(([cat, stats]) => [
+//     cat,
+//     stats.count,
+//     `${Math.round(stats.totalRate / stats.count)}%`
+//   ]);
 
-  doc.autoTable({
-    startY: finalY + 6,
-    head: [['Category', 'Habits Count', 'Avg Completion']],
-    body: categoryData,
-    theme: 'striped',
-    headStyles: {
-      fillColor: [124, 58, 237],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      fontSize: 10
-    },
-    bodyStyles: {
-      fontSize: 9,
-      textColor: [43, 51, 68]
-    },
-    alternateRowStyles: {
-      fillColor: [250, 248, 255]
-    },
-    margin: { left: 20, right: 20 }
-  });
+//   doc.autoTable({
+//     startY: finalY + 6,
+//     head: [['Category', 'Habits Count', 'Avg Completion']],
+//     body: categoryData,
+//     theme: 'striped',
+//     headStyles: {
+//       fillColor: [124, 58, 237],
+//       textColor: [255, 255, 255],
+//       fontStyle: 'bold',
+//       fontSize: 10
+//     },
+//     bodyStyles: {
+//       fontSize: 9,
+//       textColor: [43, 51, 68]
+//     },
+//     alternateRowStyles: {
+//       fillColor: [250, 248, 255]
+//     },
+//     margin: { left: 20, right: 20 }
+//   });
 
-  // Footer
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(107, 114, 128);
-    doc.text(
-      `Page ${i} of ${pageCount}`,
-      doc.internal.pageSize.getWidth() / 2,
-      doc.internal.pageSize.getHeight() - 10,
-      { align: 'center' }
-    );
-  }
+//   // Footer
+//   const pageCount = doc.internal.getNumberOfPages();
+//   for (let i = 1; i <= pageCount; i++) {
+//     doc.setPage(i);
+//     doc.setFontSize(8);
+//     doc.setTextColor(107, 114, 128);
+//     doc.text(
+//       `Page ${i} of ${pageCount}`,
+//       doc.internal.pageSize.getWidth() / 2,
+//       doc.internal.pageSize.getHeight() - 10,
+//       { align: 'center' }
+//     );
+//   }
 
-  // Save the PDF
-  doc.save(`habit-tracker-report-${new Date().toISOString().slice(0, 10)}.pdf`);
-}
+//   // Save the PDF
+//   doc.save(`habit-tracker-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+// }
 
 function HabitModal({ open, onClose, onSubmit, initial, categories, onCreateCategory }) {
   const [name, setName] = useState(initial?.name || "");
@@ -678,32 +678,32 @@ export default function HabitsPage() {
 
   return (
     <div className="habits-container">
-      <div className="page-head">
-        <div className="head-left">
-          <h1 className="brand-title">My Habits</h1>
-          <p className="brand-sub">
-            Build consistent routines for academic and personal growth
-          </p>
-        </div>
+      {/* <div className="page-head"> */}
+        {/* <div className="head-left"> */}
+          {/* <h1 className="brand-title">My Habits</h1> */}
+          {/* <p className="brand-sub"> */}
+            {/* Build consistent routines for academic and personal growth */}
+          {/* </p> */}
+        {/* </div> */}
 
       <div className="head-actions">
         <button
           type="button"
-          className="btn-solid"
+          className="fab-add"
           onClick={() => setOpenModal(true)}>
-          <Plus size={18} />
-          <span>Add Habit</span>
+          <Plus size={22} />
+          {/* <span>Add Habit</span> */}
         </button>
           
-        <button
+        {/* <button
           type="button"
           className="btn-outline"
           onClick={() => generatePDFReport(habits, totals, week)}>
           <DownloadCloud size={18} />
           <span>Export</span>
-        </button>
+        </button> */}
       </div>
-    </div>
+    {/* </div> */}
 
       <section className="summary-section">
         <div className="summary-title">Today's Progress</div>
@@ -782,9 +782,9 @@ export default function HabitsPage() {
           <section key={cat} className="group-section">
             <div className="group-head">
               <div className="group-title">{cat}</div>
-              <div className="group-count">
-                {list.length} {list.length === 1 ? "habit" : "habits"}
-              </div>
+              {/* <div className="group-count"> */}
+                {/* {list.length} {list.length === 1 ? "habit" : "habits"} */}
+              {/* </div> */}
             </div>
             {list.map((h) => {
               const rate = weekRate(h);
