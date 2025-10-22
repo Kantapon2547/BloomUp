@@ -122,6 +122,28 @@ def seed_achievements():
         existing = db.query(models.Achievement).count()
         if existing > 0:
             print(f"✓ Achievements already seeded ({existing} records)")
+            # Still create UserAchievement records if they don't exist
+            users = db.query(models.User).all()
+            achievements = db.query(models.Achievement).all()
+            
+            for user in users:
+                for achievement in achievements:
+                    existing_ua = db.query(models.UserAchievement).filter(
+                        models.UserAchievement.user_id == user.user_id,
+                        models.UserAchievement.achievement_id == achievement.achievement_id
+                    ).first()
+                    
+                    if not existing_ua:
+                        ua = models.UserAchievement(
+                            user_id=user.user_id,
+                            achievement_id=achievement.achievement_id,
+                            is_earned=False,
+                            progress=0,
+                            progress_unit_value=0
+                        )
+                        db.add(ua)
+            db.commit()
+            print("✓ UserAchievement records created!")
             return
         
         for achievement_data in ACHIEVEMENTS_SEED:

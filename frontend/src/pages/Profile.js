@@ -6,7 +6,7 @@ import "./style/Profile.css";
 
 // Constants
 const STATS_CONFIG = [
-  { key: "activeHabits", icon: "target", label: "ACTIVE HABITS" }, 
+  { key: "activeHabits", icon: "ads_click", label: "ACTIVE HABITS" }, 
   { key: "longestStreak", icon: "local_fire_department", label: "LONGEST STREAK" },
   { key: "gratitudeEntries", icon: "favorite", label: "GRATITUDE ENTRIES" }, 
   { key: "daysTracked", icon: "calendar_month", label: "DAYS TRACKED" } 
@@ -207,11 +207,15 @@ const EditProfileModal = ({
       <div className="edit-form">
         <div className="profile-image-edit-section">
           <div className="profile-image-container-edit">
-            <img
-              src={tempProfile.profile_picture || "/default-avatar.png"}
-              alt={tempProfile.name}
-              className="profile-image-edit"
-            />
+            {tempProfile.profile_picture ? (
+              <img
+                src={tempProfile.profile_picture}
+                alt={tempProfile.name}
+                className="profile-image-edit"
+              />
+            ) : (
+              <div className="profile-emoji-default">🌸</div>
+            )}
           </div>
           <button className="change-image-btn-edit" onClick={onChangeImageClick} type="button">
             Change Photo
@@ -278,11 +282,11 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       setError("");
-
+  
       const userProfile = await getMyProfile();
       setProfile(userProfile);
       setTempProfile(userProfile);
-
+  
       try {
         const userStats = await getProfileStats();
         setStats(userStats);
@@ -294,16 +298,19 @@ export default function ProfilePage() {
           daysTracked: 0,
         });
       }
-
-      // Fetch and earned all achievements from backend
+  
+      // Fetch all achievements and earned achievements from backend
       try {
         const allAchievements = await getUserAchievements();
+        console.log("All achievements:", allAchievements); // ADD THIS LINE
         setAchievements(allAchievements);
         
         const earned = await getEarnedAchievements();
+        console.log("Earned achievements:", earned); // ADD THIS LINE
         setEarnedAchievements(earned);
       } catch (e) {
         console.error("Failed to load achievements:", e);
+        console.error("Error details:", e.response?.data || e.message); // ADD THIS LINE
         setAchievements([]);
         setEarnedAchievements([]);
       }

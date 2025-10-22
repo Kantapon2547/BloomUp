@@ -1,11 +1,25 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 from .db import Base, engine
 from .routers import auth, users, habits, gratitude, mood, achievements
+from .seed_achievements import seed_achievements
 import os
 
-app = FastAPI(title="BloomUp API")
+# Startup event
+async def startup_event():
+    seed_achievements()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await startup_event()
+    yield
+    # Shutdown
+    pass
+
+app = FastAPI(title="BloomUp API", lifespan=lifespan)
 
 Base.metadata.create_all(bind=engine)
 
