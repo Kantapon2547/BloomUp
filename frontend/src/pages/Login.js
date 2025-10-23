@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 import "./style/Login.css";
+import { ArrowLeft } from "lucide-react";
 
 export function Login({ onLoginSuccess }) {
   const navigate = useNavigate();
@@ -55,7 +56,7 @@ export function Login({ onLoginSuccess }) {
     }
   };
 
-  // ✅ Google login success handler
+  // Google login success handler
   const handleGoogleSuccess = async (credentialResponse) => {
     const decoded = jwtDecode(credentialResponse.credential);
     console.log("Google User:", decoded);
@@ -101,9 +102,9 @@ export function Login({ onLoginSuccess }) {
       <div className="right-section">
         <div className="login-card">
           {/* Back Arrow */}
-          <div className="back-arrow" onClick={() => navigate("/demo")}>
-            <img src="/arrow_back.png" alt="Back" className="arrow-icon" />
-          </div>
+          <div className="back-arrow" onClick={() => navigate("/dashboard")}>
+          <ArrowLeft size={26} color="black" />
+        </div>
 
           {/* Logo + Header */}
           <div className="logo-section">

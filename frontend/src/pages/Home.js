@@ -1,381 +1,557 @@
-// src/pages/Home.js
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import "./style/Home.css";
+import Jar from '../components/Jar';
+
+// Constants
+const LS_KEY = "habit-tracker@hybrid";
+const MOTIVATION_QUOTES = [
+  "Small steps every day lead to big changes every year.",
+  "Progress, not perfection, is the goal.",
+  "You are capable of amazing things.",
+  "Every day is a new opportunity to grow.",
+  "Consistency is the mother of mastery.",
+];
+const MOOD_EMOJIS = ["😭", "😐", "🙂", "😊", "😁"];
+
+// Helper functions
+const getTodayString = () => {
+  // Get current time in Bangkok timezone
+  const bangkokTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" });
+  return new Date(bangkokTime).toISOString().slice(0, 10);
+};
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+};
+
+const calculateStreak = (habit) => {
+  const days = Object.keys(habit.history || {}).sort();
+  let current = 0;
+  let prev = null;
+  
+  for (const d of days) {
+    if (!habit.history[d]) continue;
+    if (!prev) {
+      current = 1;
+    } else {
+      const nd = new Date(prev);
+      nd.setDate(nd.getDate() + 1);
+      const expected = nd.toISOString().slice(0, 10);
+      current = expected === d ? current + 1 : 1;
+    }
+    prev = d;
+  }
+  return current;
+};
 
 export default function Home({ user }) {
   const navigate = useNavigate();
+  const todayStr = getTodayString();
 
+  // Refs
   const headerRef = useRef(null);
-  const leftColRef = useRef(null);
-  const rightColRef = useRef(null);
   const progressFillRef = useRef(null);
 
-  // ----- Local storage keys
-  const LS_KEYS = {
-    habits: "home.habits",
-    completed: "home.completed",
-    mood: "home.mood", // stores { date: YYYY-MM-DD, value: index }
-    streak: "home.streak", // stores { count: number, lastActiveDate: YYYY-MM-DD }
-    dailyQuote: "home.dailyQuote", // stores { date, text }
-    dailyGratitude: "home.dailyGratitude" // stores { date, text }
-  };
-
-  const todayStr = new Date().toISOString().slice(0, 10);
-
+  // State
+  const [habits, setHabits] = useState([]);
   const [completed, setCompleted] = useState([]);
   const [selectedMood, setSelectedMood] = useState(null);
-  const [overallStreak, setOverallStreak] = useState(0);
   const [moodSaved, setMoodSaved] = useState(false);
   const [saveFeedback, setSaveFeedback] = useState("");
+  const [overallStreak, setOverallStreak] = useState(0);
+  const [randomGratitude, setRandomGratitude] = useState(null);
+  const [dailyQuote, setDailyQuote] = useState("");
 
-  const defaultHabits = [
-    { name: "Study for 2 hours", description: "Maintain consistent study schedule", streak: 12, tag: "Study" },
-    { name: "Morning Exercise", description: "30 minutes of physical activity", streak: 8, tag: "Health" },
-    { name: "Read 30 Minutes", description: "Expand knowledge through reading", streak: 5, tag: "Personal" },
-  ];
-  const [habits, setHabits] = useState(defaultHabits);
-  const [todayHabitsTotal, setTodayHabitsTotal] = useState(0);
-  const [todayHabitsDone, setTodayHabitsDone] = useState(0);
-
-  const gratitudeNotes = [
-    "Grateful for my supportive family who believes in me",
-    "Thankful for the beautiful sunset I saw today",
-    "Appreciating my health and energy to pursue my goals",
-    "Grateful for the opportunity to learn something new",
-  ];
-
-  const motivationQuotes = [
-    "Small steps every day lead to big changes every year.",
-    "Progress, not perfection, is the goal.",
-    "You are capable of amazing things.",
-    "Every day is a new opportunity to grow.",
-    "Consistency is the mother of mastery.",
-  ];
-
+  // Derived state
   const completedHabits = completed.filter(Boolean).length;
   const totalHabits = habits.length;
-  const randomQuote = motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
-  const randomGratitude = gratitudeNotes[Math.floor(Math.random() * gratitudeNotes.length)];
-  const isRaining = Math.random() > 0.7;
-  const moodEmojis = ["😢", "😐", "🙂", "😊", "😄"];
+  const progressPercentage = totalHabits ? (completedHabits / totalHabits) * 100 : 0;
+  const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "User";
 
-  // Helpers to interop with Habits storage
-  const todayKey = () => new Date().toISOString().slice(0,10);
-  const calcStreak = (habit) => {
-    let s = 0;
-    for (let i = 0;; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const k = d.toISOString().slice(0,10);
-      if (habit.history?.[k]) s++; else break;
-    }
-    return s;
-  };
-  const syncFromHabits = () => {
+  // Data synchronization
+  const syncFromHabits = useCallback(() => {
     try {
-      const raw = JSON.parse(localStorage.getItem("habit-tracker@v3") || "null") || [];
+      const raw = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+      
       if (Array.isArray(raw)) {
-        setHabits(raw.map(h => ({ name: h.name, description: "", tag: (h.category||"general").replace(/^./, c=>c.toUpperCase()), streak: calcStreak(h) })));
-        const t = todayKey();
-        setCompleted(raw.map(h => !!h.history?.[t]));
-      } else { setHabits([]); setCompleted([]); }
-    } catch { setHabits([]); setCompleted([]); }
-  };
+        const processedHabits = raw.map((habit) => ({
+          id: habit.id,
+          name: habit.name,
+          category: habit.category || "General",
+          streak: calculateStreak(habit),
+        }));
 
-  const toggleHabit = (index) => {
-    const newState = [...completed];
-    newState[index] = !newState[index];
-    setCompleted(newState);
-
-    // write-through to Habits storage and update local streak
-    try {
-      const raw = JSON.parse(localStorage.getItem("habit-tracker@v3") || "null") || [];
-      if (Array.isArray(raw) && raw[index]) {
-        const t = todayKey();
-        raw[index].history = { ...(raw[index].history || {}), [t]: newState[index] };
-        localStorage.setItem("habit-tracker@v3", JSON.stringify(raw));
-        const updated = [...habits];
-        updated[index] = { ...updated[index], streak: calcStreak(raw[index]) };
-        setHabits(updated);
-      }
-    } catch {}
-
-    gsap.fromTo(
-      `.habit-card:nth-child(${index + 2})`, // +2 to skip progress card
-      { scale: 0.95 },
-      { scale: 1, duration: 0.3, ease: "power2.out" }
-    );
-  };
-
-  // ✅ Fix: Reset all opacity + remove unwanted overlays on mount
-  useEffect(() => {
-    document.querySelectorAll(".overlay, .backdrop, .filter").forEach(el => el.remove());
-    ["body", "#root", ".home-layout", ".home-main", ".home-grid"].forEach(sel => {
-      document.querySelectorAll(sel).forEach(el => {
-        el.style.opacity = "1";
-        el.style.filter = "none";
-        el.style.transition = "none";
-        el.style.backdropFilter = "none";
-      });
-    });
-  }, []);
-
-  // Load initial state from localStorage
-  useEffect(() => {
-    try {
-      // Mirror tasks from Habits page
-      syncFromHabits();
-
-      const storedMood = JSON.parse(localStorage.getItem(LS_KEYS.mood) || "null");
-      const storedStreak = JSON.parse(localStorage.getItem(LS_KEYS.streak) || "null");
-      const storedDailyQuote = JSON.parse(localStorage.getItem(LS_KEYS.dailyQuote) || "null");
-      const storedDailyGratitude = JSON.parse(localStorage.getItem(LS_KEYS.dailyGratitude) || "null");
-
-      if (storedMood && storedMood.date === todayStr) {
-        setSelectedMood(storedMood.value);
-        setMoodSaved(true);
-      }
-
-      if (storedStreak && typeof storedStreak.count === "number") {
-        setOverallStreak(storedStreak.count);
+        setHabits(processedHabits);
+        setCompleted(raw.map((habit) => !!habit.history?.[todayStr]));
       } else {
-        setOverallStreak(0);
+        setHabits([]);
+        setCompleted([]);
       }
+    } catch (error) {
+      console.error("Failed to sync habits:", error);
+      setHabits([]);
+      setCompleted([]);
+    }
+  }, [todayStr]);
 
-      if (!storedDailyQuote || storedDailyQuote.date !== todayStr) {
-        const text = motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
-        localStorage.setItem(LS_KEYS.dailyQuote, JSON.stringify({ date: todayStr, text }));
-      }
-      if (!storedDailyGratitude || storedDailyGratitude.date !== todayStr) {
-        const text = gratitudeNotes[Math.floor(Math.random() * gratitudeNotes.length)];
-        localStorage.setItem(LS_KEYS.dailyGratitude, JSON.stringify({ date: todayStr, text }));
-      }
-    } catch (_) {}
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 👇 Run entrance animation once on mount
-  useEffect(() => {
-    const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
-
-    // ✅ Force opacity to 1 before animating (fix ghost fade)
-    gsap.set([".home-header", ".left-col > div", ".right-col > div"], { opacity: 1 });
-
-    tl.from(headerRef.current, { y: -50, opacity: 0, duration: 0.8 })
-      .from(".left-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.5")
-      .from(".right-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.7")
-      .set(".home-layout, .home-main, .home-grid", { clearProps: "transform" });
-  }, []);
-
-  // 👇 Animate progress bar smoothly when habits change
-  useEffect(() => {
-    gsap.to(progressFillRef.current, {
-      width: `${totalHabits ? (completedHabits / totalHabits) * 100 : 0}%`,
-      duration: 0.8,
-      ease: "power2.out"
-    });
-  }, [completedHabits, totalHabits]);
-
-  // Persist habits completion whenever it changes
-  useEffect(() => {
+  // Toggle habit completion
+  const toggleHabit = useCallback((index) => {
+    const newCompleted = [...completed];
+    newCompleted[index] = !newCompleted[index];
+    setCompleted(newCompleted);
+  
     try {
-      localStorage.setItem(LS_KEYS.completed, JSON.stringify(completed));
-
-      // Update streak bookkeeping when user completes at least one habit today
-      const hasProgressToday = completed.some(Boolean);
-      const stored = JSON.parse(localStorage.getItem(LS_KEYS.streak) || "null");
-      const lastActiveDate = stored?.lastActiveDate;
-      let count = stored?.count || 0;
-
-      if (hasProgressToday) {
-        if (lastActiveDate === todayStr) {
-          // already counted today
+      const raw = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+      if (Array.isArray(raw) && raw[index]) {
+        raw[index].history = raw[index].history || {};
+        
+        if (newCompleted[index]) {
+          // Mark as complete
+          raw[index].history[todayStr] = true;
         } else {
-          const yesterday = new Date();
-          yesterday.setDate(yesterday.getDate() - 1);
-          const yStr = yesterday.toISOString().slice(0, 10);
-          if (lastActiveDate === yStr) {
-            count = count + 1;
-          } else {
-            count = 1; // reset streak starting today
-          }
-          localStorage.setItem(LS_KEYS.streak, JSON.stringify({ count, lastActiveDate: todayStr }));
-          setOverallStreak(count);
+          // Unmark as complete
+          delete raw[index].history[todayStr];
+        }
+  
+        localStorage.setItem(LS_KEY, JSON.stringify(raw));
+  
+        // Update streaks per habit
+        const updatedHabits = [...habits];
+        updatedHabits[index] = {
+          ...updatedHabits[index],
+          streak: calculateStreak(raw[index]),
+        };
+        setHabits(updatedHabits);
+  
+        // Check if all habits are unchecked → reset streak
+        const anyCompleted = newCompleted.some(Boolean);
+        if (!anyCompleted) {
+          const userKey = `home.streak.${user?.email || "default"}`;
+          const reset = { count: 0, lastActiveDate: null };
+          localStorage.setItem(userKey, JSON.stringify(reset));
+          setOverallStreak(0);
         }
       }
-    } catch (_) {
-      // ignore storage errors
+    } catch (error) {
+      console.error("Failed to toggle habit:", error);
     }
-  }, [completed]);
+  }, [completed, habits, todayStr, user]);
+  
 
-  // Sync today's habit stats from Habits app when returning to Home
-  useEffect(() => {
-    const onFocus = () => {
-      syncFromHabits();
-    };
-    window.addEventListener("focus", onFocus);
-    onFocus();
-    return () => window.removeEventListener("focus", onFocus);
+  // Mood handlers
+  const handleMoodClick = useCallback((moodIndex) => {
+    setSelectedMood(moodIndex);
+    setMoodSaved(false);
   }, []);
 
-  const handleMoodClick = (idx) => {
-    setSelectedMood(idx);
-    setMoodSaved(false);
-    gsap.fromTo(
-      `.mood-btn:nth-child(${idx + 1})`,
-      { scale: 0.8 },
-      { scale: 1.2, duration: 0.3, yoyo: true, repeat: 1 }
-    );
-  };
-
-  const handleSaveMood = () => {
+  const handleSaveMood = useCallback(async () => {
     if (selectedMood === null) return;
+
     try {
-      localStorage.setItem(LS_KEYS.mood, JSON.stringify({ date: todayStr, value: selectedMood }));
+      // Save to localStorage first
+      localStorage.setItem(
+        "home.mood",
+        JSON.stringify({ 
+          date: todayStr, 
+          value: selectedMood,
+          user: user?.email || "default"
+        })
+      );
+
+      // Convert emoji index (0-4) to mood score (1-5)
+      const moodScore = selectedMood + 1;
+
+      // Save to database
+      const token = localStorage.getItem("token");
+      const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
+      
+      const response = await fetch(`${API}/mood/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          mood_score: moodScore,
+          logged_on: todayStr,
+          note: null
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        // If mood already exists for today, update it instead
+        if (response.status === 400 && errorData.detail?.includes("already exists")) {
+          console.log("Mood already exists, updating instead");
+          // Get today's mood to find its ID
+          const todayResponse = await fetch(`${API}/mood/today`, {
+            headers: {
+              "Authorization": `Bearer ${token}`
+            }
+          });
+          
+          if (todayResponse.ok) {
+            const todayMood = await todayResponse.json();
+            if (todayMood) {
+              // Update existing mood
+              const updateResponse = await fetch(`${API}/mood/${todayMood.mood_id}`, {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  mood_score: moodScore,
+                  note: null
+                })
+              });
+              
+              if (!updateResponse.ok) {
+                throw new Error("Failed to update mood");
+              }
+            }
+          }
+        } else {
+          throw new Error(errorData.detail || "Failed to save mood");
+        }
+      }
+
+      // Dispatch event to notify Calendar component
+      window.dispatchEvent(new CustomEvent("moodUpdated"));
+
       setMoodSaved(true);
       setSaveFeedback("Mood saved for today");
-      setTimeout(() => setSaveFeedback(""), 2000);
-    } catch (_) {
-      // ignore storage errors
-    }
-  };
+      
+      gsap.fromTo(
+        ".mood-save-feedback",
+        { y: -10, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }
+      );
 
-  // Navigation helpers for accessibility
-  const makeCardInteractive = (onActivate) => ({
+      setTimeout(() => {
+        gsap.to(".mood-save-feedback", {
+          y: -10,
+          opacity: 0,
+          duration: 0.5,
+          ease: "power2.in",
+          onComplete: () => setSaveFeedback("")
+        });
+      }, 1500);
+    } catch (error) {
+      console.error("Failed to save mood:", error);
+      setSaveFeedback("Failed to save mood");
+      
+      setTimeout(() => {
+        setSaveFeedback("");
+      }, 2000);
+    }
+  }, [selectedMood, todayStr, user]);
+
+  // Animate progress bar
+  const animateProgressBar = useCallback((targetWidth) => {
+    if (!progressFillRef.current) return;
+    gsap.to(progressFillRef.current, {
+      width: `${targetWidth}%`,
+      duration: 0.8,
+      ease: "power2.inOut"
+    });
+  }, []);
+
+  // Create interactive card props
+  const makeCardInteractive = useCallback((onActivate) => ({
     role: "button",
     tabIndex: 0,
     onClick: onActivate,
     onKeyDown: (e) => {
-      if (e.key === "Enter" || e.key === " ") { onActivate(); }
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onActivate();
+      }
     },
-    style: { cursor: "pointer" }
-  });
+    style: { cursor: "pointer" },
+  }), []);
+
+  // Check and reset mood based on user and date
+  const checkAndResetMood = useCallback(async () => {
+    const storedMood = JSON.parse(localStorage.getItem("home.mood") || "null");
+    const currentUserEmail = user?.email || "default";
+    
+    // Reset mood if it's a different user or a different day
+    if (storedMood?.user !== currentUserEmail || storedMood?.date !== todayStr) {
+      setSelectedMood(null);
+      setMoodSaved(false);
+      localStorage.removeItem("home.mood");
+      
+      // Try to load mood from database for today
+      try {
+        const token = localStorage.getItem("token");
+        const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
+        
+        const response = await fetch(`${API}/mood/today`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const todayMood = await response.json();
+          if (todayMood && todayMood.logged_on === todayStr) {
+            // Convert mood score (1-5) back to emoji index (0-4)
+            const emojiIndex = Math.max(0, Math.min(4, todayMood.mood_score - 1));
+            setSelectedMood(emojiIndex);
+            setMoodSaved(true);
+            
+            // Update localStorage
+            localStorage.setItem(
+              "home.mood",
+              JSON.stringify({ 
+                date: todayStr, 
+                value: emojiIndex,
+                user: currentUserEmail
+              })
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load mood from database:", error);
+      }
+    } else if (storedMood?.value !== undefined) {
+      setSelectedMood(storedMood.value);
+      setMoodSaved(true);
+    }
+  }, [todayStr, user]);
+
+  // Fetch gratitude data
+  useEffect(() => {
+    const fetchGratitude = async () => {
+      try {
+        const res = await fetch("/gratitude/", {
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch gratitude");
+
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const randomEntry = data[Math.floor(Math.random() * data.length)];
+          setRandomGratitude(randomEntry.text);
+        } else {
+          setRandomGratitude("Take a moment to feel grateful today.");
+        }
+      } catch (error) {
+        console.error("Error fetching gratitude:", error);
+        setRandomGratitude("Take a moment to feel grateful today.");
+      }
+    };
+
+    fetchGratitude();
+  }, []);
+
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const userKey = `home.streak.${user.email}`;
+    const stored = JSON.parse(localStorage.getItem(userKey) || "null");
+
+    if (!stored) {
+      const initialStreak = { count: 0, lastActiveDate: null };
+      localStorage.setItem(userKey, JSON.stringify(initialStreak));
+      setOverallStreak(0);
+    } else {
+      setOverallStreak(stored.count || 0);
+    }
+  }, [user]);
+
+  // Initialize data on mount
+  useEffect(() => {
+    try {
+      syncFromHabits();
+
+      // Check and reset mood based on user and date
+      checkAndResetMood();
+      
+      const userKey = `home.streak.${user?.email || "default"}`;
+      const stored = JSON.parse(localStorage.getItem(userKey) || "null");
+      if (stored?.count) {
+        setOverallStreak(stored.count);
+      }
+
+      const storedDailyQuote = JSON.parse(localStorage.getItem("home.dailyQuote") || "null");
+      if (!storedDailyQuote || storedDailyQuote.date !== todayStr) {
+        const text = MOTIVATION_QUOTES[Math.floor(Math.random() * MOTIVATION_QUOTES.length)];
+        localStorage.setItem("home.dailyQuote", JSON.stringify({ date: todayStr, text }));
+        setDailyQuote(text);
+      } else {
+        setDailyQuote(storedDailyQuote.text);
+      }
+    } catch (error) {
+      console.error("Initialization error:", error);
+    }
+
+    // Sync on window focus
+    const handleFocus = () => {
+      syncFromHabits();
+      checkAndResetMood();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [syncFromHabits, todayStr, checkAndResetMood]);
+
+  // Initial animations
+  useEffect(() => {
+    const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+    gsap.set([".home-header", ".left-col > div", ".right-col > div"], { opacity: 1 });
+    
+    tl.from(headerRef.current, { y: -50, opacity: 0, duration: 0.8 })
+      .from(".left-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.5")
+      .from(".right-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.7");
+  }, []);
+
+  // Animate progress bar when percentage changes
+  useEffect(() => {
+    animateProgressBar(progressPercentage);
+  }, [progressPercentage, animateProgressBar]);
+
+  // Calculate streak
+  useEffect(() => {
+    if (!completed.some(Boolean)) return;
+
+    try {
+      const userKey = `home.streak.${user?.email || "default"}`;
+      const stored = JSON.parse(localStorage.getItem(userKey) || "null");
+      const lastActiveDate = stored?.lastActiveDate;
+
+      if (lastActiveDate === todayStr) return;
+
+      let count = stored?.count || 0;
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+      count = lastActiveDate === yesterdayStr ? count + 1 : 1;
+
+      localStorage.setItem(userKey, JSON.stringify({ count, lastActiveDate: todayStr }));
+      setOverallStreak(count);
+
+    } catch (error) {
+      console.error("Streak calculation error:", error);
+    }
+  }, [completed, todayStr, user]);
+
+  // Sort habits (completed last)
+  const sortedHabits = habits
+    .map((habit, index) => ({ ...habit, index, done: completed[index] }))
+    .sort((a, b) => a.done - b.done);
 
   return (
     <div className="home-layout">
+      <Jar />
       <main className="home-main">
         <header className="home-header" ref={headerRef}>
           <div className="header-left">
-            <h1>
-              {(() => {
-                const greeting = (() => {
-                  const hour = new Date().getHours();
-                  if (hour < 12) return "Good morning";
-                  if (hour < 18) return "Good afternoon";
-                  return "Good evening";
-                })();
-                const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "User";
-                return `${greeting}, ${displayName}! 🌸`;
-              })()}
-            </h1>
-            <p>You’ve completed {completedHabits} of {totalHabits} tasks today.</p>
+            <h1>{`${getGreeting()}, ${displayName}! 🌸`}</h1>
+            <p>
+              You've completed {completedHabits} of {totalHabits}{" "}
+              {totalHabits === 1 ? "task" : "tasks"} today.
+            </p>
           </div>
         </header>
-
         <section className="home-grid">
-          <div className="left-col" ref={leftColRef}>
-            <div className="progress-card" {...makeCardInteractive(() => navigate("/habits"))} aria-label="Go to Habits">
+          <div className="left-col">
+            <div className="progress-card" {...makeCardInteractive(() => navigate("/habits"))}>
               <div className="progress-info">
                 <span>Today's Progress</span>
-                <span>{totalHabits ? Math.round((completedHabits / totalHabits) * 100) : 0}%</span>
+                <span>{Math.round(progressPercentage)}%</span>
               </div>
-              <div className="progress-bar">
-                <div className="progress-fill" ref={progressFillRef} style={{ width: 0 }} />
+              <div className="progress-bar-container">
+                <div className="progress-bar">
+                  <div className="progress-fill" ref={progressFillRef} />
+                </div>
               </div>
             </div>
 
-            {habits.map((h, i) => (
-              <div className={`habit-card ${completed[i] ? "done" : ""}`} key={i}>
+            {sortedHabits.map((habit) => (
+              <div className={`habit-card ${habit.done ? "done" : ""}`} key={habit.index}>
                 <button
                   className="habit-check"
-                  onClick={() => toggleHabit(i)}
-                  aria-pressed={completed[i]}
-                  aria-label={`Mark habit '${h.name}' as ${completed[i] ? "not done" : "done"}`}
+                  onClick={() => toggleHabit(habit.index)}
+                  aria-pressed={habit.done}
+                  aria-label={`Mark ${habit.name} as ${habit.done ? "incomplete" : "complete"}`}
                 >
-                  {completed[i] ? "✓" : ""}
+                  {habit.done && <span className="material-symbols-outlined">check</span>}
                 </button>
                 <div className="habit-info">
-                  <h3>{h.name}</h3>
-                  <p>{h.description}</p>
-                  <div className="habit-meta">
-                    <span className={`tag ${h.tag.toLowerCase()}`}>{h.tag}</span>
-                    <span className="streak">🔥 {h.streak} day streak</span>
+                  <div className="habit-left">
+                    <h3>{habit.name}</h3>
+                    <span className={`tag ${habit.category.toLowerCase()}`}>
+                      {habit.category}
+                    </span>
+                  </div>
+                  <div className="habit-right">
+                    <span className="streak">
+                      🔥 {habit.streak} {habit.streak <= 1 ? "day" : "days"}
+                    </span>
                   </div>
                 </div>
               </div>
             ))}
-
-            <div className="gratitude-card" {...makeCardInteractive(() => navigate("/gratitude"))} aria-label="Go to Gratitude">
-              <h3>Today's Gratitude 🙏</h3>
-              <p>"{randomGratitude}"</p>
-            </div>
           </div>
 
-          <div className="right-col" ref={rightColRef}>
-            <div className="streak-card" {...makeCardInteractive(() => navigate("/reports"))} aria-label="Go to Reports">
-              <h3>Overall Streak</h3>
+          <div className="right-col">
+            <div className="streak-card" {...makeCardInteractive(() => navigate("/reports"))}>
+              <h3>Streak</h3>
               <div className="streak-number">{overallStreak}</div>
-              <p className="streak-sub">days active 🔥</p>
-            </div>
-
-            <div className="weather-card" {...makeCardInteractive(() => navigate("/calendar"))} aria-label="Go to Calendar">
-              {isRaining ? (
-                <>
-                  <p className="weather-icon">🌧️</p>
-                  <p>Bring an umbrella today ☔</p>
-                </>
-              ) : (
-                <>
-                  <p className="weather-icon">☀️</p>
-                  <p>Clear skies today 🌤️</p>
-                </>
-              )}
+              <p className="streak-sub">
+                {overallStreak <= 1 ? "Day Active 🔥" : "Days Active 🔥"}
+              </p>
             </div>
 
             <div className="mood-card">
               <h3>How are you feeling?</h3>
               <div className="mood-list">
-                {moodEmojis.map((emoji, idx) => (
+                {MOOD_EMOJIS.map((emoji, index) => (
                   <button
-                    key={idx}
-                    onClick={() => handleMoodClick(idx)}
-                    className={`mood-btn ${selectedMood === idx ? "selected" : ""}`}
-                    aria-pressed={selectedMood === idx}
-                    aria-label={`Select mood ${idx + 1}`}
+                    key={index}
+                    onClick={() => handleMoodClick(index)}
+                    className={`mood-btn ${selectedMood === index ? "selected" : ""}`}
+                    aria-label={`Select mood ${emoji}`}
                   >
                     {emoji}
                   </button>
                 ))}
               </div>
+              
               {selectedMood !== null && (
                 <div className="mood-save">
-                  <p>You’re feeling {moodEmojis[selectedMood]}</p>
+                  <p>You're feeling {MOOD_EMOJIS[selectedMood]}</p>
                   <button
                     className="save-btn"
                     onClick={handleSaveMood}
                     disabled={moodSaved}
-                    aria-disabled={moodSaved}
-                    aria-label={moodSaved ? "Mood already saved for today" : "Save mood for today"}
                   >
                     {moodSaved ? "Saved" : "Save Mood"}
                   </button>
-                  <div aria-live="polite" style={{ minHeight: "1.25rem" }}>{saveFeedback}</div>
+                  <div aria-live="polite" className="mood-save-feedback">
+                    {saveFeedback}
+                  </div>
                 </div>
               )}
+            </div>
+            
+            <div className="gratitude-card" {...makeCardInteractive(() => navigate("/gratitude"))}>
+              <h3>Today's Gratitude 🙏</h3>
+              <p>"{randomGratitude || "Take a moment to feel grateful today."}"</p>
             </div>
 
             <div className="quote-card">
               <h3>Daily Motivation</h3>
-              <blockquote>
-                "{(() => {
-                  try {
-                    const q = JSON.parse(localStorage.getItem(LS_KEYS.dailyQuote) || "null");
-                    return q?.date === todayStr ? q.text : randomQuote;
-                  } catch (_) { return randomQuote; }
-                })()}"
-              </blockquote>
+              <blockquote>"{dailyQuote}"</blockquote>
             </div>
           </div>
         </section>

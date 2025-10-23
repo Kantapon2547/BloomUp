@@ -14,7 +14,6 @@
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-  gap: 1.5rem;
   padding: 2rem;
   background: transparent;
   box-sizing: border-box;
@@ -23,6 +22,8 @@
 .cal-header {
   text-align: center;
   margin-bottom: 1.5rem;
+  justify-content: center;
+  align-items: center;
 }
 
 .cal-title {
@@ -30,6 +31,8 @@
   font-weight: 800;
   color: #1f2937;
   margin-bottom: 0.2rem;
+  justify-content: center;
+  align-items: center;
 }
 
 .cal-subtitle {
@@ -42,19 +45,19 @@
   border-radius: 16px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.08);
   border: none;
-  opacity: 0;
 }
 
 .card-head, .card-head-only {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
+  justify-content: center;
+  padding: 15px 20px;
   border-bottom: 1px solid #f0f0f0;
+  margin: 0;
+  text-align: left;
 }
 
 .card-head-only {
-  justify-content: flex-start;
   gap: 10px;
   border-bottom: none;
 }
@@ -63,10 +66,12 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: 700;
+  width: 100%;
+  justify-content: center;
 }
 
 .card-body {
-  padding: 20px;
+  padding: 10px 10px;
 }
 
 .calendar-card {
@@ -94,8 +99,8 @@
 .week-header {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .week-name {
@@ -109,7 +114,7 @@
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 12px;
+  gap: 8px;
 }
 
 .day-cell {
@@ -123,7 +128,8 @@
   position: relative;
   transition: all 0.2s;
   cursor: pointer;
-  min-height: 60px;
+  min-height: 95px;
+  font-size: 1rem;
 }
 
 .day-cell:hover {
@@ -132,6 +138,7 @@
 
 .day-empty {
   background: transparent;
+  visibility: hidden;
 }
 
 .day-number {
@@ -145,6 +152,7 @@
 
 .day-emoji {
   font-size: 1.3rem;
+  margin-top: 8px;
 }
 
 .day-today {
@@ -158,9 +166,23 @@
 }
 
 @media (min-width: 900px) {
-  .grid-2 {
-    grid-template-columns: 1fr 1fr;
+  .grid-2 { 
+    grid-template-columns: 1fr 1fr; 
   }
+}
+
+/* Grid-2 card specific styling for left-aligned headings */
+.grid-2 .card-head,
+.grid-2 .card-head-only {
+  justify-content: flex-start;
+  text-align: left;
+  padding-left: 20px;
+}
+
+.grid-2 .card-title {
+  text-align: left;
+  margin: 0;
+  padding: 0;
 }
 
 .summary-list, .insights {
@@ -178,21 +200,29 @@
 .summary-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 20px;
 }
 
 .summary-emoji {
   font-size: 1.4rem;
 }
 
+.summary-text {
+  text-align: left;
+}
+
 .summary-text .summary-label {
   font-weight: 600;
   color: #1f2937;
+  text-align: left;
+  display: block;
 }
 
 .summary-text .summary-sub {
   font-size: 0.9rem;
   color: #6b7280;
+  text-align: left;
+  display: block;
 }
 
 .stat {
@@ -201,30 +231,16 @@
   border-radius: 6px;
 }
 
-.stat.tough {
-  background: #ef4444;
-}
-
-.stat.okay {
-  background: #fbbf24;
-}
-
-.stat.good {
-  background: #10b981;
-}
-
-.stat.great {
-  background: #6366f1;
-}
-
-.stat.amazing {
-  background: #f97316;
-}
+.stat.tough { background: #ef4444; }
+.stat.okay { background: #fbbf24; }
+.stat.good { background: #10b981; }
+.stat.great { background: #6366f1; }
+.stat.amazing { background: #f97316; }
 
 .insight-positive {
   text-align: center;
   background: #e0f2fe;
-  padding: 20px;
+  padding: 20px 95px;
   border-radius: 12px;
   font-weight: 700;
   color: #0c4a6e;
@@ -241,21 +257,24 @@
   margin-top: 4px;
 }
 
+.insights-card{
+  padding-top: 0;
+  margin-top: 0;
+}
+
 .kv {
   display: flex;
   justify-content: space-between;
   font-size: 0.95rem;
+  text-align: left;
 }
 
-.kv-key {
+.kv-key { 
   color: #6b7280;
+  text-align: left;
 }
-
-.kv-val {
-  font-weight: 600;
+.kv-val { 
+  font-weight: 600; 
   color: #1f2937;
-}
-
-.card-body, .cal-grid {
-  overflow: visible; /* prevents clipping */
+  text-align: right;
 }

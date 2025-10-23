@@ -5,17 +5,18 @@ import { Trash2, ImagePlus, X, ExternalLink, Send } from "lucide-react";
 //==============================================================================
 // 1. IMPORT ASSETS
 //==============================================================================
-import jarImage from '../assets/jar.png';
+import jarImage from '../assets/jar-wo-lid.png';
 import star1 from '../assets/star small.png';
-import star2 from '../assets/star-2.png';
-import star3 from '../assets/star-3.png';
-import star4 from '../assets/star-4.png';
+import star2 from '../assets/star.png';
+import star3 from '../assets/star-2.png';
+import star4 from '../assets/star-3.png';
+import star5 from '../assets/star-4.png';
 
 //==============================================================================
 // 2. VISUAL & UTILITY COMPONENTS
 //==============================================================================
 
-const starImagePaths = [star1, star2, star3, star4];
+const starImagePaths = [star1, star2, star3, star4, star5];
 
 // Component for the main Jar visual
 const JarVisual = ({ onClick, starCount, isShaking }) => (

@@ -4,6 +4,10 @@ from sqlalchemy.orm import Session
 from .. import schemas, models
 from ..db import get_db
 from ..security import hash_password, verify_password, create_access_token
+from ..services.achievement_checker import (
+    initialize_user_achievements, 
+    check_all_achievements
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -19,7 +23,16 @@ def signup(payload: schemas.UserCreate, db: Session = Depends(get_db)):
         bio=payload.bio,
         profile_picture=payload.profile_picture,
     )
-    db.add(user); db.commit(); db.refresh(user)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    # Initialize achievements for new user
+    initialize_user_achievements(db, user.user_id)
+    
+    # Check all achievements to calculate initial progress
+    check_all_achievements(db, user.user_id)
+    
     return user
 
 @router.post("/login", response_model=schemas.Token)

@@ -5,7 +5,7 @@
   justify-content: space-between;
   background: #fff;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  padding: 1.3rem 2rem;
+  padding: 1.52rem 2rem;
   position: fixed;
   top: 0;
   left: 0;
@@ -51,7 +51,7 @@
 .nav-link.active {
   color: #7b5ce1;
   font-weight: 700;
-  border-bottom: 1.5px solid #7b5ce1;
+  border-bottom: 2px solid #7b5ce1;
 }
 /* ===== Right Side ===== */
 .navbar-right {
@@ -91,3 +91,4 @@
     gap: 0.5rem;
   }
 }
+

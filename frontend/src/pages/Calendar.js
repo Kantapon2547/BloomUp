@@ -19,19 +19,48 @@ function buildMonthGrid(year, month) {
   return cells;
 }
 
-const sampleMoods = {};
-[
-  [2024, 11, 1, "😊"], [2024, 11, 2, "🙂"], [2024, 11, 3, "😁"],
-  [2025, 9, 2, "😁"]
-].forEach(([y, m, d, emo]) => (sampleMoods[dateKey(y, m, d)] = emo));
-
 const LEGEND = [
-  ["😭", "Tough"], ["😐", "Okay"], ["🙂", "Good"], ["😊", "Great"], ["😁", "Amazing"],
+  ["😭", "Tough"],
+  ["😕", "Okay"],
+  ["🙂", "Good"],
+  ["😊", "Great"],
+  ["😄", "Amazing"],
 ];
+
+const API = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+const authHeaders = () => {
+  const token = localStorage.getItem("token");
+  console.log("📍 authHeaders called");
+  console.log("   Token exists:", !!token);
+  console.log("   Token prefix:", token ? token.substring(0, 20) + "..." : "none");
+  
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+    console.log("   Authorization header set: Bearer " + token.substring(0, 20) + "...");
+  } else {
+    console.log("   ⚠️  No token found in localStorage!");
+  }
+  
+  return headers;
+};
+
+const scoreToEmoji = (score) => {
+  const emojis = ["😭", "😕", "🙂", "😊", "😄"];
+  return emojis[Math.max(0, Math.min(4, score - 1))];
+};
 
 export default function Calendar() {
   const today = new Date();
   const [date, setDate] = useState({ year: today.getFullYear(), month: today.getMonth() });
+  const [moods, setMoods] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const cells = useMemo(() => buildMonthGrid(date.year, date.month), [date]);
   const daysInMonth = new Date(date.year, date.month + 1, 0).getDate();
 
@@ -39,34 +68,83 @@ export default function Calendar() {
   const monthRef = useRef(null);
   const cardRefs = useRef([]);
 
+  // Load moods from backend
+  const loadMoods = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem("token");
+      console.log("Token in storage:", token ? "✓ Found" : "✗ Missing");
+      console.log("Auth headers:", authHeaders());
+      console.log("Fetching moods from:", `${API}/mood/?limit=365`);
+      
+      const res = await fetch(`${API}/mood/?limit=365`, { headers: authHeaders() });
+      
+      if (!res.ok) {
+        throw new Error(`Failed to fetch moods: ${res.status}`);
+      }
+      
+      const data = await res.json();
+      console.log("Moods data received:", data);
+      
+      const moodMap = {};
+      data.forEach(m => {
+        const emoji = scoreToEmoji(m.mood_score);
+        moodMap[m.logged_on] = emoji;
+        console.log(`Date: ${m.logged_on}, Score: ${m.mood_score}, Emoji: ${emoji}`);
+      });
+      
+      console.log("Mood map:", moodMap);
+      setMoods(moodMap);
+    } catch (e) {
+      console.error("Failed to load moods:", e);
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load on mount
+  useEffect(() => {
+    loadMoods();
+  }, []);
+
+  // Listen for mood updates from Mood.js
+  useEffect(() => {
+    const handleMoodUpdate = () => {
+      console.log("Mood updated event detected, reloading...");
+      loadMoods();
+    };
+    
+    window.addEventListener("moodUpdated", handleMoodUpdate);
+    return () => window.removeEventListener("moodUpdated", handleMoodUpdate);
+  }, []);
+
+  // Animations
   useEffect(() => {
     if (!calRef.current) return;
-  
-    // Page visible immediately
     gsap.set(calRef.current, { opacity: 1, visibility: "visible" });
-  
-    // Animate only cards (calendar, summary, insights)
-    gsap.fromTo(
-      cardRefs.current,
-      { opacity: 0, y: 40 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.8,
-        ease: "power2.out",
-        stagger: 0.15,
-      }
-    );
+    
+    const validRefs = cardRefs.current.filter(Boolean);
+    if (validRefs.length > 0) {
+      gsap.fromTo(
+        validRefs,
+        { opacity: 0, y: 40 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: "power2.out",
+          stagger: 0.15,
+        }
+      );
+    }
   }, []);
-  
 
-  // --- Animate month label on change ---
   useEffect(() => {
     if (!monthRef.current) return;
-
-    // Reset transform
     gsap.set(monthRef.current, { opacity: 1, y: 0 });
-
     gsap.fromTo(
       monthRef.current,
       { opacity: 0, y: 15 },
@@ -74,18 +152,18 @@ export default function Calendar() {
     );
   }, [date]);
 
-  // --- Mood stats ---
+  // Calculate mood statistics
   const moodCounts = useMemo(() => {
     const counts = {};
     for (let d = 1; d <= daysInMonth; d++) {
-      const emo = sampleMoods[dateKey(date.year, date.month, d)];
+      const emo = moods[dateKey(date.year, date.month, d)];
       if (emo) counts[emo] = (counts[emo] || 0) + 1;
     }
     return counts;
-  }, [date, daysInMonth]);
+  }, [date, daysInMonth, moods]);
 
   const totalTracked = Object.values(moodCounts).reduce((a, b) => a + b, 0);
-  const positiveEmos = new Set(["🙂", "😊", "😁"]);
+  const positiveEmos = new Set(["🙂", "😊", "😄"]);
   const positiveCount = Object.entries(moodCounts)
     .filter(([emo]) => positiveEmos.has(emo))
     .reduce((acc, [, c]) => acc + c, 0);
@@ -94,17 +172,52 @@ export default function Calendar() {
   const onPrev = () => setDate(({ year, month }) =>
     month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 }
   );
+  
   const onNext = () => setDate(({ year, month }) =>
     month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 }
   );
 
+  if (loading) {
+    return (
+      <div className="cal-page" ref={calRef}>
+        <div className="cal-content">
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <h2>Loading mood calendar...</h2>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="cal-page" ref={calRef}>
+        <div className="cal-content">
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <h2 style={{ color: '#dc2626', marginBottom: '16px' }}>Error: {error}</h2>
+            <button 
+              onClick={loadMoods}
+              style={{
+                padding: '10px 20px',
+                background: '#8b5cf6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="cal-page" ref={calRef}>
       <div className="cal-content">
-        <header className="cal-header">
-          <h1 className="cal-title">Mood Calendar</h1>
-          <p className="cal-subtitle">Track your emotional journey over time</p>
-        </header>
 
         <section className="card calendar-card" ref={el => (cardRefs.current[0] = el)}>
           <div className="card-head" ref={monthRef}>
@@ -122,10 +235,11 @@ export default function Calendar() {
               {cells.map((day, idx) => {
                 if (day === null) return <div key={`e-${idx}`} className="day-cell day-empty" />;
 
-                const emo = sampleMoods[dateKey(date.year, date.month, day)];
-                const isToday = day === today.getDate() &&
-                                date.month === today.getMonth() &&
-                                date.year === today.getFullYear();
+                const emo = moods[dateKey(date.year, date.month, day)];
+                const isToday =
+                  day === today.getDate() &&
+                  date.month === today.getMonth() &&
+                  date.year === today.getFullYear();
 
                 return (
                   <div
@@ -175,7 +289,9 @@ export default function Calendar() {
               </div>
               <div className="kv">
                 <span className="kv-key">Most common mood:</span>
-                <span className="kv-val">{Object.entries(moodCounts).sort((a,b)=>b[1]-a[1])[0]?.[0] || "—"}</span>
+                <span className="kv-val">
+                  {Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "–"}
+                </span>
               </div>
               <div className="kv">
                 <span className="kv-key">Days tracked:</span>

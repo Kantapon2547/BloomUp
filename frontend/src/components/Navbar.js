@@ -10,7 +10,7 @@ const Navbar = ({ onLogout }) => {
     { path: "/calendar", label: "Mood" },
     { path: "/reports", label: "Report" },
     { path: "/habits", label: "Habit" },
-    { path: "/profile", label: "Profile" },
+    { path: "/profile", label: <span className="material-symbols-outlined">account_circle</span> },
   ];
 
   return (

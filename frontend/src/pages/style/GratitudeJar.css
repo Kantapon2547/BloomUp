@@ -3,21 +3,55 @@
   font-family: "Poppins", sans-serif;
 }
 
+/* ✨ MODIFIED: Removed min-height and adjusted padding to move the section up */
 .main-content {
   display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 20px;
-  background: linear-gradient(to bottom, #f5f3ff, #e0e7ff);
+  align-items: center; /* Changed back to center for proper alignment */
+  /* min-height: 80vh; */ /* REMOVED THIS LINE */
+
   box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(to bottom, #f5f3ff, #e0e7ff);
+}
+
+/* ✨ Floating Animation for Stars ✨ */
+@keyframes floatStars {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(-20px, -20px);
+  }
+}
+
+/* ✨ SCATTERED BACKGROUND STARS ✨ */
+.main-content::before {
+  content: "";
+  position: absolute;
+  top: -5%;
+  left: -5%;
+  width: 110%;
+  height: 110%;
+  pointer-events: none;
+  opacity: 1.0;
+  z-index: 0;
+  --star-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24' fill='%23fff7ed' stroke='%23fed7aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'%3E%3C/polygon%3E%3C/svg%3E");
+  background-image: var(--star-url), var(--star-url), var(--star-url),
+                    var(--star-url), var(--star-url), var(--star-url);
+  background-repeat: no-repeat;
+  background-position: 10% 15%, 85% 10%, 90% 85%, 15% 80%, 50% 8%, 80% 45%;
+  background-size: 45px, 35px, 50px, 40px, 30px, 25px;
+  animation: floatStars 25s ease-in-out infinite alternate;
 }
 
 /* --- 🏺 Gratitude Jar Visuals --- */
 .jar-area {
   position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: clamp(350px, 90vw, 550px);
+  max-width: 900px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -65,7 +99,7 @@
 
 .new-star-animation {
   position: absolute;
-  width: 55px;
+  width: 100px;
   height: auto;
   z-index: 15;
   top: 0;
@@ -110,14 +144,14 @@
 
 .entry-form {
   position: absolute;
-  top: 45%; /* Position form near the jar opening */
+  top: 72%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 70%;
-  z-index: 11; /* Sits above the jar image */
+  width: 60%;
+  z-index: 11;
   display: flex;
   flex-direction: column;
-  gap: 10px; /* This creates consistent space between form elements */
+  gap: 12px;
 }
 
 .entry-form h3 {
@@ -130,7 +164,7 @@
 
 .entry-textarea {
   width: 100%;
-  height: 50px;
+  height: 60px;
   background: white;
   border: 1px solid #d1d5db;
   border-radius: 10px;
@@ -155,7 +189,7 @@
 
 .entry-controls {
   display: flex;
-  gap: 10px; /* Space between dropdown, image button, and send button */
+  gap: 10px;
 }
 
 .entry-controls .custom-dropdown {
@@ -165,7 +199,7 @@
 
 .entry-controls .dropdown-toggle {
   width: 100%;
-  height: 42px; /* Match submit button height */
+  height: 42px;
   padding: 10px;
   background: white;
   border: 1px solid #d1d5db;
@@ -223,7 +257,6 @@
   margin: 0;
 }
 
-/* --- ✨ Controls Row for Dropdown & Image Upload --- */
 .controls-row {
   display: flex;
   gap: 15px;
@@ -290,7 +323,6 @@
   background-color: #ede9fe;
 }
 
-/* --- ✨ ADDED BACK: Custom Scrollbar Styles --- */
 .custom-dropdown .dropdown-list::-webkit-scrollbar {
   width: 8px;
 }
@@ -305,7 +337,6 @@
   border-radius: 6px;
   border: 2px solid #fafafa;
 }
-/* --- End of Scrollbar Styles --- */
 
 .image-upload-btn {
   display: flex;
@@ -325,13 +356,10 @@
   background-color: #e5e7eb;
 }
 
-
-/* --- 🏷️ Page Title --- */
-
 .collection-section {
   padding: 50px 30px;
   max-width: 900px;
-  margin: 0 auto; /* Center the section */
+  margin: 0 auto;
 }
 
 .collection-title {
@@ -343,8 +371,6 @@
   border-bottom: 1px solid #e0e7ff;
   padding-bottom: 10px;
 }
-
-/* --- 📊 Stats Section --- */
 
 .stats-container {
   display: flex;
@@ -367,8 +393,7 @@
 .stat-card h2 {
   font-size: 28px;
   margin: 0;
-
- }
+}
 
 .stat-card p {
   font-size: 14px;
@@ -383,8 +408,6 @@
 .stat-card.blue h2 {
   color: #2196f3;
 }
-
-/* --- 💌 Entries Grid --- */
 
 .entries-grid {
   display: grid;
@@ -513,9 +536,12 @@
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   position: relative;
   animation: slideIn 0.3s ease;
+  padding: 0;
 }
 
 @keyframes slideIn {
@@ -527,7 +553,7 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -536,13 +562,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #333;
+  color: #fff;
   transition: background-color 0.2s;
   z-index: 10;
 }
 
 .modal-close-btn:hover {
-  background-color: rgba(230, 230, 230, 0.9);
+  background-color: rgba(0, 0, 0, 0.8);
 }
 
 .modal-image {
@@ -550,11 +576,13 @@
   height: auto;
   max-height: 400px;
   object-fit: cover;
-  border-radius: 16px 16px 0 0;
+  display: block;
 }
 
 .modal-details {
-  padding: 25px;
+  padding: 20px 25px 25px;
+  overflow-y: auto;
+  flex-shrink: 1;
 }
 
 .modal-text {
@@ -563,10 +591,10 @@
   color: #333;
   margin-top: 15px;
   white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 @media (max-width: 768px) {
-  .hero-section { padding: 20px 10px; }
   .collection-section { padding: 40px 15px; }
   .stats-container { flex-direction: column; }
   .entries-grid { grid-template-columns: 1fr; }
