@@ -480,20 +480,112 @@ function CategorySelector({ value, onChange, categories, onCreate }) {
 //   doc.save(`habit-tracker-report-${new Date().toISOString().slice(0, 10)}.pdf`);
 // }
 
-function HabitModal({ open, onClose, onSubmit, initial, categories, onCreateCategory }) {
+// function HabitModal({ open, onClose, onSubmit, initial, categories, onCreateCategory }) {
+//   const [name, setName] = useState(initial?.name || "");
+//   const [category, setCategory] = useState(initial?.category || "General");
+//   const [icon, setIcon] = useState(initial?.icon || "📚");
+//   const [duration, setDuration] = useState(initial?.duration || "30 mins");
+//   const [error, setError] = useState("");
+
+//   useEffect(() => {
+//     if (open) {
+//       setName(initial?.name || "");
+//       setCategory(initial?.category || "General");
+//       setIcon(initial?.icon || "📚");
+//       setDuration(initial?.duration || "30 mins");
+//       setError("");
+//     }
+//   }, [initial, open]);
+
+//   if (!open) return null;
+
+//   return (
+//     <div className="modal-backdrop" onClick={onClose}>
+//       <div className="modal" onClick={(e) => e.stopPropagation()}>
+//         <div className="modal-body">
+//           <h3>Habit Name</h3>
+//           <input
+//             className={`input ${error ? "is-invalid" : ""}`}
+//             placeholder="e.g., Study for 2 hours"
+//             value={name}
+//             onChange={(e) => { setName(e.target.value); setError(""); }}
+//           />
+//           {error && <div className="field-error">{error}</div>}
+
+//           <div className="row-two">
+//             <div className="field">
+//               <h3>Category</h3>
+//               <CategorySelector
+//                 value={category}
+//                 onChange={setCategory}
+//                 categories={categories}
+//                 onCreate={onCreateCategory}
+//               />
+//             </div>
+//             <div className="field">
+//               <h3>Duration</h3>
+//               <Dropdown value={duration} items={DURATIONS} onChange={setDuration} />
+//             </div>
+//           </div>
+
+//           <h3>Choose Icon</h3>
+//           <div className="icon-grid pretty">
+//             {["📚","✏️","📖","🎓","💻","💪","🧠","🧘","🥗","🚰","💖","🛏️"].map(i => (
+//               <div
+//                 key={i}
+//                 className={`icon-tile ${icon === i ? "active" : ""}`}
+//                 onClick={() => setIcon(i)}
+//               >
+//                 <span className="icon-emoji">{i}</span>
+//               </div>
+//             ))}
+//           </div>
+//         </div>
+
+//         <div className="modal-footer">
+//           <button className="btn cancel" onClick={onClose}>Cancel</button>
+//           <button
+//             className="btn confirm"
+//             onClick={() => {
+//               if (!name.trim()) { setError("Please enter a habit name."); return; }
+//               onSubmit({ name: name.trim(), category, icon, duration });
+//             }}
+//           >
+//             {initial ? "Save Changes" : "Add Habit"}
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+function HabitModal({
+  open,
+  onClose,
+  onSubmit,
+  initial,
+  categories,
+  onCreateCategory
+}) {
   const [name, setName] = useState(initial?.name || "");
   const [category, setCategory] = useState(initial?.category || "General");
-  const [icon, setIcon] = useState(initial?.icon || "📚");
+  const [emoji, setEmoji] = useState(initial?.icon || "📚"); // we'll treat "icon" as emoji now
   const [duration, setDuration] = useState(initial?.duration || "30 mins");
   const [error, setError] = useState("");
+
+  // new UI state
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showCategorySheet, setShowCategorySheet] = useState(false);
 
   useEffect(() => {
     if (open) {
       setName(initial?.name || "");
       setCategory(initial?.category || "General");
-      setIcon(initial?.icon || "📚");
+      setEmoji(initial?.icon || "📚");
       setDuration(initial?.duration || "30 mins");
       setError("");
+      setShowEmojiPicker(false);
+      setShowCategorySheet(false);
     }
   }, [initial, open]);
 
@@ -501,63 +593,381 @@ function HabitModal({ open, onClose, onSubmit, initial, categories, onCreateCate
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-body">
-          <h3>Habit Name</h3>
+      <div
+        className="modal modal-task"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* HEADER AREA */}
+        <div className="task-header">
+          <button
+            className="task-emoji-btn"
+            onClick={() => setShowEmojiPicker(true)}
+          >
+            <span className="task-emoji">{emoji}</span>
+          </button>
+
           <input
-            className={`input ${error ? "is-invalid" : ""}`}
-            placeholder="e.g., Study for 2 hours"
+            className={`task-name-input ${error ? "is-invalid" : ""}`}
+            placeholder="drink water"
             value={name}
-            onChange={(e) => { setName(e.target.value); setError(""); }}
+            onChange={(e) => {
+              setName(e.target.value);
+              setError("");
+            }}
           />
           {error && <div className="field-error">{error}</div>}
-
-          <div className="row-two">
-            <div className="field">
-              <h3>Category</h3>
-              <CategorySelector
-                value={category}
-                onChange={setCategory}
-                categories={categories}
-                onCreate={onCreateCategory}
-              />
-            </div>
-            <div className="field">
-              <h3>Duration</h3>
-              <Dropdown value={duration} items={DURATIONS} onChange={setDuration} />
-            </div>
-          </div>
-
-          <h3>Choose Icon</h3>
-          <div className="icon-grid pretty">
-            {["📚","✏️","📖","🎓","💻","💪","🧠","🧘","🥗","🚰","💖","🛏️"].map(i => (
-              <div
-                key={i}
-                className={`icon-tile ${icon === i ? "active" : ""}`}
-                onClick={() => setIcon(i)}
-              >
-                <span className="icon-emoji">{i}</span>
-              </div>
-            ))}
-          </div>
         </div>
 
-        <div className="modal-footer">
-          <button className="btn cancel" onClick={onClose}>Cancel</button>
+        {/* FIELDS LIST */}
+        <div className="task-fields">
+          {/* Category row */}
+          <button
+            className="task-row-btn"
+            onClick={() => setShowCategorySheet(true)}
+          >
+            <div className="task-row-left">
+              <div className="task-row-label">Category</div>
+              <div className="task-row-value">{category}</div>
+            </div>
+            <ChevronDown size={18} className="task-row-chevron" />
+          </button>
+
+          {/* Duration row */}
+          <div className="task-row-btn">
+            <div className="task-row-left">
+              <div className="task-row-label">Duration</div>
+              <div className="task-row-value">{duration}</div>
+            </div>
+            {/* You can still reuse the Dropdown, but inline it here: */}
+            <Dropdown
+              value={duration}
+              items={DURATIONS}
+              onChange={setDuration}
+              label={null}
+            />
+          </div>
+
+          {/* you can add more rows later e.g. Reminder, Repeat, etc */}
+        </div>
+
+        {/* FOOTER */}
+        <div className="modal-footer clean-footer">
+          <button className="btn cancel" onClick={onClose}>
+            Cancel
+          </button>
           <button
             className="btn confirm"
             onClick={() => {
-              if (!name.trim()) { setError("Please enter a habit name."); return; }
-              onSubmit({ name: name.trim(), category, icon, duration });
+              if (!name.trim()) {
+                setError("Please enter a habit name.");
+                return;
+              }
+              onSubmit({
+                name: name.trim(),
+                category,
+                icon: emoji, // still saved as .icon in your data model
+                duration
+              });
             }}
           >
             {initial ? "Save Changes" : "Add Habit"}
           </button>
         </div>
+
+        {/* SUB-MODALS */}
+        {showEmojiPicker && (
+          <EmojiPickerModal
+            onClose={() => setShowEmojiPicker(false)}
+            onSelect={(em) => {
+              setEmoji(em);
+              setShowEmojiPicker(false);
+            }}
+          />
+        )}
+
+        {showCategorySheet && (
+          <CategorySheet
+            categories={categories}
+            active={category}
+            onClose={() => setShowCategorySheet(false)}
+            onSelect={(catName) => {
+              setCategory(catName);
+              setShowCategorySheet(false);
+            }}
+            onCreate={(newCatName, newColor) => {
+              onCreateCategory(newCatName, newColor);
+              setCategory(newCatName);
+              setShowCategorySheet(false);
+            }}
+          />
+        )}
       </div>
     </div>
   );
 }
+
+function EmojiPickerModal({ onClose, onSelect }) {
+  const EMOJIS = [
+    "💧","🏋️‍♀️","📚","🧘","🥗","💻","😴","🫧","🚶","🎧","📖","📝",
+    "🍎","💖","🔥","🌞","🧠","🛏️","💼","🎯","🪥","🚰","💬","😊"
+  ];
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div
+        className="sheet-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sheet-head">
+          <div className="sheet-title">Choose Emoji</div>
+          <button className="sheet-close-btn" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="emoji-grid">
+          {EMOJIS.map((e) => (
+            <button
+              key={e}
+              className="emoji-tile"
+              onClick={() => onSelect(e)}
+            >
+              <span className="emoji-big">{e}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CategorySheet({
+  categories,
+  active,
+  onClose,
+  onSelect,
+  onCreate
+}) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [draftNewCat, setDraftNewCat] = useState("");
+
+  const PASTELS = [
+  "#ede9ff", // purple-ish
+  "#fff4cc", // yellow
+  "#e9fcef", // green
+  "#eaf6ff", // blue
+  "#ffeaf2", // pink
+  "#f5f5ff", // gray/violet
+];
+
+const [draftColor, setDraftColor] = useState(PASTELS[0]);
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div
+        className="sheet-panel"
+        onClick={(e) => e.stopPropagation()} // don't close if they click inside panel
+      >
+        {/* MODE 1: choose existing category */}
+        {!isAdding ? (
+          <>
+            <div className="sheet-head">
+              <div className="sheet-title">Category</div>
+              <button
+                className="sheet-close-btn"
+                onClick={onClose}
+              >
+                Save
+              </button>
+            </div>
+
+            <div className="cat-list">
+              {categories.map((catObj) => {
+                const isActive = catObj.name === active;
+                return (
+                  <button
+                    key={catObj.name}
+                    className={`cat-row ${isActive ? "is-active" : ""}`}
+                    onClick={() => onSelect(catObj.name)}
+                  >
+                    <div className="cat-left">
+                      {/* colored preview pill */}
+                      <span
+                        className="cat-color-pill"
+                        style={{
+                          backgroundColor: catObj.color,
+                          borderColor: catObj.color,
+                        }}
+                      >
+                        {catObj.name}
+                      </span>
+                    </div>
+
+                    <span className="cat-radio">
+                      {isActive ? "◉" : "◎"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="sheet-footer">
+              <button
+                className="btn-big"
+                onClick={() => {
+                  // go to "add new" mode
+                  setIsAdding(true);
+                  setDraftNewCat("");
+                  setDraftColor(PASTELS[0]);
+                }}
+              >
+                Add New
+              </button>
+            </div>
+          </>
+        ) : (
+          // MODE 2: add new category
+          <>
+            <div className="sheet-head">
+              <button
+                className="sheet-back-btn"
+                onClick={() => {
+                  setIsAdding(false);
+                  setDraftNewCat("");
+                }}
+              >
+                ←
+              </button>
+
+              <div className="sheet-title">New Category</div>
+
+              <button
+                className="sheet-close-btn"
+                onClick={() => {
+                  if (!draftNewCat.trim()) return;
+                  onCreate(draftNewCat.trim(), draftColor);
+                  // after create, close sheet
+                }}
+              >
+                Save
+              </button>
+            </div>
+
+            <div className="sheet-body">
+              {/* category name input */}
+              <input
+                className="task-name-input"
+                placeholder="Healthy Lifestyle"
+                value={draftNewCat}
+                maxLength={20}
+                onChange={(e) => setDraftNewCat(e.target.value)}
+              />
+              <div className="char-hint">
+                {draftNewCat.length}/20
+              </div>
+
+              {/* pastel color picker */}
+              <div className="color-row">
+                {PASTELS.map((c) => (
+                  <button
+                    key={c}
+                    className={`color-dot ${
+                      draftColor === c ? "is-selected" : ""
+                    }`}
+                    style={{ backgroundColor: c }}
+                    onClick={() => setDraftColor(c)}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+
+//   return (
+//     <div className="sheet-backdrop" onClick={onClose}>
+//       <div
+//         className="sheet-panel"
+//         onClick={(e) => e.stopPropagation()}
+//       >
+//         {!isAdding ? (
+//           <>
+//             <div className="sheet-head">
+//               <div className="sheet-title">Category</div>
+//               <button className="sheet-close-btn" onClick={onClose}>
+//                 Save
+//               </button>
+//             </div>
+
+//             <div className="cat-list">
+//               {categories.map((cat) => (
+//                 <button
+//                   key={cat}
+//                   className={`cat-row ${cat === active ? "is-active" : ""}`}
+//                   onClick={() => onSelect(cat)}
+//                 >
+//                   <span className="cat-name">{cat}</span>
+//                   <span className="cat-radio">
+//                     {cat === active ? "◉" : "◎"}
+//                   </span>
+//                 </button>
+//               ))}
+//             </div>
+
+//             <div className="sheet-footer">
+//               <button
+//                 className="btn-big"
+//                 onClick={() => setIsAdding(true)}
+//               >
+//                 Add New
+//               </button>
+//             </div>
+//           </>
+//         ) : (
+//           <>
+//             <div className="sheet-head">
+//               <button
+//                 className="sheet-back-btn"
+//                 onClick={() => {
+//                   setIsAdding(false);
+//                   setDraftNewCat("");
+//                 }}
+//               >
+//                 ←
+//               </button>
+//               <div className="sheet-title">New Category</div>
+//               <button
+//                 className="sheet-close-btn"
+//                 onClick={() => {
+//                   if (!draftNewCat.trim()) return;
+//                   onCreate(draftNewCat.trim());
+//                 }}
+//               >
+//                 Save
+//               </button>
+//             </div>
+
+//             <div className="sheet-body">
+//               <input
+//                 className="task-name-input"
+//                 placeholder="Healthy Lifestyle"
+//                 value={draftNewCat}
+//                 maxLength={20}
+//                 onChange={(e) => setDraftNewCat(e.target.value)}
+//               />
+//               <div className="char-hint">
+//                 {draftNewCat.length}/20
+//               </div>
+//             </div>
+//           </>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
 
 export default function HabitsPage() {
   const [habits, setHabits] = useState([]);
@@ -569,17 +979,43 @@ export default function HabitsPage() {
   const [openModal, setOpenModal] = useState(false);
   const [editing, setEditing] = useState(null);
 
-    const [categories, setCategories] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(CATS_LS)) || DEFAULT_CATEGORIES;
-    } catch {
-      return DEFAULT_CATEGORIES;
-    }
-  });
+  const DEFAULT_CATEGORIES = [
+  { name: "General", color: "#ede9ff" },
+  { name: "Study", color: "#fff4cc" },
+  { name: "Health", color: "#e9fcef" },
+  { name: "Mind", color: "#fbefff" },
+];
 
-  const addCategoryGlobal = (name) => {
-    if (!categories.includes(name)) {
-      const next = [...categories, name];
+const [categories, setCategories] = useState(() => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(CATS_LS));
+    if (Array.isArray(raw)) {
+      // normalize: if old data was ["General", ...] convert -> [{name:"General",color:"#ede9ff"}, ...]
+      if (typeof raw[0] === "string") {
+        return raw.map((n) => ({ name: n, color: "#ede9ff" }));
+      }
+      return raw;
+    }
+    return DEFAULT_CATEGORIES;
+  } catch {
+    return DEFAULT_CATEGORIES;
+  }
+});
+
+
+  //   const [categories, setCategories] = useState(() => {
+  //   try {
+  //     return JSON.parse(localStorage.getItem(CATS_LS)) || DEFAULT_CATEGORIES;
+  //   } catch {
+  //     return DEFAULT_CATEGORIES;
+  //   }
+  // });
+
+  const addCategoryGlobal = (name, color) => {
+    if (!categories.some((c) => c.name === name)) {
+      const next = [...categories, { name, color }];
+    // if (!categories.includes(name)) {
+    //   const next = [...categories, name];
       setCategories(next);
       localStorage.setItem(CATS_LS, JSON.stringify(next));
     }
@@ -778,6 +1214,9 @@ export default function HabitsPage() {
             {list.map((h) => {
               const rate = weekRate(h);
               const streak = bestStreak(h.history || {});
+              const catData = categories.find(c => c.name === h.category);
+              const bg = catData?.color || "#eef1ff";
+              
               return (
                 <div key={h.id} className="card habit-card habit-card--row">
                   <div className="hl-left">
@@ -795,7 +1234,13 @@ export default function HabitsPage() {
                         {h.name}
                       </div>
                       <div className="habit-tags">
-                        <span className={`chip ${h.category.toLowerCase()}`}>{h.category}</span>
+                        <span className="chip" 
+                              style={{ 
+                                background: bg, 
+                                borderColor: bg, 
+                                color: "#1a1f35",}}
+                              >{h.category}
+                        </span>
                         <span className="chip chip-daily">{h.duration}</span>
                       </div>
                     </div>
