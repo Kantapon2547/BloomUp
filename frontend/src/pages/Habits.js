@@ -694,7 +694,7 @@ function CategorySheet({
                           borderColor: "transparent",
                           color: "#1a1f35",
                         }}
-                      >
+                      > 
                         {catObj.name}
                       </span>
                       <span className="cat-radio">
