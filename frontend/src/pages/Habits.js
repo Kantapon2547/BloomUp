@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {Plus, Pencil, Trash2, ChevronDown, Filter, Trophy, CheckCircle2, Sun, DownloadCloud} 
   from "lucide-react";
 import "./style/Habits.css";
+import EmojiPicker from "emoji-picker-react";
+
 
 const USE_API_DEFAULT = true;
 const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
@@ -34,6 +36,7 @@ const normalizeHabit = (h) => ({
   category: h.category ?? "General",
   icon: h.icon ?? "📚",
   duration: h.duration ?? "30 mins",
+  color: h.color ?? "#ede9ff",
   history: h.history ?? {},
 });
 
@@ -138,14 +141,14 @@ function formatLocalDate(date) {
 const weekOf = (date) => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
-  const day = d.getDay(); // 0=Sun, 1=Mon,...
-  const diff = (day === 0 ? -6 : 1) - day; // start Monday
+  const day = d.getDay(); 
+  const diff = (day === 0 ? -6 : 1) - day; 
   const start = new Date(d);
   start.setDate(d.getDate() + diff);
   return [...Array(7)].map((_, i) => {
     const x = new Date(start);
     x.setDate(start.getDate() + i);
-    return formatLocalDate(x); // <-- LOCAL time, not UTC
+    return formatLocalDate(x); 
   });
 };
 
@@ -330,156 +333,6 @@ function CategorySelector({ value, onChange, categories, onCreate }) {
   );
 }
 
-// async function generatePDFReport(habits, totals, week) {
-//   // Load jsPDF from CDN if not already loaded
-//   if (!window.jspdf) {
-//     const script1 = document.createElement('script');
-//     script1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-//     document.head.appendChild(script1);
-    
-//     await new Promise((resolve) => {
-//       script1.onload = resolve;
-//     });
-    
-//     const script2 = document.createElement('script');
-//     script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js';
-//     document.head.appendChild(script2);
-    
-//     await new Promise((resolve) => {
-//       script2.onload = resolve;
-//     });
-//   }
-  
-//   const { jsPDF } = window.jspdf;
-//   const doc = new jsPDF();
-  
-//   const today = new Date().toLocaleDateString('en-US', { 
-//     year: 'numeric', 
-//     month: 'long', 
-//     day: 'numeric' 
-//   });
-
-//   // Header
-//   doc.setFontSize(22);
-//   doc.setTextColor(124, 58, 237);
-//   doc.text("Habit Tracker Progress Report", 20, 20);
-  
-//   doc.setFontSize(10);
-//   doc.setTextColor(107, 114, 128);
-//   doc.text(`Generated on ${today}`, 20, 28);
-
-//   // Summary Section
-//   doc.setFontSize(16);
-//   doc.setTextColor(17, 19, 37);
-//   doc.text("Summary", 20, 45);
-
-//   doc.setFontSize(11);
-//   doc.setTextColor(43, 51, 68);
-//   doc.text(`Total Habits: ${totals.total}`, 20, 55);
-//   doc.text(`Completed Today: ${totals.doneToday}`, 20, 62);
-//   doc.text(`Weekly Completion Rate: ${totals.completion}%`, 20, 69);
-//   doc.text(`Best Streak: ${totals.best} day${totals.best !== 1 ? 's' : ''}`, 20, 76);
-
-//   // Habits Table
-//   doc.setFontSize(16);
-//   doc.text("Habits Details", 20, 92);
-
-//   const tableData = habits.map(h => {
-//     const rate = weekRate(h);
-//     const streak = bestStreak(h.history || {});
-//     const completedThisWeek = week.filter(d => h.history?.[d]).length;
-    
-//     return [
-//       h.name,
-//       h.category,
-//       h.duration,
-//       `${streak} day${streak !== 1 ? 's' : ''}`,
-//       `${completedThisWeek}/7`,
-//       `${rate}%`
-//     ];
-//   });
-
-//   doc.autoTable({
-//     startY: 98,
-//     head: [['Habit Name', 'Category', 'Duration', 'Best Streak', 'This Week', 'Rate']],
-//     body: tableData,
-//     theme: 'striped',
-//     headStyles: {
-//       fillColor: [124, 58, 237],
-//       textColor: [255, 255, 255],
-//       fontStyle: 'bold',
-//       fontSize: 10
-//     },
-//     bodyStyles: {
-//       fontSize: 9,
-//       textColor: [43, 51, 68]
-//     },
-//     alternateRowStyles: {
-//       fillColor: [250, 248, 255]
-//     },
-//     margin: { left: 20, right: 20 }
-//   });
-
-//   // Category Breakdown
-//   const categoryStats = {};
-//   habits.forEach(h => {
-//     const cat = h.category || 'General';
-//     if (!categoryStats[cat]) {
-//       categoryStats[cat] = { count: 0, totalRate: 0 };
-//     }
-//     categoryStats[cat].count++;
-//     categoryStats[cat].totalRate += weekRate(h);
-//   });
-
-//   const finalY = doc.lastAutoTable.finalY + 15;
-//   doc.setFontSize(16);
-//   doc.text("Category Breakdown", 20, finalY);
-
-//   const categoryData = Object.entries(categoryStats).map(([cat, stats]) => [
-//     cat,
-//     stats.count,
-//     `${Math.round(stats.totalRate / stats.count)}%`
-//   ]);
-
-//   doc.autoTable({
-//     startY: finalY + 6,
-//     head: [['Category', 'Habits Count', 'Avg Completion']],
-//     body: categoryData,
-//     theme: 'striped',
-//     headStyles: {
-//       fillColor: [124, 58, 237],
-//       textColor: [255, 255, 255],
-//       fontStyle: 'bold',
-//       fontSize: 10
-//     },
-//     bodyStyles: {
-//       fontSize: 9,
-//       textColor: [43, 51, 68]
-//     },
-//     alternateRowStyles: {
-//       fillColor: [250, 248, 255]
-//     },
-//     margin: { left: 20, right: 20 }
-//   });
-
-//   // Footer
-//   const pageCount = doc.internal.getNumberOfPages();
-//   for (let i = 1; i <= pageCount; i++) {
-//     doc.setPage(i);
-//     doc.setFontSize(8);
-//     doc.setTextColor(107, 114, 128);
-//     doc.text(
-//       `Page ${i} of ${pageCount}`,
-//       doc.internal.pageSize.getWidth() / 2,
-//       doc.internal.pageSize.getHeight() - 10,
-//       { align: 'center' }
-//     );
-//   }
-
-//   // Save the PDF
-//   doc.save(`habit-tracker-report-${new Date().toISOString().slice(0, 10)}.pdf`);
-// }
-
 // function HabitModal({ open, onClose, onSubmit, initial, categories, onCreateCategory }) {
 //   const [name, setName] = useState(initial?.name || "");
 //   const [category, setCategory] = useState(initial?.category || "General");
@@ -565,15 +418,27 @@ function HabitModal({
   onSubmit,
   initial,
   categories,
-  onCreateCategory
+  onCreateCategory,
+  onApplyCategoryColor,
+  onDeleteCategory
 }) {
   const [name, setName] = useState(initial?.name || "");
   const [category, setCategory] = useState(initial?.category || "General");
   const [emoji, setEmoji] = useState(initial?.icon || "📚"); // we'll treat "icon" as emoji now
   const [duration, setDuration] = useState(initial?.duration || "30 mins");
   const [error, setError] = useState("");
+  const PASTELS = [
+    "#ede9ff", // purple
+    "#fff4cc", // yellow
+    "#e9fcef", // green
+    "#eaf6ff", // blue
+    "#ffeaf2", // pink
+    "#f5f5ff", // gray/violet
+  ];
 
-  // new UI state
+  const [color, setColor] = useState(initial?.color || PASTELS[0]);
+
+  
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showCategorySheet, setShowCategorySheet] = useState(false);
 
@@ -583,6 +448,7 @@ function HabitModal({
       setCategory(initial?.category || "General");
       setEmoji(initial?.icon || "📚");
       setDuration(initial?.duration || "30 mins");
+      setColor(initial?.color || PASTELS[0]);
       setError("");
       setShowEmojiPicker(false);
       setShowCategorySheet(false);
@@ -597,7 +463,6 @@ function HabitModal({
         className="modal modal-task"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER AREA */}
         <div className="task-header">
           <button
             className="task-emoji-btn"
@@ -616,11 +481,19 @@ function HabitModal({
             }}
           />
           {error && <div className="field-error">{error}</div>}
+          <div className="color-row-main">
+            {PASTELS.map((c) => (
+              <button
+                key={c}
+                className={`color-dot-main ${color === c ? "is-selected" : ""}`}
+                style={{ backgroundColor: c }}
+                onClick={() => setColor(c)}
+                />
+                ))}
+              </div>
         </div>
 
-        {/* FIELDS LIST */}
         <div className="task-fields">
-          {/* Category row */}
           <button
             className="task-row-btn"
             onClick={() => setShowCategorySheet(true)}
@@ -631,14 +504,13 @@ function HabitModal({
             </div>
             <ChevronDown size={18} className="task-row-chevron" />
           </button>
-
-          {/* Duration row */}
+      
           <div className="task-row-btn">
             <div className="task-row-left">
               <div className="task-row-label">Duration</div>
               <div className="task-row-value">{duration}</div>
             </div>
-            {/* You can still reuse the Dropdown, but inline it here: */}
+      
             <Dropdown
               value={duration}
               items={DURATIONS}
@@ -646,11 +518,9 @@ function HabitModal({
               label={null}
             />
           </div>
-
-          {/* you can add more rows later e.g. Reminder, Repeat, etc */}
         </div>
 
-        {/* FOOTER */}
+        
         <div className="modal-footer clean-footer">
           <button className="btn cancel" onClick={onClose}>
             Cancel
@@ -662,11 +532,13 @@ function HabitModal({
                 setError("Please enter a habit name.");
                 return;
               }
+              onApplyCategoryColor(category, color);
               onSubmit({
                 name: name.trim(),
                 category,
-                icon: emoji, // still saved as .icon in your data model
-                duration
+                icon: emoji,
+                duration,
+                color,
               });
             }}
           >
@@ -674,7 +546,6 @@ function HabitModal({
           </button>
         </div>
 
-        {/* SUB-MODALS */}
         {showEmojiPicker && (
           <EmojiPickerModal
             onClose={() => setShowEmojiPicker(false)}
@@ -694,10 +565,13 @@ function HabitModal({
               setCategory(catName);
               setShowCategorySheet(false);
             }}
-            onCreate={(newCatName, newColor) => {
-              onCreateCategory(newCatName, newColor);
+            onCreate={(newCatName /*, ignoredColor */) => {
+              onCreateCategory(newCatName, null);
               setCategory(newCatName);
               setShowCategorySheet(false);
+            }}
+            onDelete={(catName) => {
+              onDeleteCategory(catName);
             }}
           />
         )}
@@ -706,16 +580,44 @@ function HabitModal({
   );
 }
 
-function EmojiPickerModal({ onClose, onSelect }) {
-  const EMOJIS = [
-    "💧","🏋️‍♀️","📚","🧘","🥗","💻","😴","🫧","🚶","🎧","📖","📝",
-    "🍎","💖","🔥","🌞","🧠","🛏️","💼","🎯","🪥","🚰","💬","😊"
-  ];
+// function EmojiPickerModal({ onClose, onSelect }) {
+//   const EMOJIS = [
+//     "💧","🏋️‍♀️","📚","🧘","🥗","💻","😴","🫧","🚶","🎧","📖","📝",
+//     "🍎","💖","🔥","🌞","🧠","🛏️","💼","🎯","🪥","🚰","💬","😊"
+//   ];
 
+//   return (
+//     <div className="sheet-backdrop" onClick={onClose}>
+//       <div
+//         className="sheet-panel"
+//         onClick={(e) => e.stopPropagation()}
+//       >
+//         <div className="sheet-head">
+//           <div className="sheet-title">Choose Emoji</div>
+//           <button className="sheet-close-btn" onClick={onClose}>✕</button>
+//         </div>
+
+//         <div className="emoji-grid">
+//           {EMOJIS.map((e) => (
+//             <button
+//               key={e}
+//               className="emoji-tile"
+//               onClick={() => onSelect(e)}
+//             >
+//               <span className="emoji-big">{e}</span>
+//             </button>
+//           ))}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+function EmojiPickerModal({ onClose, onSelect }) {
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div
-        className="sheet-panel"
+        className="sheet-panel emoji-panel"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sheet-head">
@@ -723,16 +625,21 @@ function EmojiPickerModal({ onClose, onSelect }) {
           <button className="sheet-close-btn" onClick={onClose}>✕</button>
         </div>
 
-        <div className="emoji-grid">
-          {EMOJIS.map((e) => (
-            <button
-              key={e}
-              className="emoji-tile"
-              onClick={() => onSelect(e)}
-            >
-              <span className="emoji-big">{e}</span>
-            </button>
-          ))}
+        <div className="emoji-picker-wrap">
+          <EmojiPicker
+            theme="light"
+            searchDisabled={false}
+            skinTonesDisabled={false}
+            onEmojiClick={(emojiData /* {emoji:'💧', ...} */) => {
+              onSelect(emojiData.emoji);
+            }}
+            // optional tweaks:
+            suggestedEmojisMode="recent"
+            lazyLoadEmojis={true}
+            previewConfig={{ showPreview: false }}
+            width="100%"
+            height={320}
+          />
         </div>
       </div>
     </div>
@@ -744,29 +651,18 @@ function CategorySheet({
   active,
   onClose,
   onSelect,
-  onCreate
+  onCreate,
+  onDelete
 }) {
   const [isAdding, setIsAdding] = useState(false);
   const [draftNewCat, setDraftNewCat] = useState("");
-
-  const PASTELS = [
-  "#ede9ff", // purple-ish
-  "#fff4cc", // yellow
-  "#e9fcef", // green
-  "#eaf6ff", // blue
-  "#ffeaf2", // pink
-  "#f5f5ff", // gray/violet
-];
-
-const [draftColor, setDraftColor] = useState(PASTELS[0]);
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div
         className="sheet-panel"
-        onClick={(e) => e.stopPropagation()} // don't close if they click inside panel
+        onClick={(e) => e.stopPropagation()} 
       >
-        {/* MODE 1: choose existing category */}
         {!isAdding ? (
           <>
             <div className="sheet-head">
@@ -783,28 +679,37 @@ const [draftColor, setDraftColor] = useState(PASTELS[0]);
               {categories.map((catObj) => {
                 const isActive = catObj.name === active;
                 return (
-                  <button
+                  <div
                     key={catObj.name}
                     className={`cat-row ${isActive ? "is-active" : ""}`}
-                    onClick={() => onSelect(catObj.name)}
                   >
-                    <div className="cat-left">
-                      {/* colored preview pill */}
+                    <button
+                      className="cat-main"
+                      onClick={() => onSelect(catObj.name)}
+                    >
                       <span
                         className="cat-color-pill"
                         style={{
-                          backgroundColor: catObj.color,
-                          borderColor: catObj.color,
+                          backgroundColor: catObj.color || "#f5f5ff",
+                          borderColor: "transparent",
+                          color: "#1a1f35",
                         }}
                       >
                         {catObj.name}
                       </span>
-                    </div>
+                      <span className="cat-radio">
+                        {isActive ? "◉" : "◎"}
+                      </span>
+                    </button>
 
-                    <span className="cat-radio">
-                      {isActive ? "◉" : "◎"}
-                    </span>
-                  </button>
+                    <button
+                      className="cat-delete-btn"
+                      onClick={() => onDelete(catObj.name)}
+                      title="Delete category"
+                    >
+                      🗑
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -813,10 +718,9 @@ const [draftColor, setDraftColor] = useState(PASTELS[0]);
               <button
                 className="btn-big"
                 onClick={() => {
-                  // go to "add new" mode
+
                   setIsAdding(true);
                   setDraftNewCat("");
-                  setDraftColor(PASTELS[0]);
                 }}
               >
                 Add New
@@ -834,7 +738,7 @@ const [draftColor, setDraftColor] = useState(PASTELS[0]);
                   setDraftNewCat("");
                 }}
               >
-                ←
+                Back
               </button>
 
               <div className="sheet-title">New Category</div>
@@ -843,8 +747,9 @@ const [draftColor, setDraftColor] = useState(PASTELS[0]);
                 className="sheet-close-btn"
                 onClick={() => {
                   if (!draftNewCat.trim()) return;
-                  onCreate(draftNewCat.trim(), draftColor);
-                  // after create, close sheet
+                  onCreate(draftNewCat.trim(), null);
+                  setIsAdding(false);
+                  setDraftNewCat("");
                 }}
               >
                 Save
@@ -852,7 +757,6 @@ const [draftColor, setDraftColor] = useState(PASTELS[0]);
             </div>
 
             <div className="sheet-body">
-              {/* category name input */}
               <input
                 className="task-name-input"
                 placeholder="Healthy Lifestyle"
@@ -863,20 +767,6 @@ const [draftColor, setDraftColor] = useState(PASTELS[0]);
               <div className="char-hint">
                 {draftNewCat.length}/20
               </div>
-
-              {/* pastel color picker */}
-              <div className="color-row">
-                {PASTELS.map((c) => (
-                  <button
-                    key={c}
-                    className={`color-dot ${
-                      draftColor === c ? "is-selected" : ""
-                    }`}
-                    style={{ backgroundColor: c }}
-                    onClick={() => setDraftColor(c)}
-                  />
-                ))}
-              </div>
             </div>
           </>
         )}
@@ -884,90 +774,6 @@ const [draftColor, setDraftColor] = useState(PASTELS[0]);
     </div>
   );
 }
-
-
-
-//   return (
-//     <div className="sheet-backdrop" onClick={onClose}>
-//       <div
-//         className="sheet-panel"
-//         onClick={(e) => e.stopPropagation()}
-//       >
-//         {!isAdding ? (
-//           <>
-//             <div className="sheet-head">
-//               <div className="sheet-title">Category</div>
-//               <button className="sheet-close-btn" onClick={onClose}>
-//                 Save
-//               </button>
-//             </div>
-
-//             <div className="cat-list">
-//               {categories.map((cat) => (
-//                 <button
-//                   key={cat}
-//                   className={`cat-row ${cat === active ? "is-active" : ""}`}
-//                   onClick={() => onSelect(cat)}
-//                 >
-//                   <span className="cat-name">{cat}</span>
-//                   <span className="cat-radio">
-//                     {cat === active ? "◉" : "◎"}
-//                   </span>
-//                 </button>
-//               ))}
-//             </div>
-
-//             <div className="sheet-footer">
-//               <button
-//                 className="btn-big"
-//                 onClick={() => setIsAdding(true)}
-//               >
-//                 Add New
-//               </button>
-//             </div>
-//           </>
-//         ) : (
-//           <>
-//             <div className="sheet-head">
-//               <button
-//                 className="sheet-back-btn"
-//                 onClick={() => {
-//                   setIsAdding(false);
-//                   setDraftNewCat("");
-//                 }}
-//               >
-//                 ←
-//               </button>
-//               <div className="sheet-title">New Category</div>
-//               <button
-//                 className="sheet-close-btn"
-//                 onClick={() => {
-//                   if (!draftNewCat.trim()) return;
-//                   onCreate(draftNewCat.trim());
-//                 }}
-//               >
-//                 Save
-//               </button>
-//             </div>
-
-//             <div className="sheet-body">
-//               <input
-//                 className="task-name-input"
-//                 placeholder="Healthy Lifestyle"
-//                 value={draftNewCat}
-//                 maxLength={20}
-//                 onChange={(e) => setDraftNewCat(e.target.value)}
-//               />
-//               <div className="char-hint">
-//                 {draftNewCat.length}/20
-//               </div>
-//             </div>
-//           </>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
 
 export default function HabitsPage() {
   const [habits, setHabits] = useState([]);
@@ -990,7 +796,6 @@ const [categories, setCategories] = useState(() => {
   try {
     const raw = JSON.parse(localStorage.getItem(CATS_LS));
     if (Array.isArray(raw)) {
-      // normalize: if old data was ["General", ...] convert -> [{name:"General",color:"#ede9ff"}, ...]
       if (typeof raw[0] === "string") {
         return raw.map((n) => ({ name: n, color: "#ede9ff" }));
       }
@@ -1002,23 +807,46 @@ const [categories, setCategories] = useState(() => {
   }
 });
 
-
-  //   const [categories, setCategories] = useState(() => {
-  //   try {
-  //     return JSON.parse(localStorage.getItem(CATS_LS)) || DEFAULT_CATEGORIES;
-  //   } catch {
-  //     return DEFAULT_CATEGORIES;
-  //   }
-  // });
-
   const addCategoryGlobal = (name, color) => {
     if (!categories.some((c) => c.name === name)) {
       const next = [...categories, { name, color }];
-    // if (!categories.includes(name)) {
-    //   const next = [...categories, name];
       setCategories(next);
       localStorage.setItem(CATS_LS, JSON.stringify(next));
     }
+  };
+
+  const applyCategoryColor = (catName, pastel) => {
+    setCategories(prev => {
+      const exists = prev.find(c => c.name === catName);
+
+      if (!exists) {
+        const next = [...prev, { name: catName, color: pastel }];
+        localStorage.setItem(CATS_LS, JSON.stringify(next));
+        return next;
+      }
+
+      const next = prev.map(c =>
+        c.name === catName ? { ...c, color: pastel } : c
+      );
+      localStorage.setItem(CATS_LS, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const deleteCategoryGlobal = (catName) => {
+    setCategories(prev => {
+      const next = prev.filter(c => c.name !== catName);
+      localStorage.setItem(CATS_LS, JSON.stringify(next));
+      return next;
+    });
+
+    setHabits(prev =>
+      prev.map(h =>
+        h.category === catName
+          ? { ...h, category: "General" }
+          : h
+      )
+    );
   };
 
   useEffect(() => {
@@ -1183,7 +1011,7 @@ const [categories, setCategories] = useState(() => {
         <div className="filter-dropdowns">
           <Dropdown
             value={catFilter}
-            items={["All Categories", ...categories]}
+            items={["All Categories", ...categories.map(c => c.name)]}
             onChange={setCatFilter}
           />
           <Dropdown
@@ -1309,6 +1137,8 @@ const [categories, setCategories] = useState(() => {
         onSubmit={addHabit}
         categories={categories} 
         onCreateCategory={addCategoryGlobal}
+        onApplyCategoryColor={applyCategoryColor}
+        onDeleteCategory={deleteCategoryGlobal}
       />
       <HabitModal
         open={!!editing}
@@ -1317,6 +1147,8 @@ const [categories, setCategories] = useState(() => {
         onSubmit={(payload) => editHabit(editing.id, payload)}
         categories={categories}
         onCreateCategory={addCategoryGlobal}
+        onApplyCategoryColor={applyCategoryColor}
+        onDeleteCategory={deleteCategoryGlobal}
       />
     </div>
   );
