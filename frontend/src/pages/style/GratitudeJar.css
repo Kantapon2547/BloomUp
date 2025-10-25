@@ -3,17 +3,42 @@
   font-family: "Poppins", sans-serif;
 }
 
-/* ✨ MODIFIED: Removed min-height and adjusted padding to move the section up */
 .main-content {
   display: flex;
   justify-content: center;
-  align-items: center; /* Changed back to center for proper alignment */
-  /* min-height: 80vh; */ /* REMOVED THIS LINE */
-
+  align-items: center;
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(to bottom, #f5f3ff, #e0e7ff);
+
+  /* ✨ START: Gradient Animation Code */
+  background: linear-gradient(45deg, #e0e7ff, #d7e3fc, #e2eafc);
+  background-size: 400% 400%;
+  animation: animatedGradient 15s ease infinite;
+}
+
+@keyframes appear-on-scroll {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ✨ Animated Gradient */
+@keyframes animatedGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* ✨ Floating Animation for Stars ✨ */
@@ -88,7 +113,7 @@
 
 .gratitude-star {
   position: absolute;
-  width: 120px;
+  width: 60px;
   height: auto;
   opacity: 0;
   animation: floatIn 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
@@ -99,7 +124,7 @@
 
 .new-star-animation {
   position: absolute;
-  width: 100px;
+  width: 60px;
   height: auto;
   z-index: 15;
   top: 0;
@@ -139,6 +164,7 @@
     transform: translateY(200px) translateX(-50%) scale(0.5) rotate(360deg);
   }
 }
+
 
 /* --- 📝 Entry Form --- */
 
@@ -248,7 +274,10 @@
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
-.submit-entry-btn:hover { background-color: #6a47e0; }
+
+.submit-entry-btn:hover {
+  background-color: #6a47e0;
+}
 
 .error-text {
   color: #e53e3e;
@@ -353,7 +382,7 @@
 }
 
 .image-upload-btn:hover {
-  background-color: #e5e7eb;
+  background-color: #7a5af8;
 }
 
 .collection-section {
@@ -426,6 +455,11 @@
   position: relative;
   cursor: pointer;
   min-height: 150px;
+
+  /* --- SCROLL ANIMATION PROPERTIES --- */
+  animation: appear-on-scroll linear;
+  animation-timeline: view();
+  animation-range: entry 20% cover 20%;
 }
 
 .entry-card:hover {

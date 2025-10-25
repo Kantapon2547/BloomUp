@@ -1,32 +1,19 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import "./style/GratitudeJar.css";
 import { Trash2, ImagePlus, X, ExternalLink, Send } from "lucide-react";
+import { motion } from "framer-motion";
 
-//==============================================================================
 // 1. IMPORT ASSETS
-//==============================================================================
 import jarImage from '../assets/jar-wo-lid.png';
-import star1 from '../assets/star small.png';
-import star2 from '../assets/star.png';
-import star3 from '../assets/star-2.png';
-import star4 from '../assets/star-3.png';
-import star5 from '../assets/star-4.png';
+import star1 from '../assets/star.png';
+import star2 from '../assets/star-2.png';
+import star3 from '../assets/star-3.png';
+import star4 from '../assets/star-4.png';
+import star5 from '../assets/star-5.png';
 
-//==============================================================================
 // 2. VISUAL & UTILITY COMPONENTS
-//==============================================================================
 
 const starImagePaths = [star1, star2, star3, star4, star5];
-
-// Component for the main Jar visual
-const JarVisual = ({ onClick, starCount, isShaking }) => (
-  <div className={`jar-container ${isShaking ? 'shake' : ''}`} onClick={onClick} title="Click to view a random memory">
-    <img src={jarImage} alt="Gratitude Jar" className="jar-image" />
-    <span className="jar-text">
-      {starCount > 0 ? `${starCount} Gratitudes` : "Your jar is empty"}
-    </span>
-  </div>
-);
 
 // Component for a single star inside the jar
 const GratitudeStar = ({ style, imageSrc }) => (
@@ -79,7 +66,7 @@ const GratitudeDetailModal = ({ entry, onClose }) => {
     );
 };
 
-// ✨ The entry form, designed to appear inside the jar as per your sketch
+// The entry form, designed to appear inside the jar as per your sketch
 const InJarEntryForm = ({ onAddEntry }) => {
     const [text, setText] = useState("");
     const [category, setCategory] = useState("");
@@ -167,9 +154,7 @@ const InJarEntryForm = ({ onAddEntry }) => {
     );
 };
 
-//==============================================================================
 // 3. CONSTANTS & HELPERS
-//==============================================================================
 
 const categoryColors = {
   "Simple Pleasures": "simple-pleasures",
@@ -181,9 +166,7 @@ const categoryColors = {
   "Work": "work",
 };
 
-//==============================================================================
 // 4. MAIN GRATITUDE JAR COMPONENT
-//==============================================================================
 
 const GratitudeJar = () => {
     const [entries, setEntries] = useState(
@@ -191,14 +174,13 @@ const GratitudeJar = () => {
     const [selectedEntry, setSelectedEntry] = useState(null);
     const [showNewStar, setShowNewStar] = useState(false);
 
-    // Save entries to localStorage whenever they change
     useEffect(() => {
       localStorage.setItem("gratitudeEntries", JSON.stringify(entries));
     }, [entries]);
 
     const starData = useMemo(() => {
       return entries.map(() => ({
-        top: `${Math.random() * 40 + 30}%`,
+        top: `${Math.random() * 40 + 50}%`,
         left: `${Math.random() * 40 + 30}%`,
         transform: `rotate(${Math.random() * 40 - 30}deg)`,
         animationDelay: `${Math.random() * 2}s`,
@@ -252,14 +234,43 @@ const GratitudeJar = () => {
             {/* This is the section that appears when you scroll down */}
             <section className="collection-section">
                 <div className="stats-container">
-                    <div className="stat-card purple"><h2>{entries.length}</h2><p>Total Entries</p></div>
-                    <div className="stat-card blue"><h2>{entries.filter((e) => e.date === today).length}</h2><p>Added Today</p></div>
+                    {/* ✨ 2. ANIMATED STATS CARDS */}
+                    <motion.div
+                        className="stat-card purple"
+                        initial={{ opacity: 0, y: 50 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                    >
+                        <h2>{entries.length}</h2>
+                        <p>Total Entries</p>
+                    </motion.div>
+                    <motion.div
+                        className="stat-card blue"
+                        initial={{ opacity: 0, y: 50 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+                    >
+                        <h2>{entries.filter((e) => e.date === today).length}</h2>
+                        <p>Added Today</p>
+                    </motion.div>
                 </div>
 
                 <h2 className="collection-title">Your Gratitude</h2>
                 <div className="entries-grid">
-                    {entries.map((entry) => (
-                        <div key={entry.id} id={`entry-${entry.id}`} className="entry-card" onClick={() => handleCardClick(entry)}>
+                    {/* ✨ 3. ANIMATED & STAGGERED ENTRY CARDS */}
+                    {entries.map((entry, index) => (
+                        <motion.div
+                            key={entry.id}
+                            id={`entry-${entry.id}`}
+                            className="entry-card"
+                            onClick={() => handleCardClick(entry)}
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5, delay: index * 0.1 }}
+                        >
                             {entry.image && <ExternalLink className="open-in-new-icon" title="This entry has an image" />}
                             <div className="entry-content">
                                 <div className="entry-header">
@@ -269,7 +280,7 @@ const GratitudeJar = () => {
                                 <p className="entry-text">{entry.text}</p>
                                 <Trash2 className="delete-icon" onClick={(e) => { e.stopPropagation(); deleteEntry(entry.id); }} title="Delete entry" />
                             </div>
-                        </div>
+                        </motion.div>
                     ))}
                 </div>
             </section>
