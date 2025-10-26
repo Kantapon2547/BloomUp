@@ -68,7 +68,7 @@ jobs:
 
       - name: Check code formatting with Black
         working-directory: backend
-        run: black --check app || (echo "::error::Code not formatted. Run: black app" && exit 1)
+        run: black --check app || (echo "::error::Code not formatted. Run:black app" && exit 1)
 
   isort:
     runs-on: ubuntu-latest
@@ -113,4 +113,3 @@ jobs:
       - name: Run Pylint
         working-directory: backend
         run: pylint app --exit-zero --max-line-length=127 || echo "Pylint check completed with warnings"
-        
