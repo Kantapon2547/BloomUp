@@ -88,7 +88,7 @@ jobs:
 
       - name: Check import sorting with isort
         working-directory: backend
-        run: isort --check-only app || (echo "::error::Imports not sorted. Run: isort app" && exit 1)
+        run: isort --check-only app || (echo "::error::Imports not sorted. Run:isort app" && exit 1)
 
   pylint:
     runs-on: ubuntu-latest
