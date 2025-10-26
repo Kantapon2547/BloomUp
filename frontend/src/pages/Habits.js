@@ -493,7 +493,67 @@ function HabitModal({
               </div>
         </div>
 
-        <div className="task-fields">
+        <div className="habit-settings">
+          <button
+            className="setting-row"
+            onClick={() => setShowCategorySheet(true)}
+            type="button"
+          >
+            <div className="setting-col">
+              <div className="setting-label">Category</div>
+              <div className="setting-value">{category}</div>
+            </div>
+            <ChevronDown size={18} className="setting-chevron" />
+          </button>
+
+          <div className="setting-row">
+            <div className="setting-col">
+              <div className="setting-label">Duration</div>
+        
+              <Dropdown
+                value={duration}
+                items={DURATIONS}
+                onChange={setDuration}
+                label={null}
+                className="duration-dropdown-inline"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* footer actions */}
+        <div className="habit-footer">
+          <button className="footer-btn cancel" onClick={onClose}>
+            Cancel
+          </button>
+
+          <button
+            className="footer-btn confirm"
+            onClick={() => {
+              if (!name.trim()) {
+                setError("Please enter a habit name.");
+                return;
+              }
+
+              onApplyCategoryColor(category, color);
+
+              onSubmit({
+                name: name.trim(),
+                category,
+                icon: emoji,
+                duration,
+                color,
+              });
+            }}
+          >
+            Add Habit
+          </button>
+        </div>
+      </div>
+
+
+
+        {/* <div className="task-fields">
           <button
             className="task-row-btn"
             onClick={() => setShowCategorySheet(true)}
@@ -544,7 +604,7 @@ function HabitModal({
           >
             {initial ? "Save Changes" : "Add Habit"}
           </button>
-        </div>
+        </div> */}
 
         {showEmojiPicker && (
           <EmojiPickerModal
@@ -576,7 +636,7 @@ function HabitModal({
           />
         )}
       </div>
-    </div>
+    // </div>
   );
 }
 
@@ -683,27 +743,32 @@ function CategorySheet({
                     key={catObj.name}
                     className={`cat-row ${isActive ? "is-active" : ""}`}
                   >
-                    <button
+                    {/* <button
                       className="cat-main"
                       onClick={() => onSelect(catObj.name)}
-                    >
-                      <span
+                    > */}
+                      <button
                         className="cat-color-pill"
-                        style={{
-                          backgroundColor: catObj.color || "#f5f5ff",
-                          borderColor: "transparent",
-                          color: "#1a1f35",
-                        }}
+                        style={{ '--chip-bg': catObj.color }}
+                        onClick={() => onSelect(catObj.name)}
+                        // style={{
+                        //   backgroundColor: catObj.color || "#f5f5ff",
+                        //   borderColor: "transparent",
+                        //   color: "#1a1f35",
+                        // }}
                       > 
                         {catObj.name}
-                      </span>
-                      <span className="cat-radio">
+                      </button>
+                      {/* <span className="cat-radio">
                         {isActive ? "◉" : "◎"}
-                      </span>
-                    </button>
+                      </span> */}
+                    {/* </button> */}
 
                     <button
                       className="cat-delete-btn"
+                      // disabled={isActive}
+                      // onClick={() => !isActive && onDelete(catObj.name)}
+                      // title={isActive ? "Currently selected" : "Delete category"}
                       onClick={() => onDelete(catObj.name)}
                       title="Delete category"
                     >
