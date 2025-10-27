@@ -1180,10 +1180,10 @@ select.input.select option {
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-size: 28px;
+  font-size: 18px;
   font-weight: var(--font-weight-regular);
   cursor: pointer;
-  width: 32px;
+  width: 52px;
   height: 32px;
   display: flex;
   align-items: center;
@@ -1200,7 +1200,7 @@ select.input.select option {
 
 .sheet-close-btn:active,
 .sheet-back-btn:active {
-  transform: scale(0.9);
+  transform: scale(0.99);
 }
 
 .sheet-footer {
@@ -1511,7 +1511,7 @@ select.input.select option {
   line-height: 1;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 } */
-
+/* 
 .cat-row:hover .cat-radio {
   color: var(--purple-400);
   transform: scale(1.05);
@@ -1520,7 +1520,7 @@ select.input.select option {
 .cat-row.is-active .cat-radio {
   color: var(--purple-700);
   transform: scale(1.15);
-}
+} */
 
 /* ===== COLOR PICKER ===== */
 .color-row {
@@ -1880,11 +1880,11 @@ select.input.select option {
   color: #1a1f35;
   line-height: 1.4;
 }
-
+/* 
 .setting-chevron {
   color: #1a1f35;
   flex-shrink: 0;
-}
+} */
 
 .duration-dropdown-inline .dd-trigger,
 .duration-dropdown-inline.dd-trigger {
@@ -1902,6 +1902,7 @@ select.input.select option {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  overflow: auto;
 }
 
 .duration-dropdown-inline .dd-trigger svg {
@@ -2043,24 +2044,14 @@ select.input.select option {
 }
 
 .cat-delete-btn:hover {
-  background: #fff1f2;
-  border-color: #fecaca;
-  color: #dc2626;
-  box-shadow:
-    0 8px 16px rgba(220,38,38,.24),
-    0 4px 8px rgba(0,0,0,.08);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--purple-700);
+  background: var(--surface);
 }
 
 
-.cat-delete-btn[disabled] {
-  opacity: .4;
-  cursor: not-allowed;
-  background: rgba(0,0,0,0.02);
-  box-shadow: none;
-}
-.cat-delete-btn[disabled]:hover {
-  background: rgba(0,0,0,0.02);
-  border-color: rgba(0,0,0,.07);
-  color: #6b7280;
-  box-shadow: none;
-}
+
+
+
+

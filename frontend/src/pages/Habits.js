@@ -503,7 +503,7 @@ function HabitModal({
               <div className="setting-label">Category</div>
               <div className="setting-value">{category}</div>
             </div>
-            <ChevronDown size={18} className="setting-chevron" />
+            {/* <ChevronDown size={18} className="setting-chevron" /> */}
           </button>
 
           <div className="setting-row">
@@ -772,7 +772,7 @@ function CategorySheet({
                       onClick={() => onDelete(catObj.name)}
                       title="Delete category"
                     >
-                      🗑
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 );
@@ -1142,8 +1142,8 @@ const [categories, setCategories] = useState(() => {
                     <div className="week-chips">
                       {week.map((d, i) => {
                         const done = !!h.history?.[d];
-                        const big = "SSMTWTF"[i];
-                        const small = new Date(d).toLocaleDateString(undefined, {
+                        const small = "SSMTWTF"[i];
+                        const big = new Date(d).toLocaleDateString(undefined, {
                           weekday: "short",
                         });
                         return (
@@ -1157,8 +1157,9 @@ const [categories, setCategories] = useState(() => {
                             })}
                             style={{ cursor: 'default' }}
                           >
-                            <span className="wk-big">{new Date(d).toLocaleDateString(undefined, { weekday: "short" })}</span>
-                            <span className="wk-small">{new Date(d).getDate()}</span>
+                            <span className="wk-big">{new Date(d).getDate()}</span>
+                            <span className="wk-small">{new Date(d).toLocaleDateString(undefined, { weekday: "short" })}</span>
+                            
                           </div>
                         );
                       })}
