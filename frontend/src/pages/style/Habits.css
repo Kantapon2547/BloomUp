@@ -1275,12 +1275,12 @@ select.input.select option {
 
 .task-name-input {
   width: 100%;
-  font-size: 20px;
-  font-weight: var(--font-weight-semibold);
+  font-size: 18px;
+  font-weight: var(--font-weight-medium);
   text-align: center;
   border: none;
   background: transparent;
-  color: var(--text-primary);
+  color: #bdc2cb52;
   outline: none;
   border-bottom: 2px solid transparent;
   padding: var(--space-sm);

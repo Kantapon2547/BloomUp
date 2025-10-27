@@ -333,85 +333,6 @@ function CategorySelector({ value, onChange, categories, onCreate }) {
   );
 }
 
-// function HabitModal({ open, onClose, onSubmit, initial, categories, onCreateCategory }) {
-//   const [name, setName] = useState(initial?.name || "");
-//   const [category, setCategory] = useState(initial?.category || "General");
-//   const [icon, setIcon] = useState(initial?.icon || "📚");
-//   const [duration, setDuration] = useState(initial?.duration || "30 mins");
-//   const [error, setError] = useState("");
-
-//   useEffect(() => {
-//     if (open) {
-//       setName(initial?.name || "");
-//       setCategory(initial?.category || "General");
-//       setIcon(initial?.icon || "📚");
-//       setDuration(initial?.duration || "30 mins");
-//       setError("");
-//     }
-//   }, [initial, open]);
-
-//   if (!open) return null;
-
-//   return (
-//     <div className="modal-backdrop" onClick={onClose}>
-//       <div className="modal" onClick={(e) => e.stopPropagation()}>
-//         <div className="modal-body">
-//           <h3>Habit Name</h3>
-//           <input
-//             className={`input ${error ? "is-invalid" : ""}`}
-//             placeholder="e.g., Study for 2 hours"
-//             value={name}
-//             onChange={(e) => { setName(e.target.value); setError(""); }}
-//           />
-//           {error && <div className="field-error">{error}</div>}
-
-//           <div className="row-two">
-//             <div className="field">
-//               <h3>Category</h3>
-//               <CategorySelector
-//                 value={category}
-//                 onChange={setCategory}
-//                 categories={categories}
-//                 onCreate={onCreateCategory}
-//               />
-//             </div>
-//             <div className="field">
-//               <h3>Duration</h3>
-//               <Dropdown value={duration} items={DURATIONS} onChange={setDuration} />
-//             </div>
-//           </div>
-
-//           <h3>Choose Icon</h3>
-//           <div className="icon-grid pretty">
-//             {["📚","✏️","📖","🎓","💻","💪","🧠","🧘","🥗","🚰","💖","🛏️"].map(i => (
-//               <div
-//                 key={i}
-//                 className={`icon-tile ${icon === i ? "active" : ""}`}
-//                 onClick={() => setIcon(i)}
-//               >
-//                 <span className="icon-emoji">{i}</span>
-//               </div>
-//             ))}
-//           </div>
-//         </div>
-
-//         <div className="modal-footer">
-//           <button className="btn cancel" onClick={onClose}>Cancel</button>
-//           <button
-//             className="btn confirm"
-//             onClick={() => {
-//               if (!name.trim()) { setError("Please enter a habit name."); return; }
-//               onSubmit({ name: name.trim(), category, icon, duration });
-//             }}
-//           >
-//             {initial ? "Save Changes" : "Add Habit"}
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
 function HabitModal({
   open,
   onClose,
@@ -473,7 +394,7 @@ function HabitModal({
 
           <input
             className={`task-name-input ${error ? "is-invalid" : ""}`}
-            placeholder="drink water"
+            placeholder="Enter habit name"
             value={name}
             onChange={(e) => {
               setName(e.target.value);
@@ -503,7 +424,6 @@ function HabitModal({
               <div className="setting-label">Category</div>
               <div className="setting-value">{category}</div>
             </div>
-            {/* <ChevronDown size={18} className="setting-chevron" /> */}
           </button>
 
           <div className="setting-row">
@@ -551,61 +471,6 @@ function HabitModal({
         </div>
       </div>
 
-
-
-        {/* <div className="task-fields">
-          <button
-            className="task-row-btn"
-            onClick={() => setShowCategorySheet(true)}
-          >
-            <div className="task-row-left">
-              <div className="task-row-label">Category</div>
-              <div className="task-row-value">{category}</div>
-            </div>
-            <ChevronDown size={18} className="task-row-chevron" />
-          </button>
-      
-          <div className="task-row-btn">
-            <div className="task-row-left">
-              <div className="task-row-label">Duration</div>
-              <div className="task-row-value">{duration}</div>
-            </div>
-      
-            <Dropdown
-              value={duration}
-              items={DURATIONS}
-              onChange={setDuration}
-              label={null}
-            />
-          </div>
-        </div>
-
-        
-        <div className="modal-footer clean-footer">
-          <button className="btn cancel" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            className="btn confirm"
-            onClick={() => {
-              if (!name.trim()) {
-                setError("Please enter a habit name.");
-                return;
-              }
-              onApplyCategoryColor(category, color);
-              onSubmit({
-                name: name.trim(),
-                category,
-                icon: emoji,
-                duration,
-                color,
-              });
-            }}
-          >
-            {initial ? "Save Changes" : "Add Habit"}
-          </button>
-        </div> */}
-
         {showEmojiPicker && (
           <EmojiPickerModal
             onClose={() => setShowEmojiPicker(false)}
@@ -636,42 +501,8 @@ function HabitModal({
           />
         )}
       </div>
-    // </div>
   );
 }
-
-// function EmojiPickerModal({ onClose, onSelect }) {
-//   const EMOJIS = [
-//     "💧","🏋️‍♀️","📚","🧘","🥗","💻","😴","🫧","🚶","🎧","📖","📝",
-//     "🍎","💖","🔥","🌞","🧠","🛏️","💼","🎯","🪥","🚰","💬","😊"
-//   ];
-
-//   return (
-//     <div className="sheet-backdrop" onClick={onClose}>
-//       <div
-//         className="sheet-panel"
-//         onClick={(e) => e.stopPropagation()}
-//       >
-//         <div className="sheet-head">
-//           <div className="sheet-title">Choose Emoji</div>
-//           <button className="sheet-close-btn" onClick={onClose}>✕</button>
-//         </div>
-
-//         <div className="emoji-grid">
-//           {EMOJIS.map((e) => (
-//             <button
-//               key={e}
-//               className="emoji-tile"
-//               onClick={() => onSelect(e)}
-//             >
-//               <span className="emoji-big">{e}</span>
-//             </button>
-//           ))}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
 
 function EmojiPickerModal({ onClose, onSelect }) {
   return (
@@ -693,7 +524,6 @@ function EmojiPickerModal({ onClose, onSelect }) {
             onEmojiClick={(emojiData /* {emoji:'💧', ...} */) => {
               onSelect(emojiData.emoji);
             }}
-            // optional tweaks:
             suggestedEmojisMode="recent"
             lazyLoadEmojis={true}
             previewConfig={{ showPreview: false }}
@@ -743,26 +573,13 @@ function CategorySheet({
                     key={catObj.name}
                     className={`cat-row ${isActive ? "is-active" : ""}`}
                   >
-                    {/* <button
-                      className="cat-main"
-                      onClick={() => onSelect(catObj.name)}
-                    > */}
                       <button
                         className="cat-color-pill"
                         style={{ '--chip-bg': catObj.color }}
                         onClick={() => onSelect(catObj.name)}
-                        // style={{
-                        //   backgroundColor: catObj.color || "#f5f5ff",
-                        //   borderColor: "transparent",
-                        //   color: "#1a1f35",
-                        // }}
                       > 
                         {catObj.name}
                       </button>
-                      {/* <span className="cat-radio">
-                        {isActive ? "◉" : "◎"}
-                      </span> */}
-                    {/* </button> */}
 
                     <button
                       className="cat-delete-btn"
@@ -793,7 +610,6 @@ function CategorySheet({
             </div>
           </>
         ) : (
-          // MODE 2: add new category
           <>
             <div className="sheet-head">
               <button
