@@ -6,10 +6,10 @@ import "./style/Profile.css";
 
 // Constants
 const STATS_CONFIG = [
-  { key: "activeHabits", icon: "target", label: "ACTIVE HABITS" }, 
+  { key: "activeHabits", icon: "target", label: "ACTIVE HABITS" },
   { key: "longestStreak", icon: "local_fire_department", label: "LONGEST STREAK" },
-  { key: "gratitudeEntries", icon: "favorite", label: "GRATITUDE ENTRIES" }, 
-  { key: "daysTracked", icon: "calendar_month", label: "DAYS TRACKED" } 
+  { key: "gratitudeEntries", icon: "favorite", label: "GRATITUDE ENTRIES" },
+  { key: "daysTracked", icon: "calendar_month", label: "DAYS TRACKED" }
 ];
 
 const RECENT_ACTIVITIES = [
@@ -46,7 +46,7 @@ const ProfileHeader = ({ profile, onEditClick, onSettingsClick, getMemberSinceTe
             ⚙️ Log out
           </button>
         </div>
-        
+
         <p className="profile-bio-text">{profile.bio || "No bio yet"}</p>
 
         <div className="profile-tags">
@@ -171,10 +171,10 @@ const AchievementModalItem = ({ achievement }) => (
       <p className="achievement-description">{achievement.description}</p>
       {achievement.is_earned && achievement.earned_date && (
         <div className="achievement-date">
-          Earned {new Date(achievement.earned_date).toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
-            year: 'numeric' 
+          Earned {new Date(achievement.earned_date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
           })}
         </div>
       )}
@@ -187,15 +187,15 @@ const AchievementModalItem = ({ achievement }) => (
   </div>
 );
 
-const EditProfileModal = ({ 
-  tempProfile, 
-  fileInputRef, 
-  onClose, 
-  onChange, 
-  onSave, 
-  onCancel, 
-  onChangeImageClick, 
-  onFileChange 
+const EditProfileModal = ({
+  tempProfile,
+  fileInputRef,
+  onClose,
+  onChange,
+  onSave,
+  onCancel,
+  onChangeImageClick,
+  onFileChange
 }) => (
   <div className="modal-overlay" onClick={onClose}>
     <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
@@ -299,7 +299,7 @@ export default function ProfilePage() {
       try {
         const allAchievements = await getUserAchievements();
         setAchievements(allAchievements);
-        
+
         const earned = await getEarnedAchievements();
         setEarnedAchievements(earned);
       } catch (e) {
@@ -320,12 +320,12 @@ export default function ProfilePage() {
     if (files && files.length > 0) {
       const file = files[0];
       const validTypes = ['image/png', 'image/jpeg'];
-      
+
       if (!validTypes.includes(file.type)) {
         setError("Please upload only PNG or JPEG files");
         return;
       }
-      
+
       const reader = new FileReader();
       reader.onload = () => {
         setTempProfile({ ...tempProfile, profile_picture: reader.result });
@@ -361,7 +361,7 @@ export default function ProfilePage() {
             u8arr[i] = bstr.charCodeAt(i);
           }
           const file = new File([u8arr], 'avatar.jpg', { type: mime });
-          
+
           // Pass the File object directly
           await uploadAvatar(file);
         } catch (uploadError) {
@@ -411,23 +411,23 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page">
-      <ProfileHeader 
-        profile={profile} 
+      <ProfileHeader
+        profile={profile}
         onEditClick={() => setIsEditing(true)}
         onSettingsClick={handleSettingsClick}
-        getMemberSinceText={getMemberSinceText} 
+        getMemberSinceText={getMemberSinceText}
       />
 
       {stats && (
         <>
           <StatsSection stats={stats} />
-          
+
           <div className="content-grid">
-            <AchievementsCard 
+            <AchievementsCard
               achievements={earnedAchievements}
-              earnedCount={earnedAchievements.length}  
-              totalCount={achievements.length}  
-              onViewAll={() => setShowAchievementsModal(true)} 
+              earnedCount={earnedAchievements.length}
+              totalCount={achievements.length}
+              onViewAll={() => setShowAchievementsModal(true)}
             />
             <RecentActivityCard />
           </div>
@@ -435,9 +435,9 @@ export default function ProfilePage() {
       )}
 
       {showAchievementsModal && (
-        <AchievementsModal 
-          achievements={achievements} 
-          onClose={() => setShowAchievementsModal(false)} 
+        <AchievementsModal
+          achievements={achievements}
+          onClose={() => setShowAchievementsModal(false)}
         />
       )}
 

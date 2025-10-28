@@ -763,28 +763,28 @@ html, body {
     padding: 1.25rem;
     gap: 1.2rem;
   }
-  
+
   .profile-card {
     padding: 1.4rem;
   }
-  
+
   .profile-header-content {
     flex-direction: column;
     text-align: center;
     gap: 1.3rem;
   }
-  
+
   .profile-image-section {
     display: flex;
     justify-content: center;
   }
-  
+
   .profile-info-section {
     text-align: center;
     align-items: center;
     gap: 0.7rem;
   }
-  
+
   .profile-header-top {
     flex-direction: column;
     align-items: center;
@@ -792,36 +792,36 @@ html, body {
     gap: 0.9rem;
     width: 100%;
   }
-  
+
   .profile-tags {
     flex-direction: column;
     align-items: center;
     gap: 0.7rem;
   }
-  
+
   .content-grid {
     grid-template-columns: 1fr;
     gap: 1.2rem;
   }
-  
+
   .stats-cards-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.9rem;
   }
-  
+
   .stat-card {
     padding: 1.4rem 0.9rem;
   }
-  
+
   .stat-number {
     font-size: 1.6rem;
   }
-  
+
   .modal-content {
     margin: 1rem;
     padding: 1.6rem;
   }
-  
+
   .edit-buttons {
     flex-direction: column;
   }

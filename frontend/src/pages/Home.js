@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import "./style/Home.css";
+import Jar from '../components/Jar';
 
 // Constants
 const LS_KEY = "habit-tracker@hybrid";
@@ -406,11 +407,11 @@ export default function Home({ user }) {
   useEffect(() => {
     const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
     gsap.set([".home-header", ".left-col > div", ".right-col > div"], { opacity: 1 });
-    
+
     tl.from(headerRef.current, { y: -50, opacity: 0, duration: 0.8 })
       .from(".left-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.5")
       .from(".right-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.7");
-  }, []);
+  }, [user?.email]);
 
   // Animate progress bar when percentage changes
   useEffect(() => {
@@ -450,6 +451,7 @@ export default function Home({ user }) {
 
   return (
     <div className="home-layout">
+      <Jar />
       <main className="home-main">
         <header className="home-header" ref={headerRef}>
           <div className="header-left">

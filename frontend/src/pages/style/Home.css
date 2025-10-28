@@ -116,7 +116,11 @@
 }
 
 .right-col > div {
-  padding: 0.6rem 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  align-items: stretch;
 }
 
 .left-col > div:hover,
@@ -128,7 +132,11 @@
 .right-col > div {
   padding: var(--spacing-xl);
 }
-
+.right-col > div,
+.gratitude-card {
+  width: 100%;
+  box-sizing: border-box;
+}
 .left-col {
   display: flex;
   flex-direction: column;
@@ -407,7 +415,7 @@
 .gratitude-card {
   background: var(--gradient-gratitude);
   border-radius: var(--radius-md);
-  padding: 12px 20px;
+  padding: 20px 20px;
   font-style: italic;
   color: var(--gray-800);
   border: 1px solid #fcd34d;
