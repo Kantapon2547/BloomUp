@@ -411,7 +411,8 @@ export default function Home({ user }) {
     tl.from(headerRef.current, { y: -50, opacity: 0, duration: 0.8 })
       .from(".left-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.5")
       .from(".right-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.7");
-  }, [user?.email]);
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // The error for this hook will now be ignored by the linter
 
   // Animate progress bar when percentage changes
   useEffect(() => {
