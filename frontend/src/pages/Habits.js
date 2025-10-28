@@ -424,6 +424,7 @@ function HabitModal({
               <div className="setting-label">Category</div>
               <div className="setting-value">{category}</div>
             </div>
+            <div className="task-row-chevron">›</div>
           </button>
 
           <div className="setting-row">
