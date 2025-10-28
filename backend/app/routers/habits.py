@@ -5,10 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from .. import schemas, crud, models
+from .. import crud, models, schemas
 from ..db import get_db
 from ..security import get_current_user
-from ..services.achievement_checker import check_habit_achievements, check_streak_achievements
+from ..services.achievement_checker import (check_habit_achievements,
+                                            check_streak_achievements)
 
 router = APIRouter(prefix="/habits", tags=["Habits"])
 
@@ -43,13 +44,14 @@ class HabitCreateIn(BaseModel):
         return schemas.HabitCreate(name=raw_name, category=cat, is_active=active)
 
 
-# routes 
+# routes
 @router.get("/", response_model=List[schemas.HabitOut])
 def list_habits(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     return crud.get_user_habits(db, _user_id(current_user))
+
 
 @router.post("/", response_model=schemas.HabitOut, status_code=status.HTTP_201_CREATED)
 def create_habit(
@@ -59,11 +61,12 @@ def create_habit(
 ):
     data = payload.to_schema()
     result = crud.create_user_habit(db, data, _user_id(current_user))
-    
+
     # Check achievements after creating habit
     check_habit_achievements(db, _user_id(current_user))
-    
+
     return result
+
 
 @router.delete("/{habit_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_habit(
@@ -73,12 +76,15 @@ def delete_habit(
 ):
     ok = crud.delete_user_habit(db, habit_id=habit_id, user_id=_user_id(current_user))
     if not ok:
-        raise HTTPException(status_code=404, detail="Habit not found or not owned by user")
-    
+        raise HTTPException(
+            status_code=404, detail="Habit not found or not owned by user"
+        )
+
     # Check achievements after deleting habit
     check_habit_achievements(db, _user_id(current_user))
-    
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 
 @router.post("/{habit_id}/complete", status_code=status.HTTP_204_NO_CONTENT)
 def mark_complete(
@@ -89,13 +95,16 @@ def mark_complete(
 ):
     user_id = _user_id(current_user)
     if not crud.get_habit(db, habit_id, user_id):
-        raise HTTPException(status_code=404, detail="Habit not found or not owned by user")
+        raise HTTPException(
+            status_code=404, detail="Habit not found or not owned by user"
+        )
     crud.log_habit_completion(db, habit_id, user_id, on)
-    
+
     # Check achievements after completing habit
     check_streak_achievements(db, user_id)
-    
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 
 @router.delete("/{habit_id}/complete", status_code=status.HTTP_204_NO_CONTENT)
 def unmark_complete(
@@ -106,10 +115,12 @@ def unmark_complete(
 ):
     user_id = _user_id(current_user)
     if not crud.get_habit(db, habit_id, user_id):
-        raise HTTPException(status_code=404, detail="Habit not found or not owned by user")
+        raise HTTPException(
+            status_code=404, detail="Habit not found or not owned by user"
+        )
     crud.remove_habit_completion(db, habit_id, user_id, on)
-    
+
     # Check achievements after uncompleting habit
     check_streak_achievements(db, user_id)
-    
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)

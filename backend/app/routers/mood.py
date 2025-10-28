@@ -1,12 +1,12 @@
+import logging
 from datetime import date, datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-import logging
 
-from .. import schemas, crud, models
+from .. import crud, models, schemas
 from ..db import get_db
 from ..security import get_current_user
 from ..services.achievement_checker import check_mood_achievements
@@ -20,10 +20,7 @@ def _user_id(u: models.User) -> int:
     """Extract the integer user_id from the authenticated User object."""
     user_id = getattr(u, "user_id", None)
     if user_id is None:
-        raise HTTPException(
-            status_code=500, 
-            detail="Authenticated user lacks user_id"
-        )
+        raise HTTPException(status_code=500, detail="Authenticated user lacks user_id")
     return user_id
 
 
@@ -38,7 +35,7 @@ class MoodLogCreate(BaseModel):
             "example": {
                 "mood_score": 8,
                 "note": "Had a great day!",
-                "logged_on": "2025-10-15"
+                "logged_on": "2025-10-15",
             }
         }
 
@@ -54,7 +51,7 @@ class MoodLogOut(BaseModel):
     mood_score: int
     logged_on: date
     note: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -90,16 +87,16 @@ def list_mood_logs(
     try:
         user_id = _user_id(current_user)
         logger.info(f"Fetching moods for user {user_id}")
-        
+
         logs = crud.get_user_mood_logs(
-            db, 
+            db,
             user_id=user_id,
             limit=limit,
             offset=offset,
             start_date=start_date,
-            end_date=end_date
+            end_date=end_date,
         )
-        
+
         logger.info(f"Found {len(logs)} mood logs for user {user_id}")
         return logs
     except Exception as e:
@@ -117,29 +114,31 @@ def create_mood_log(
     try:
         user_id = _user_id(current_user)
         log_date = payload.logged_on or date.today()
-        
-        logger.info(f"Creating mood for user {user_id} on {log_date}: score={payload.mood_score}")
-        
+
+        logger.info(
+            f"Creating mood for user {user_id} on {log_date}: score={payload.mood_score}"
+        )
+
         # Check if already exists
         existing = crud.get_mood_log_by_date(db, user_id, log_date)
         if existing:
             logger.warning(f"Mood already exists for {log_date}")
             raise HTTPException(
                 status_code=400,
-                detail=f"Mood log already exists for {log_date}. Use PUT to update it."
+                detail=f"Mood log already exists for {log_date}. Use PUT to update it.",
             )
-        
+
         result = crud.create_mood_log(
             db,
             user_id=user_id,
             mood_score=payload.mood_score,
             note=payload.note,
-            logged_on=log_date
+            logged_on=log_date,
         )
-        
+
         # Check achievements after creating mood log
         check_mood_achievements(db, user_id)
-        
+
         logger.info(f"Mood created successfully: {result.mood_id}")
         return result
     except Exception as e:
@@ -167,20 +166,13 @@ def get_mood_trend(
     """Get mood trend data for visualization."""
     user_id = _user_id(current_user)
     start_date = date.today() - timedelta(days=days)
-    
+
     logs = crud.get_user_mood_logs(
-        db,
-        user_id=user_id,
-        start_date=start_date,
-        limit=days
+        db, user_id=user_id, start_date=start_date, limit=days
     )
-    
+
     return [
-        MoodTrendOut(
-            date=log.logged_on,
-            mood_score=log.mood_score,
-            note=log.note
-        )
+        MoodTrendOut(date=log.logged_on, mood_score=log.mood_score, note=log.note)
         for log in logs
     ]
 
@@ -205,13 +197,12 @@ def get_mood_log(
     """Get a specific mood log by ID."""
     user_id = _user_id(current_user)
     log = crud.get_mood_log(db, mood_id, user_id)
-    
+
     if not log:
         raise HTTPException(
-            status_code=404,
-            detail="Mood log not found or not owned by user"
+            status_code=404, detail="Mood log not found or not owned by user"
         )
-    
+
     return log
 
 
@@ -224,25 +215,24 @@ def update_mood_log(
 ):
     """Update an existing mood log."""
     user_id = _user_id(current_user)
-    
+
     existing = crud.get_mood_log(db, mood_id, user_id)
     if not existing:
         raise HTTPException(
-            status_code=404,
-            detail="Mood log not found or not owned by user"
+            status_code=404, detail="Mood log not found or not owned by user"
         )
-    
+
     updated = crud.update_mood_log(
         db,
         mood_id=mood_id,
         user_id=user_id,
         mood_score=payload.mood_score,
-        note=payload.note
+        note=payload.note,
     )
-    
+
     # Check achievements after updating mood log
     check_mood_achievements(db, user_id)
-    
+
     return updated
 
 
@@ -254,18 +244,17 @@ def delete_mood_log(
 ):
     """Delete a mood log."""
     user_id = _user_id(current_user)
-    
+
     success = crud.delete_mood_log(db, mood_id, user_id)
-    
+
     if not success:
         raise HTTPException(
-            status_code=404,
-            detail="Mood log not found or not owned by user"
+            status_code=404, detail="Mood log not found or not owned by user"
         )
-    
+
     # Check achievements after deleting mood log
     check_mood_achievements(db, user_id)
-    
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -276,39 +265,32 @@ def get_week_summary(
 ):
     """Get a summary of this week's mood logs."""
     user_id = _user_id(current_user)
-    
+
     today = date.today()
     start_of_week = today - timedelta(days=today.weekday() + 1)
     if today.weekday() == 6:
         start_of_week = today
-    
+
     logs = crud.get_user_mood_logs(
-        db,
-        user_id=user_id,
-        start_date=start_of_week,
-        limit=7
+        db, user_id=user_id, start_date=start_of_week, limit=7
     )
-    
+
     if not logs:
         return {
             "week_start": start_of_week,
             "logs_count": 0,
             "average_mood": 0,
-            "logs": []
+            "logs": [],
         }
-    
+
     avg_mood = sum(log.mood_score for log in logs) / len(logs)
-    
+
     return {
         "week_start": start_of_week,
         "logs_count": len(logs),
         "average_mood": round(avg_mood, 1),
         "logs": [
-            {
-                "date": log.logged_on,
-                "mood_score": log.mood_score,
-                "note": log.note
-            }
+            {"date": log.logged_on, "mood_score": log.mood_score, "note": log.note}
             for log in logs
-        ]
+        ],
     }
