@@ -333,6 +333,56 @@ function CategorySelector({ value, onChange, categories, onCreate }) {
   );
 }
 
+function DurationPickerModal({
+  current,
+  onSelect,
+  onClose,
+}) {
+  const OPTIONS = [
+    "15 mins",
+    "30 mins",
+    "1 hour",
+    "2 hours",
+    "Daily Goal",
+    "Custom",
+  ];
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div
+        className="floating-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="floating-head">
+          <div className="floating-title">Select Duration</div>
+          <button className="floating-back" onClick={onClose}>
+            Back
+          </button>
+        </div>
+
+        <div className="floating-grid">
+          {OPTIONS.map((opt) => (
+            <button
+              key={opt}
+              className={`cat-card ${opt === current ? "is-active" : ""}`}
+              onClick={() => {
+                onSelect(opt);
+                onClose();
+              }}
+            >
+              <div className="cat-card-name">{opt}</div>
+              {opt === current && (
+                <div className="cat-card-check">✓</div>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function HabitModal({
   open,
   onClose,
@@ -361,8 +411,10 @@ function HabitModal({
 
   
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showCategorySheet, setShowCategorySheet] = useState(false);
-
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showDurationPicker, setShowDurationPicker] = useState(false);
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  
   useEffect(() => {
     if (open) {
       setName(initial?.name || "");
@@ -372,7 +424,7 @@ function HabitModal({
       setColor(initial?.color || PASTELS[0]);
       setError("");
       setShowEmojiPicker(false);
-      setShowCategorySheet(false);
+      setShowCategoryPicker(false);
     }
   }, [initial, open]);
 
@@ -391,6 +443,8 @@ function HabitModal({
           >
             <span className="task-emoji">{emoji}</span>
           </button>
+
+          <div className="task-emoji-hint">Tap to change icon</div>
 
           <input
             className={`task-name-input ${error ? "is-invalid" : ""}`}
@@ -414,7 +468,33 @@ function HabitModal({
               </div>
         </div>
 
-        <div className="habit-settings">
+        <div className="task-fields">
+          <button
+            className="task-row-btn"
+            onClick={() => setShowCategoryPicker(true)}
+            type="button"
+          >
+            <div className="task-row-left">
+              <div className="task-row-label">CATEGORY</div>
+              <div className="task-row-value">{category}</div>
+            </div>
+            <div className="task-row-chevron">›</div>
+          </button>
+
+          <button 
+            className="task-row-btn"
+            onClick={() => setShowDurationPicker(true)}
+            type="button"
+          >
+            <div className="task-row-left">
+              <div className="task-row-label">DURATION</div>
+              <div className="task-row-value">{duration}</div>
+            </div>
+            <div className="task-row-chevron">›</div>
+          </button>
+        </div>
+
+        {/* <div className="habit-settings">
           <button
             className="setting-row"
             onClick={() => setShowCategorySheet(true)}
@@ -427,10 +507,12 @@ function HabitModal({
             <div className="task-row-chevron">›</div>
           </button>
 
-          <div className="setting-row">
-            <div className="setting-col">
+          <div className="setting-row setting-row-duration">
+            <div className="duration-left">
               <div className="setting-label">Duration</div>
-        
+            </div>
+
+            <div className="duration-right">
               <Dropdown
                 value={duration}
                 items={DURATIONS}
@@ -440,7 +522,7 @@ function HabitModal({
               />
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* footer actions */}
         <div className="habit-footer">
@@ -482,28 +564,101 @@ function HabitModal({
           />
         )}
 
-        {showCategorySheet && (
-          <CategorySheet
+        {showCategoryPicker && (
+          <CategoryPickerModal
             categories={categories}
             active={category}
-            onClose={() => setShowCategorySheet(false)}
             onSelect={(catName) => {
               setCategory(catName);
-              setShowCategorySheet(false);
             }}
-            onCreate={(newCatName /*, ignoredColor */) => {
-              onCreateCategory(newCatName, null);
-              setCategory(newCatName);
-              setShowCategorySheet(false);
+            onClose={() => setShowCategoryPicker(false)}
+            onAddNewRequest={() => {
+              setShowCategoryPicker(false);
+              setShowAddCategory(true);  
             }}
-            onDelete={(catName) => {
-              onDeleteCategory(catName);
+            // onCreate={(newCatName /*, ignoredColor */) => {
+            //   onCreateCategory(newCatName, null);
+            //   setCategory(newCatName);
+            //   setShowCategorySheet(false);
+            // }}
+            // onDelete={(catName) => {
+            //   onDeleteCategory(catName);
+            // }
+          />
+        )}
+
+        {showAddCategory && (
+          <NewCategoryModal
+            onClose={() => setShowAddCategory(false)}
+            onAdd={(newName) => {
+              onCreateCategory(newName, color); // you already have addCategoryGlobal in parent
+              setCategory(newName);
             }}
+          />
+        )}
+
+        {showDurationPicker && (
+          <DurationPickerModal
+            current={duration}
+            onSelect={(val) => setDuration(val)}
+            onClose={() => setShowDurationPicker(false)}
           />
         )}
       </div>
   );
 }
+
+function NewCategoryModal({
+  onClose,
+  onAdd,
+}) {
+  const [draft, setDraft] = useState("");
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div
+        className="floating-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="floating-head">
+          <div className="floating-title">Select Category</div>
+          <button className="floating-back" onClick={onClose}>
+            Back
+          </button>
+        </div>
+
+        <input
+          className="newcat-input"
+          placeholder="Category name"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+        />
+
+        <div className="newcat-actions">
+          <button
+            className="newcat-cancel-btn"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+
+          <button
+            className="newcat-add-btn"
+            onClick={() => {
+              const name = draft.trim();
+              if (!name) return;
+              onAdd(name);
+              onClose();
+            }}
+          >
+            Add Category
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function EmojiPickerModal({ onClose, onSelect }) {
   return (
@@ -537,125 +692,176 @@ function EmojiPickerModal({ onClose, onSelect }) {
   );
 }
 
-function CategorySheet({
+function CategoryPickerModal({
   categories,
-  active,
-  onClose,
+  current,
   onSelect,
-  onCreate,
-  onDelete
+  onClose,
+  onAddNewRequest,
 }) {
-  const [isAdding, setIsAdding] = useState(false);
-  const [draftNewCat, setDraftNewCat] = useState("");
-
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div
-        className="sheet-panel"
-        onClick={(e) => e.stopPropagation()} 
+        className="floating-panel"
+        onClick={(e) => e.stopPropagation()}
       >
-        {!isAdding ? (
-          <>
-            <div className="sheet-head">
-              <div className="sheet-title">Category</div>
-              <button
-                className="sheet-close-btn"
-                onClick={onClose}
-              >
-                Save
-              </button>
-            </div>
+        <div className="floating-head">
+          <div className="floating-title">Select Category</div>
+          <button className="floating-back" onClick={onClose}>Back</button>
+        </div>
 
-            <div className="cat-list">
-              {categories.map((catObj) => {
-                const isActive = catObj.name === active;
-                return (
-                  <div
-                    key={catObj.name}
-                    className={`cat-row ${isActive ? "is-active" : ""}`}
-                  >
-                      <button
-                        className="cat-color-pill"
-                        style={{ '--chip-bg': catObj.color }}
-                        onClick={() => onSelect(catObj.name)}
-                      > 
-                        {catObj.name}
-                      </button>
+        <div className="floating-grid">
+          {categories.map((cat) => (
+            <button
+              key={cat.name}
+              className={`cat-card ${cat.name === current ? "is-active" : ""}`}
+              onClick={() => {
+                onSelect(cat.name);
+                onClose();
+              }}
+            >
+              {/* OPTIONAL emoji per category later.
+                 for now we just render name */}
+              <div className="cat-card-name">{cat.name}</div>
+              {cat.name === current && (
+                <div className="cat-card-check">✓</div>
+              )}
+            </button>
+          ))}
 
-                    <button
-                      className="cat-delete-btn"
-                      // disabled={isActive}
-                      // onClick={() => !isActive && onDelete(catObj.name)}
-                      // title={isActive ? "Currently selected" : "Delete category"}
-                      onClick={() => onDelete(catObj.name)}
-                      title="Delete category"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="sheet-footer">
-              <button
-                className="btn-big"
-                onClick={() => {
-
-                  setIsAdding(true);
-                  setDraftNewCat("");
-                }}
-              >
-                Add New
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="sheet-head">
-              <button
-                className="sheet-back-btn"
-                onClick={() => {
-                  setIsAdding(false);
-                  setDraftNewCat("");
-                }}
-              >
-                Back
-              </button>
-
-              <div className="sheet-title">New Category</div>
-
-              <button
-                className="sheet-close-btn"
-                onClick={() => {
-                  if (!draftNewCat.trim()) return;
-                  onCreate(draftNewCat.trim(), null);
-                  setIsAdding(false);
-                  setDraftNewCat("");
-                }}
-              >
-                Save
-              </button>
-            </div>
-
-            <div className="sheet-body">
-              <input
-                className="task-name-input"
-                placeholder="Healthy Lifestyle"
-                value={draftNewCat}
-                maxLength={20}
-                onChange={(e) => setDraftNewCat(e.target.value)}
-              />
-              <div className="char-hint">
-                {draftNewCat.length}/20
-              </div>
-            </div>
-          </>
-        )}
+          <button
+            className="cat-card add-card"
+            onClick={onAddNewRequest}
+          >
+            <div className="cat-card-plus">＋</div>
+            <div className="cat-card-name">Add Category</div>
+          </button>
+        </div>
       </div>
     </div>
   );
 }
+
+
+// function CategorySheet({
+//   categories,
+//   active,
+//   onClose,
+//   onSelect,
+//   onCreate,
+//   onDelete
+// }) {
+//   const [isAdding, setIsAdding] = useState(false);
+//   const [draftNewCat, setDraftNewCat] = useState("");
+
+//   return (
+//     <div className="sheet-backdrop" onClick={onClose}>
+//       <div
+//         className="sheet-panel"
+//         onClick={(e) => e.stopPropagation()} 
+//       >
+//         {!isAdding ? (
+//           <>
+//             <div className="sheet-head">
+//               <div className="sheet-title">Category</div>
+//               <button
+//                 className="sheet-close-btn"
+//                 onClick={onClose}
+//               >
+//                 Save
+//               </button>
+//             </div>
+
+//             <div className="cat-list">
+//               {categories.map((catObj) => {
+//                 const isActive = catObj.name === active;
+//                 return (
+//                   <div
+//                     key={catObj.name}
+//                     className={`cat-row ${isActive ? "is-active" : ""}`}
+//                   >
+//                       <button
+//                         className="cat-color-pill"
+//                         style={{ '--chip-bg': catObj.color }}
+//                         onClick={() => onSelect(catObj.name)}
+//                       > 
+//                         {catObj.name}
+//                       </button>
+
+//                     <button
+//                       className="cat-delete-btn"
+//                       // disabled={isActive}
+//                       // onClick={() => !isActive && onDelete(catObj.name)}
+//                       // title={isActive ? "Currently selected" : "Delete category"}
+//                       onClick={() => onDelete(catObj.name)}
+//                       title="Delete category"
+//                     >
+//                       <Trash2 size={18} />
+//                     </button>
+//                   </div>
+//                 );
+//               })}
+//             </div>
+
+//             <div className="sheet-footer">
+//               <button
+//                 className="btn-big"
+//                 onClick={() => {
+
+//                   setIsAdding(true);
+//                   setDraftNewCat("");
+//                 }}
+//               >
+//                 Add New
+//               </button>
+//             </div>
+//           </>
+//         ) : (
+//           <>
+//             <div className="sheet-head">
+//               <button
+//                 className="sheet-back-btn"
+//                 onClick={() => {
+//                   setIsAdding(false);
+//                   setDraftNewCat("");
+//                 }}
+//               >
+//                 Back
+//               </button>
+
+//               <div className="sheet-title">New Category</div>
+
+//               <button
+//                 className="sheet-close-btn"
+//                 onClick={() => {
+//                   if (!draftNewCat.trim()) return;
+//                   onCreate(draftNewCat.trim(), null);
+//                   setIsAdding(false);
+//                   setDraftNewCat("");
+//                 }}
+//               >
+//                 Save
+//               </button>
+//             </div>
+
+//             <div className="sheet-body">
+//               <input
+//                 className="task-name-input"
+//                 placeholder="Healthy Lifestyle"
+//                 value={draftNewCat}
+//                 maxLength={20}
+//                 onChange={(e) => setDraftNewCat(e.target.value)}
+//               />
+//               <div className="char-hint">
+//                 {draftNewCat.length}/20
+//               </div>
+//             </div>
+//           </>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
 
 export default function HabitsPage() {
   const [habits, setHabits] = useState([]);
