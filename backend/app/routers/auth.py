@@ -4,10 +4,8 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..db import get_db
 from ..security import create_access_token, hash_password, verify_password
-from ..services.achievement_checker import (
-    check_all_achievements,
-    initialize_user_achievements,
-)
+from ..services.achievement_checker import (check_all_achievements,
+                                            initialize_user_achievements)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
