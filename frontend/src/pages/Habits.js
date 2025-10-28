@@ -333,6 +333,56 @@ function CategorySelector({ value, onChange, categories, onCreate }) {
   );
 }
 
+// function DurationPickerModal({
+//   current,
+//   onSelect,
+//   onClose,
+// }) {
+//   const OPTIONS = [
+//     "15 mins",
+//     "30 mins",
+//     "45 mins",
+//     "1 hour",
+//     "1.5 hours",
+//     "2 hours",
+//     "3 hours",
+//   ];
+
+//   return (
+//     <div className="sheet-backdrop" onClick={onClose}>
+//       <div
+//         className="floating-panel"
+//         onClick={(e) => e.stopPropagation()}
+//       >
+//         <div className="floating-head">
+//           <div className="floating-title">Select Duration</div>
+//           <button className="floating-back" onClick={onClose}>
+//             Back
+//           </button>
+//         </div>
+
+//         <div className="floating-grid">
+//           {OPTIONS.map((opt) => (
+//             <button
+//               key={opt}
+//               className={`cat-card ${opt === current ? "is-active" : ""}`}
+//               onClick={() => {
+//                 onSelect(opt);
+//                 onClose();
+//               }}
+//             >
+//               <div className="cat-card-name">{opt}</div>
+//               {opt === current && (
+//                 <div className="cat-card-check"></div>
+//               )}
+//             </button>
+//           ))}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
 function DurationPickerModal({
   current,
   onSelect,
@@ -341,10 +391,11 @@ function DurationPickerModal({
   const OPTIONS = [
     "15 mins",
     "30 mins",
+    "45 mins",
     "1 hour",
+    "1.5 hours",
     "2 hours",
-    "Daily Goal",
-    "Custom",
+    "3 hours",
   ];
 
   return (
@@ -355,25 +406,31 @@ function DurationPickerModal({
       >
         <div className="floating-head">
           <div className="floating-title">Select Duration</div>
-          <button className="floating-back" onClick={onClose}>
-            Back
-          </button>
+          <div className="floating-actions">
+            <button className="floating-back" onClick={onClose}>
+              Back
+            </button>
+          </div>
         </div>
 
-        <div className="floating-grid">
+        <div className="option-grid">
           {OPTIONS.map((opt) => (
             <button
               key={opt}
-              className={`cat-card ${opt === current ? "is-active" : ""}`}
+              className={
+                "option-tile" +
+                (opt === current ? " is-active" : "")
+              }
               onClick={() => {
                 onSelect(opt);
                 onClose();
               }}
             >
-              <div className="cat-card-name">{opt}</div>
-              {opt === current && (
-                <div className="cat-card-check">✓</div>
-              )}
+              <div className="option-tile-label">{opt}</div>
+
+              {/* {opt === current && (
+                <div className="option-tile-check">✓</div>
+              )} */}
             </button>
           ))}
         </div>
@@ -391,7 +448,7 @@ function HabitModal({
   categories,
   onCreateCategory,
   onApplyCategoryColor,
-  onDeleteCategory
+  onDeleteCategory,
 }) {
   const [name, setName] = useState(initial?.name || "");
   const [category, setCategory] = useState(initial?.category || "General");
@@ -399,12 +456,12 @@ function HabitModal({
   const [duration, setDuration] = useState(initial?.duration || "30 mins");
   const [error, setError] = useState("");
   const PASTELS = [
-    "#ede9ff", // purple
-    "#fff4cc", // yellow
-    "#e9fcef", // green
-    "#eaf6ff", // blue
-    "#ffeaf2", // pink
-    "#f5f5ff", // gray/violet
+    "#ff99c8", 
+    "#ffac81", 
+    "#fcf6bd", 
+    "#d0f4de", 
+    "#a9def9", 
+    "#e4c1f9", 
   ];
 
   const [color, setColor] = useState(initial?.color || PASTELS[0]);
@@ -567,31 +624,31 @@ function HabitModal({
         {showCategoryPicker && (
           <CategoryPickerModal
             categories={categories}
-            active={category}
+            current={category}
+            // active={category}
             onSelect={(catName) => {
               setCategory(catName);
+              setShowCategoryPicker(false);
             }}
             onClose={() => setShowCategoryPicker(false)}
             onAddNewRequest={() => {
               setShowCategoryPicker(false);
               setShowAddCategory(true);  
             }}
-            // onCreate={(newCatName /*, ignoredColor */) => {
-            //   onCreateCategory(newCatName, null);
-            //   setCategory(newCatName);
-            //   setShowCategorySheet(false);
-            // }}
-            // onDelete={(catName) => {
-            //   onDeleteCategory(catName);
-            // }
+
+            onDeleteCategory={(catNameToDelete) => {
+              onDeleteCategory(catNameToDelete);
+              if (category === catNameToDelete) {
+                setCategory("General");
+            }}}
           />
         )}
-
+            
         {showAddCategory && (
           <NewCategoryModal
             onClose={() => setShowAddCategory(false)}
             onAdd={(newName) => {
-              onCreateCategory(newName, color); // you already have addCategoryGlobal in parent
+              onCreateCategory(newName, color); 
               setCategory(newName);
             }}
           />
@@ -698,7 +755,10 @@ function CategoryPickerModal({
   onSelect,
   onClose,
   onAddNewRequest,
+  onDeleteCategory,
 }) {
+  const [isEditing, setIsEditing] = useState(false);
+
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div
@@ -707,11 +767,172 @@ function CategoryPickerModal({
       >
         <div className="floating-head">
           <div className="floating-title">Select Category</div>
-          <button className="floating-back" onClick={onClose}>Back</button>
+
+          <div className="floating-actions">
+            <button
+              className="floating-edit-btn"
+              onClick={() => setIsEditing((prev) => !prev)}
+            >
+              {isEditing ? "Done" : "Edit"}
+            </button>
+
+            <button
+              className="floating-back"
+              onClick={onClose}
+            >
+              Back
+            </button>
+          </div>
         </div>
 
-        <div className="floating-grid">
-          {categories.map((cat) => (
+        <div className="option-grid">
+          {categories.map((cat) => {
+            const selected = cat.name === current;
+            const isProtected = cat.name === "General";
+
+            return (
+              <div
+                key={cat.name}
+                className={
+                  "option-tile" +
+                  (selected ? " is-active" : "") +
+                  (isEditing ? " is-editing" : "")
+                }
+                onClick={() => {
+                  if (isEditing) return;
+                  onSelect(cat.name);
+                  onClose();
+                }}
+              >
+                <div className="option-tile-label">{cat.name}</div>
+
+                {/* show check if selected and NOT in edit mode */}
+                {/* {selected && !isEditing && (
+                  <div className="option-tile-check">✓</div>
+                )} */}
+
+                {/* show trash if editing and this is not protected */}
+                {isEditing && !isProtected && (
+                  <button
+                    className="option-tile-delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteCategory(cat.name);
+                    }}
+                    title="Delete category"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Add Category tile */}
+          <button
+            className="option-tile add-tile"
+            onClick={onAddNewRequest}
+          >
+            <div className="add-tile-plus">＋</div>
+            <div className="option-tile-label">Add Category</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// function CategoryPickerModal({
+//   categories,
+//   current,
+//   onSelect,
+//   onClose,
+//   onAddNewRequest,
+//   onDeleteCategory,
+// }) {
+//   const [isEditing, setIsEditing] = useState(false);
+//   return (
+//     <div className="sheet-backdrop" onClick={onClose}>
+//       <div
+//         className="floating-panel"
+//         onClick={(e) => e.stopPropagation()}
+//       >
+//         <div className="floating-head">
+//           <div className="floating-title">Select Category</div>
+
+//           <div className="floating-actions">
+//             <button
+//               className="floating-edit-btn"
+//               onClick={() => setIsEditing((prev) => !prev)}
+//             >
+//               {isEditing ? "Done" : "Edit"}
+//             </button>
+//             <button 
+//               className="floating-back" 
+//               onClick={onClose}
+//               >
+//                 Back
+//             </button>
+//           </div>
+//         </div>
+
+//         <div className="floating-grid">
+//           {categories.map((cat) => {
+//             const selected = cat.name === current;
+//             return (
+//               <div
+//                 key={cat.name}
+//                 className={
+//                   "cat-card-wrapper" +
+//                   (selected ? " is-active" : "") +
+//                   (isEditing ? " is-editing" : "")
+//                 }
+//               >
+//                 <button
+//                   className={`cat-card ${selected ? "is-active" : ""}`}
+//                   disabled={isEditing} 
+//                   onClick={() => {
+//                     if (isEditing) return;
+//                     onSelect(cat.name);
+//                     onClose();
+//                   }}
+//                 >
+//                   <div className="cat-card-left">
+//                     {/* <span className="category-emoji">{cat.emoji || "📚"}</span> */}
+//                     <span className="cat-card-name">{cat.name}</span>
+//                   </div>
+
+//                   {/* {selected && (
+//                     <div className="cat-card-check">✓</div>
+//                   )} */}
+//                 </button>
+
+//                 {isEditing && (
+//                   <button
+//                     className="cat-card-delete-btn"
+//                     onClick={() => onDeleteCategory(cat.name)}
+//                     title="Delete category"
+//                   >
+//                     <Trash2 size={18} />
+//                   </button>
+//                 )}
+//               </div>
+//             );
+//           })}
+
+//           <button
+//             className="cat-card add-card"
+//             onClick={onAddNewRequest}
+//           >
+//             <div className="cat-card-plus">＋</div>
+//             <div className="cat-card-name">Add Category</div>
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+{/*                 
             <button
               key={cat.name}
               className={`cat-card ${cat.name === current ? "is-active" : ""}`}
@@ -720,8 +941,6 @@ function CategoryPickerModal({
                 onClose();
               }}
             >
-              {/* OPTIONAL emoji per category later.
-                 for now we just render name */}
               <div className="cat-card-name">{cat.name}</div>
               {cat.name === current && (
                 <div className="cat-card-check">✓</div>
@@ -740,7 +959,7 @@ function CategoryPickerModal({
       </div>
     </div>
   );
-}
+} */}
 
 
 // function CategorySheet({
