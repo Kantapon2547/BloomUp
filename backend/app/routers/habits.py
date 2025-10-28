@@ -8,10 +8,8 @@ from sqlalchemy.orm import Session
 from .. import crud, models, schemas
 from ..db import get_db
 from ..security import get_current_user
-from ..services.achievement_checker import (
-    check_habit_achievements,
-    check_streak_achievements,
-)
+from ..services.achievement_checker import (check_habit_achievements,
+                                            check_streak_achievements)
 
 router = APIRouter(prefix="/habits", tags=["Habits"])
 
