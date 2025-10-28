@@ -333,56 +333,6 @@ function CategorySelector({ value, onChange, categories, onCreate }) {
   );
 }
 
-// function DurationPickerModal({
-//   current,
-//   onSelect,
-//   onClose,
-// }) {
-//   const OPTIONS = [
-//     "15 mins",
-//     "30 mins",
-//     "45 mins",
-//     "1 hour",
-//     "1.5 hours",
-//     "2 hours",
-//     "3 hours",
-//   ];
-
-//   return (
-//     <div className="sheet-backdrop" onClick={onClose}>
-//       <div
-//         className="floating-panel"
-//         onClick={(e) => e.stopPropagation()}
-//       >
-//         <div className="floating-head">
-//           <div className="floating-title">Select Duration</div>
-//           <button className="floating-back" onClick={onClose}>
-//             Back
-//           </button>
-//         </div>
-
-//         <div className="floating-grid">
-//           {OPTIONS.map((opt) => (
-//             <button
-//               key={opt}
-//               className={`cat-card ${opt === current ? "is-active" : ""}`}
-//               onClick={() => {
-//                 onSelect(opt);
-//                 onClose();
-//               }}
-//             >
-//               <div className="cat-card-name">{opt}</div>
-//               {opt === current && (
-//                 <div className="cat-card-check"></div>
-//               )}
-//             </button>
-//           ))}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
 function DurationPickerModal({
   current,
   onSelect,
@@ -427,10 +377,6 @@ function DurationPickerModal({
               }}
             >
               <div className="option-tile-label">{opt}</div>
-
-              {/* {opt === current && (
-                <div className="option-tile-check">✓</div>
-              )} */}
             </button>
           ))}
         </div>
@@ -438,7 +384,6 @@ function DurationPickerModal({
     </div>
   );
 }
-
 
 function HabitModal({
   open,
@@ -452,7 +397,7 @@ function HabitModal({
 }) {
   const [name, setName] = useState(initial?.name || "");
   const [category, setCategory] = useState(initial?.category || "General");
-  const [emoji, setEmoji] = useState(initial?.icon || "📚"); // we'll treat "icon" as emoji now
+  const [emoji, setEmoji] = useState(initial?.icon || "📚"); 
   const [duration, setDuration] = useState(initial?.duration || "30 mins");
   const [error, setError] = useState("");
   const PASTELS = [
@@ -551,37 +496,6 @@ function HabitModal({
           </button>
         </div>
 
-        {/* <div className="habit-settings">
-          <button
-            className="setting-row"
-            onClick={() => setShowCategorySheet(true)}
-            type="button"
-          >
-            <div className="setting-col">
-              <div className="setting-label">Category</div>
-              <div className="setting-value">{category}</div>
-            </div>
-            <div className="task-row-chevron">›</div>
-          </button>
-
-          <div className="setting-row setting-row-duration">
-            <div className="duration-left">
-              <div className="setting-label">Duration</div>
-            </div>
-
-            <div className="duration-right">
-              <Dropdown
-                value={duration}
-                items={DURATIONS}
-                onChange={setDuration}
-                label={null}
-                className="duration-dropdown-inline"
-              />
-            </div>
-          </div>
-        </div> */}
-
-        {/* footer actions */}
         <div className="habit-footer">
           <button className="footer-btn cancel" onClick={onClose}>
             Cancel
@@ -625,7 +539,6 @@ function HabitModal({
           <CategoryPickerModal
             categories={categories}
             current={category}
-            // active={category}
             onSelect={(catName) => {
               setCategory(catName);
               setShowCategoryPicker(false);
@@ -805,13 +718,6 @@ function CategoryPickerModal({
                 }}
               >
                 <div className="option-tile-label">{cat.name}</div>
-
-                {/* show check if selected and NOT in edit mode */}
-                {/* {selected && !isEditing && (
-                  <div className="option-tile-check">✓</div>
-                )} */}
-
-                {/* show trash if editing and this is not protected */}
                 {isEditing && !isProtected && (
                   <button
                     className="option-tile-delete"
@@ -828,7 +734,6 @@ function CategoryPickerModal({
             );
           })}
 
-          {/* Add Category tile */}
           <button
             className="option-tile add-tile"
             onClick={onAddNewRequest}
@@ -841,246 +746,6 @@ function CategoryPickerModal({
     </div>
   );
 }
-
-// function CategoryPickerModal({
-//   categories,
-//   current,
-//   onSelect,
-//   onClose,
-//   onAddNewRequest,
-//   onDeleteCategory,
-// }) {
-//   const [isEditing, setIsEditing] = useState(false);
-//   return (
-//     <div className="sheet-backdrop" onClick={onClose}>
-//       <div
-//         className="floating-panel"
-//         onClick={(e) => e.stopPropagation()}
-//       >
-//         <div className="floating-head">
-//           <div className="floating-title">Select Category</div>
-
-//           <div className="floating-actions">
-//             <button
-//               className="floating-edit-btn"
-//               onClick={() => setIsEditing((prev) => !prev)}
-//             >
-//               {isEditing ? "Done" : "Edit"}
-//             </button>
-//             <button 
-//               className="floating-back" 
-//               onClick={onClose}
-//               >
-//                 Back
-//             </button>
-//           </div>
-//         </div>
-
-//         <div className="floating-grid">
-//           {categories.map((cat) => {
-//             const selected = cat.name === current;
-//             return (
-//               <div
-//                 key={cat.name}
-//                 className={
-//                   "cat-card-wrapper" +
-//                   (selected ? " is-active" : "") +
-//                   (isEditing ? " is-editing" : "")
-//                 }
-//               >
-//                 <button
-//                   className={`cat-card ${selected ? "is-active" : ""}`}
-//                   disabled={isEditing} 
-//                   onClick={() => {
-//                     if (isEditing) return;
-//                     onSelect(cat.name);
-//                     onClose();
-//                   }}
-//                 >
-//                   <div className="cat-card-left">
-//                     {/* <span className="category-emoji">{cat.emoji || "📚"}</span> */}
-//                     <span className="cat-card-name">{cat.name}</span>
-//                   </div>
-
-//                   {/* {selected && (
-//                     <div className="cat-card-check">✓</div>
-//                   )} */}
-//                 </button>
-
-//                 {isEditing && (
-//                   <button
-//                     className="cat-card-delete-btn"
-//                     onClick={() => onDeleteCategory(cat.name)}
-//                     title="Delete category"
-//                   >
-//                     <Trash2 size={18} />
-//                   </button>
-//                 )}
-//               </div>
-//             );
-//           })}
-
-//           <button
-//             className="cat-card add-card"
-//             onClick={onAddNewRequest}
-//           >
-//             <div className="cat-card-plus">＋</div>
-//             <div className="cat-card-name">Add Category</div>
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-{/*                 
-            <button
-              key={cat.name}
-              className={`cat-card ${cat.name === current ? "is-active" : ""}`}
-              onClick={() => {
-                onSelect(cat.name);
-                onClose();
-              }}
-            >
-              <div className="cat-card-name">{cat.name}</div>
-              {cat.name === current && (
-                <div className="cat-card-check">✓</div>
-              )}
-            </button>
-          ))}
-
-          <button
-            className="cat-card add-card"
-            onClick={onAddNewRequest}
-          >
-            <div className="cat-card-plus">＋</div>
-            <div className="cat-card-name">Add Category</div>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-} */}
-
-
-// function CategorySheet({
-//   categories,
-//   active,
-//   onClose,
-//   onSelect,
-//   onCreate,
-//   onDelete
-// }) {
-//   const [isAdding, setIsAdding] = useState(false);
-//   const [draftNewCat, setDraftNewCat] = useState("");
-
-//   return (
-//     <div className="sheet-backdrop" onClick={onClose}>
-//       <div
-//         className="sheet-panel"
-//         onClick={(e) => e.stopPropagation()} 
-//       >
-//         {!isAdding ? (
-//           <>
-//             <div className="sheet-head">
-//               <div className="sheet-title">Category</div>
-//               <button
-//                 className="sheet-close-btn"
-//                 onClick={onClose}
-//               >
-//                 Save
-//               </button>
-//             </div>
-
-//             <div className="cat-list">
-//               {categories.map((catObj) => {
-//                 const isActive = catObj.name === active;
-//                 return (
-//                   <div
-//                     key={catObj.name}
-//                     className={`cat-row ${isActive ? "is-active" : ""}`}
-//                   >
-//                       <button
-//                         className="cat-color-pill"
-//                         style={{ '--chip-bg': catObj.color }}
-//                         onClick={() => onSelect(catObj.name)}
-//                       > 
-//                         {catObj.name}
-//                       </button>
-
-//                     <button
-//                       className="cat-delete-btn"
-//                       // disabled={isActive}
-//                       // onClick={() => !isActive && onDelete(catObj.name)}
-//                       // title={isActive ? "Currently selected" : "Delete category"}
-//                       onClick={() => onDelete(catObj.name)}
-//                       title="Delete category"
-//                     >
-//                       <Trash2 size={18} />
-//                     </button>
-//                   </div>
-//                 );
-//               })}
-//             </div>
-
-//             <div className="sheet-footer">
-//               <button
-//                 className="btn-big"
-//                 onClick={() => {
-
-//                   setIsAdding(true);
-//                   setDraftNewCat("");
-//                 }}
-//               >
-//                 Add New
-//               </button>
-//             </div>
-//           </>
-//         ) : (
-//           <>
-//             <div className="sheet-head">
-//               <button
-//                 className="sheet-back-btn"
-//                 onClick={() => {
-//                   setIsAdding(false);
-//                   setDraftNewCat("");
-//                 }}
-//               >
-//                 Back
-//               </button>
-
-//               <div className="sheet-title">New Category</div>
-
-//               <button
-//                 className="sheet-close-btn"
-//                 onClick={() => {
-//                   if (!draftNewCat.trim()) return;
-//                   onCreate(draftNewCat.trim(), null);
-//                   setIsAdding(false);
-//                   setDraftNewCat("");
-//                 }}
-//               >
-//                 Save
-//               </button>
-//             </div>
-
-//             <div className="sheet-body">
-//               <input
-//                 className="task-name-input"
-//                 placeholder="Healthy Lifestyle"
-//                 value={draftNewCat}
-//                 maxLength={20}
-//                 onChange={(e) => setDraftNewCat(e.target.value)}
-//               />
-//               <div className="char-hint">
-//                 {draftNewCat.length}/20
-//               </div>
-//             </div>
-//           </>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
 
 export default function HabitsPage() {
   const [habits, setHabits] = useState([]);
