@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import "./style/Home.css";
 import Jar from '../components/Jar';
-import DailyMotivationCard from '../components/DailyMotivationCard';
+import DailyMotivationCard from '../components/MotivationCard';
 
 // Constants
 const LS_KEY = "habit-tracker@hybrid";
@@ -513,6 +513,8 @@ export default function Home({ user }) {
               </p>
             </div>
 
+            
+
             <div className="mood-card">
               <h3>How are you feeling?</h3>
               <div className="mood-list">
@@ -549,11 +551,10 @@ export default function Home({ user }) {
               <h3>Today's Gratitude 🙏</h3>
               <p>"{randomGratitude || "Take a moment to feel grateful today."}"</p>
             </div>
-
             <DailyMotivationCard 
-    completedHabits={completedHabits} 
-    totalHabits={totalHabits} 
-  />
+              completedHabits={completedHabits} 
+              totalHabits={totalHabits} 
+            />
           </div>
         </section>
       </main>
