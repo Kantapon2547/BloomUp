@@ -122,13 +122,14 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
   const spacing = periodMode === "week" ? 36 : 24;
 
   useEffect(() => {
+    // Animate bars when data changes
     gsap.fromTo(
       barsRef.current,
       { scaleY: 0, transformOrigin: "bottom" },
       { scaleY: 1, duration: 0.6, stagger: 0.05, ease: "back.out(1.2)" }
     );
   }, [data]);
-
+  
   useEffect(() => {
     numbersRef.current.forEach((el, idx) => {
       if (!el) return;
@@ -140,6 +141,8 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
       });
     });
   }, [hovered]);
+  
+  
 
   return (
     <div className="rp-chart-wrapper">
@@ -179,6 +182,7 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
                 fontSize="10"
                 fill="#7c3aed"
                 fontWeight="500"
+                style={{ opacity: 0 }}
               >
                 {d.rate}%
               </text>
@@ -190,114 +194,110 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
   );
 });
 
-const ReportsCategoryPieChart = React.memo(({ data }) => {
+const ReportsCategoryPieChart = ({ data }) => {
   const svgRef = useRef(null);
-  const tooltipRef = useRef(null);
+  const [hoverIndex, setHoverIndex] = useState(null);
 
-  const categoryColors = {
-    general: "#dbeafe",
-    study: "#e0f2fe",
-    health: "#dcfce7",
-    mind: "#ede9fe",
-    personal: "#dbeafe",
-  };
+  const total = data.reduce((a, b) => a + b.rate, 0);
+  const normalizedData =
+    total > 0
+      ? data.map((d) => ({ ...d, pct: (d.rate / total) * 100 }))
+      : [];
 
-  const categoryStrokeColors = {
-    general: "#93c5fd",
-    study: "#7dd3fc",
-    health: "#86efac",
-    mind: "#c4b5fd",
-    personal: "#93c5fd",
-  };
-
-  const normalizedData = data.map((c) => ({
-    cat: (c.cat || "general").toLowerCase(),
-    rate: c.rate,
-  }));
-
-  const total = normalizedData.reduce((sum, c) => sum + c.rate, 0) || 1;
-  const angles = normalizedData.map((c) => (c.rate / total) * 360);
-
-  const radius = 45;
-
-  const createSlice = (startAngle, angle) => {
-    const x1 = 50 + radius * Math.cos((Math.PI / 180) * startAngle);
-    const y1 = 50 + radius * Math.sin((Math.PI / 180) * startAngle);
-    const x2 = 50 + radius * Math.cos((Math.PI / 180) * (startAngle + angle));
-    const y2 = 50 + radius * Math.sin((Math.PI / 180) * (startAngle + angle));
-    const largeArc = angle > 180 ? 1 : 0;
-    return `M50,50 L${x1},${y1} A${radius},${radius} 0 ${largeArc} 1 ${x2},${y2} Z`;
-  };
+  const radius = 55;
+  const center = 70;
+  const svgSize = 140;
 
   useEffect(() => {
-    if (!svgRef.current) return;
-    const paths = svgRef.current.querySelectorAll("path");
     gsap.fromTo(
-      paths,
-      { scale: 0, transformOrigin: "50% 50%" },
-      { scale: 1, duration: 1.5, stagger: 0.2, ease: "power2.out" }
+      svgRef.current,
+      { opacity: 0 },
+      { opacity: 1, duration: 0.4, ease: "power1.out" }
     );
-  }, [normalizedData]);
+  }, [data]);
 
-  const handleMouseMove = (e, c) => {
-    if (!tooltipRef.current || !svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left + 10;
-    const y = e.clientY - rect.top + 10;
-    tooltipRef.current.style.opacity = 1;
-    tooltipRef.current.style.left = `${x}px`;
-    tooltipRef.current.style.top = `${y}px`;
-    tooltipRef.current.textContent = `${c.cat}: ${c.rate}%`;
-  };
+  if (total === 0) {
+    return (
+      <div className="rp-empty-state">
+        <p>Track habits to see progress</p>
+      </div>
+    );
+  }
 
-  const handleMouseLeave = () => {
-    if (!tooltipRef.current) return;
-    tooltipRef.current.style.opacity = 0;
-  };
-
-  let startAngle = -90;
+  let cumulativePct = 0;
+  normalizedData.forEach(item => {
+    item.startPct = cumulativePct;
+    cumulativePct += item.pct;
+  });
 
   return (
-    <div style={{ position: "relative", width: 200, margin: "0 auto", padding: "0 10px" }}>
-      <svg ref={svgRef} viewBox="0 0 100 100" width={200} height={200}>
-        {normalizedData.map((c, i) => {
-          const angle = angles[i];
-          const path = createSlice(startAngle, angle);
-          startAngle += angle;
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <svg ref={svgRef} viewBox={`0 0 ${svgSize} ${svgSize}`} width={svgSize} height={svgSize}>
+        {normalizedData.map((item, idx) => {
+          const startAngle = (item.startPct / 100) * Math.PI * 2 - Math.PI / 2;
+          const endAngle = ((item.startPct + item.pct) / 100) * Math.PI * 2 - Math.PI / 2;
+
+          const x1 = center + radius * Math.cos(startAngle);
+          const y1 = center + radius * Math.sin(startAngle);
+          const x2 = center + radius * Math.cos(endAngle);
+          const y2 = center + radius * Math.sin(endAngle);
+
+          const largeArc = item.pct > 50 ? 1 : 0;
 
           return (
-            <g key={c.cat}>
-              <path
-                d={path}
-                fill={categoryColors[c.cat] || "#ddd"}
-                stroke={categoryStrokeColors[c.cat] || "#999"}
-                strokeWidth={1}
-                onMouseMove={(e) => handleMouseMove(e, c)}
-                onMouseLeave={handleMouseLeave}
-              />
-            </g>
+            <path
+              key={idx}
+              d={`M${center},${center} L${x1},${y1} A${radius},${radius} 0 ${largeArc} 1 ${x2},${y2} Z`}
+              fill={item.color || "#6366f1"}
+              onMouseEnter={() => setHoverIndex(idx)}
+              onMouseLeave={() => setHoverIndex(null)}
+              style={{
+                transition: "fill 0.3s, transform 0.25s",
+                transform: hoverIndex === idx ? "scale(1.05)" : "scale(1)",
+                transformOrigin: `${center}px ${center}px`
+              }}
+            />
           );
         })}
       </svg>
+
       <div
-        ref={tooltipRef}
         style={{
-          position: "absolute",
-          pointerEvents: "none",
-          padding: "4px 8px",
-          borderRadius: "6px",
-          background: "rgba(0,0,0,0.7)",
-          color: "#fff",
-          fontSize: "10px",
-          opacity: 0,
-          transition: "opacity 0.1s ease",
-          whiteSpace: "nowrap",
-          zIndex: 9999,
+          display: "flex",
+          gap: "12px",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          marginTop: "8px",
         }}
-      />
+      >
+        {normalizedData.map((item, idx) => (
+          <div
+            key={idx}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              opacity: hoverIndex === idx ? 1 : 0.7,
+            }}
+          >
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: item.color || "#6366f1",
+                marginRight: 6,
+              }}
+            ></span>
+            <span style={{ fontSize: "12px", color: "#374151" }}>
+              {item.label}: {item.pct.toFixed(0)}%
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
-});
+};
+
 
 // Chart Toggle Switch Component
 const ReportsChartToggleSwitch = React.memo(({ chartType, onToggle }) => {
@@ -401,29 +401,40 @@ export default function Reports() {
   }, [habits, period]);
 
   const categoryPct = useMemo(() => {
-    const allCategories = new Set(habits.map((h) => h.category || "general"));
+    const colors = {
+      health: "#34d399",
+      mind: "#60a5fa",
+      work: "#60a5fa",
+      study: "#fbbf24",
+      personal: "#f472b6",
+      general: "#a78bfa",
+    };
   
-    const results = Array.from(allCategories).map((cat) => {
-      const catHabits = habits.filter((h) => (h.category || "general") === cat);
+    // Normalize habit categories to lowercase
+    const normalized = habits.map(h => ({
+      ...h,
+      category: (h.category || "general").toLowerCase()
+    }));
+  
+    // Count completion per category
+    const results = Object.keys(colors).map(cat => {
+      const catHabits = normalized.filter(h => h.category === cat);
       const totalHabits = catHabits.length;
-      if (totalHabits === 0) return { cat, rate: 0 };
+  
+      if (totalHabits === 0) return { label: cat, rate: 0, color: colors[cat] };
   
       const doneDays = catHabits.reduce((sum, h) => {
-        const completed = period.days.filter((d) => h.history?.[fmt(d)]).length;
+        const completed = period.days.filter(d => h.history?.[fmt(d)]).length;
         return sum + completed;
       }, 0);
   
       const rate = Math.round((doneDays / (totalHabits * period.days.length)) * 100);
-      return { cat, rate };
-    });
-  
-    const defaultCategories = ["health", "work", "study", "personal", "general"];
-    defaultCategories.forEach((cat) => {
-      if (!results.find((r) => r.cat === cat)) results.push({ cat, rate: 0 });
+      return { label: cat, rate, color: colors[cat] };
     });
   
     return results.sort((a, b) => b.rate - a.rate);
   }, [habits, period]);
+  
 
   const handleChartTypeToggle = (newType) => {
     setChartType(newType);
@@ -497,7 +508,10 @@ export default function Reports() {
           {chartType === "bar" ? (
             <ReportsBarChart key={periodMode} data={dailyCompletion} periodMode={periodMode} />
           ) : (
-            <ReportsCategoryPieChart key={periodMode} data={categoryPct} />
+            <div className="reports-pie-wrapper">
+  <ReportsCategoryPieChart key={periodMode} data={categoryPct} />
+</div>
+
           )}
         </div>
 
@@ -517,7 +531,7 @@ export default function Reports() {
                   </tr>
                 </thead>
                 <tbody>
-                  {topHabits.map((r, index) => (
+                  {topHabits.slice(0, 5).map((r, index) => (
                     <tr key={`${r.name}-${index}`}>
                       <td>{r.name}</td>
                       <td>{r.category}</td>
@@ -529,7 +543,7 @@ export default function Reports() {
                 </tbody>
               </table>
             ) : (
-              <p className="rp-muted empty-state">No habits tracked yet 📭</p>
+              <p className="rp-muted empty-state">No habits tracked yet</p>
             )}
           </div>
 
@@ -538,25 +552,26 @@ export default function Reports() {
               <h3>Category Breakdown</h3>
             </div>
             <ul className="rp-list">
-              {categoryPct.map((c) => (
-                <li key={c.cat} className="rp-list-row">
-                  <span className="rp-cap">{c.cat}</span>
-                  <div className="rp-bar-container">
-                    <div className="rp-bar-bg">
-                      <div
-                        className="rp-bar-fill"
-                        style={{
-                          width: `${c.rate}%`,
-                          backgroundColor: c.rate === 0 ? "#E5E7EB" : "#7c3aed",
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <span className="rp-rate">{c.rate}%</span>
-                </li>
-              ))}
-              {categoryPct.length === 0 && <li className="rp-muted">No data</li>}
-            </ul>
+  {categoryPct.map((c) => (
+    <li key={c.label} className="rp-list-row">
+      <span className="rp-cap">{c.label}</span>
+      <div className="rp-bar-container">
+        <div className="rp-bar-bg">
+          <div
+            className="rp-bar-fill"
+            style={{
+              width: `${c.rate}%`,
+              backgroundColor: c.rate === 0 ? "#E5E7EB" : c.color,
+            }}
+          />
+        </div>
+      </div>
+      <span className="rp-rate">{c.rate}%</span>
+    </li>
+  ))}
+  {categoryPct.length === 0 && <li className="rp-muted">No data</li>}
+</ul>
+
           </div>
         </div>
       </section>
