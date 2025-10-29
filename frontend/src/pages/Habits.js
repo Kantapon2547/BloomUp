@@ -9,9 +9,7 @@ const USE_API_DEFAULT = true;
 const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 const AUTH_TOKEN = import.meta?.env?.VITE_API_TOKEN || "";
 const LS_KEY = "habit-tracker@hybrid";
-// const DURATIONS = ["15 mins", "30 mins", "45 mins", "1 hour", "1.5 hours", "2 hours", "3 hours"];
 const CATS_LS = "habit-tracker@categories";
-// const DEFAULT_CATEGORIES = ["General", "Study", "Health", "Mind"];
 const PASTELS = [
   "#ff99c8",
   "#ffac81",
@@ -202,6 +200,53 @@ function useClickOutside(ref, onClose) {
   }, [onClose, ref]);
 }
 
+function durationToMins(raw) {
+  if (typeof raw === "number") return raw;
+
+  if (typeof raw === "string") {
+    const lower = raw.toLowerCase().trim();
+
+    const mMatch = lower.match(/(\d+)\s*m/);
+    if (mMatch) {
+      return parseInt(mMatch[1], 10);
+    }
+
+    const hMatch = lower.match(/(\d+)\s*h/);
+    const mmMatch = lower.match(/(\d+)\s*m/);
+
+    if (hMatch && mmMatch) {
+      const h = parseInt(hMatch[1], 10);
+      const m = parseInt(mmMatch[1], 10);
+      return h * 60 + m;
+    }
+
+    if (hMatch && !mmMatch) {
+      const h = parseInt(hMatch[1], 10);
+      return h * 60;
+    }
+  }
+
+  return NaN;
+}
+
+function formatDuration(mins) {
+  if (typeof mins !== "number" || isNaN(mins)) return "";
+
+  if (mins < 60) {
+    return `${mins} mins`;
+  }
+
+  if (mins % 60 === 0) {
+    const hrs = mins / 60;
+    return `${hrs} hour${hrs === 1 ? "" : "s"}`;
+  }
+
+  const hrs = Math.floor(mins / 60);
+  const rem = mins % 60;
+  return `${hrs}h ${rem}m`;
+}
+
+
 function Dropdown({ value, items, onChange, label }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -340,71 +385,18 @@ function CategorySelector({ value, onChange, categories, onCreate }) {
   );
 }
 
-// function DurationPickerModal({
-//   current,
-//   onSelect,
-//   onClose,
-// }) {
-//   const OPTIONS = [
-//     "15 mins",
-//     "30 mins",
-//     "45 mins",
-//     "1 hour",
-//     "1.5 hours",
-//     "2 hours",
-//     "3 hours",
-//   ];
-
-//   return (
-//     <div className="sheet-backdrop" onClick={onClose}>
-//       <div
-//         className="floating-panel"
-//         onClick={(e) => e.stopPropagation()}
-//       >
-//         <div className="floating-head">
-//           <div className="floating-title">Select Duration</div>
-//           <div className="floating-actions">
-//             <button className="floating-back" onClick={onClose}>
-//               Back
-//             </button>
-//           </div>
-//         </div>
-
-//         <div className="option-grid">
-//           {OPTIONS.map((opt) => (
-//             <button
-//               key={opt}
-//               className={
-//                 "option-tile" +
-//                 (opt === current ? " is-active" : "")
-//               }
-//               onClick={() => {
-//                 onSelect(opt);
-//                 onClose();
-//               }}
-//             >
-//               <div className="option-tile-label">{opt}</div>
-//             </button>
-//           ))}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
 function DurationPickerModal({
   current,
   onSelect,
   onClose,
 }) {
-  // current is minutes (number)
+
   const initHours = Math.floor(current / 60);
   const initMins = current % 60;
 
   const [hours, setHours] = useState(initHours);
   const [mins, setMins] = useState(initMins);
 
-  // helper to clamp positive ints
   const safeNum = (val) => {
     const n = parseInt(val, 10);
     return isNaN(n) || n < 0 ? 0 : n;
@@ -465,7 +457,6 @@ function DurationPickerModal({
             className="newcat-add-btn"
             onClick={() => {
               const totalMins = hours * 60 + mins;
-              // fallback: if hours=0 and mins=0, force at least 1 min
               const finalVal = totalMins === 0 ? 1 : totalMins;
               onSelect(finalVal);
               onClose();
@@ -492,22 +483,10 @@ function HabitModal({
   const [name, setName] = useState(initial?.name || "");
   const [category, setCategory] = useState(initial?.category || "General");
   const [emoji, setEmoji] = useState(initial?.icon || "📚"); 
-  // const [duration, setDuration] = useState(initial?.duration || "30 mins");
   const [duration, setDuration] = useState(
   typeof initial?.duration === "number" ? initial.duration : 30);
   const [error, setError] = useState("");
-  // const PASTELS = [
-  //   "#ff99c8", 
-  //   "#ffac81", 
-  //   "#fcf6bd", 
-  //   "#d0f4de", 
-  //   "#a9def9", 
-  //   "#e4c1f9", 
-  // ];
-
   const [color, setColor] = useState(initial?.color || PASTELS[0]);
-
-  
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showDurationPicker, setShowDurationPicker] = useState(false);
@@ -518,7 +497,6 @@ function HabitModal({
       setName(initial?.name || "");
       setCategory(initial?.category || "General");
       setEmoji(initial?.icon || "📚");
-      // setDuration(initial?.duration || "30 mins");
       setDuration(typeof initial?.duration === "number" ? initial.duration : 30);
       setColor(initial?.color || PASTELS[0]);
       setError("");
@@ -587,13 +565,8 @@ function HabitModal({
           >
             <div className="task-row-left">
               <div className="task-row-label">DURATION</div>
-              {/* <div className="task-row-value">{duration}</div> */}
               <div className="task-row-value">
-                {duration < 60
-                  ? `${duration} mins`
-                  : duration % 60 === 0
-                    ? `${duration / 60} hour${duration === 60 ? "" : "s"}`
-                    : `${Math.floor(duration / 60)}h ${duration % 60}m`}
+                {formatDuration(duration)}
               </div>
             </div>
             <div className="task-row-chevron">›</div>
@@ -750,7 +723,6 @@ function NewCategoryModal({
             onClick={() => {
               const name = draft.trim();
               if (!name) return;
-              // now return both name + chosen color
               onAdd(name, pickedColor);
               onClose();
             }}
@@ -852,7 +824,8 @@ function CategoryPickerModal({
             />
           ))}
         </div>
-
+        
+        <div className="floating-scroll">
         <div className="option-grid">
           {categories.map((cat) => {
             const selected = cat.name === current;
@@ -897,6 +870,7 @@ function CategoryPickerModal({
             <div className="add-tile-plus">＋</div>
             <div className="option-tile-label">Add Category</div>
           </button>
+        </div>
         </div>
       </div>
     </div>
@@ -1024,8 +998,22 @@ const [categories, setCategories] = useState(() => {
         if (streakFilter === "4–7 days" && !(s >= 4 && s <= 7)) return false;
         if (streakFilter === "8+ days" && !(s >= 8)) return false;
       }
-      if (durationFilter !== "All Durations" && h.duration !== durationFilter) {
-        return false;
+      if (durationFilter !== "All Durations") {
+        const durMins = durationToMins(h.duration); 
+
+        if (isNaN(durMins)) return false;
+
+        if (durationFilter === "1–30 mins") {
+          if (!(durMins >= 1 && durMins <= 30)) return false;
+        } else if (durationFilter === "30 mins–1 hr") {
+   
+          if (!(durMins > 30 && durMins <= 60)) return false;
+        } else if (durationFilter === "1–2 hrs") {
+    
+          if (!(durMins > 60 && durMins <= 120)) return false;
+        } else if (durationFilter === "2+ hrs") {
+          if (!(durMins > 120)) return false;
+        }
       }
       return true;
     });
@@ -1208,7 +1196,7 @@ const [categories, setCategories] = useState(() => {
                                 color: "#1a1f35",}}
                               >{h.category}
                         </span>
-                        <span className="chip chip-daily">{h.duration}</span>
+                        <span className="chip chip-daily">{formatDuration(h.duration)}</span>
                       </div>
                     </div>
                   </div>
