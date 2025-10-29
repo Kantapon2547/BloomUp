@@ -14,6 +14,7 @@ export default function Sidebar() {
     const isCollapsed = saved === "1";
     setCollapsed(isCollapsed);
     document.body.classList.toggle("sidebar-collapsed", isCollapsed);
+    document.body.setAttribute("data-collapsed", isCollapsed ? "1" : "0"); 
   }, []);
 
   const toggleCollapsed = () => {
@@ -21,6 +22,7 @@ export default function Sidebar() {
       const next = !prev;
       localStorage.setItem("sidebar:collapsed", next ? "1" : "0");
       document.body.classList.toggle("sidebar-collapsed", next);
+      document.body.setAttribute("data-collapsed", next ? "1" : "0");
       return next;
     });
   };
@@ -79,7 +81,7 @@ export default function Sidebar() {
         <Item to="/home"      icon={Home}         label="Home" />
         <Item to="/habits"    icon={Target}       label="Habits" />
         <Item to="/gratitude" icon={Heart}        label="Gratitude Jar" />
-        <Item to="/calendar"  icon={CalendarDays} label="Mood Log" />
+        <Item to="/calendar"      icon={CalendarDays} label="Mood Log" />
         <Item to="/reports"   icon={BarChart3}    label="Reports" />
         <Item to="/profile"   icon={User2}        label="Profile" />
       </nav>

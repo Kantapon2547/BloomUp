@@ -1,0 +1,280 @@
+.cal-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  background: #f5f7fa;
+  font-family: "Inter", system-ui, sans-serif;
+  box-sizing: border-box;
+}
+
+.cal-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.cal-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.cal-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin-bottom: 0.2rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.cal-subtitle {
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  border: none;
+}
+
+.card-head, .card-head-only {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  margin: 0;
+  text-align: left;
+}
+
+.card-head-only {
+  gap: 10px;
+  border-bottom: none;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  width: 100%;
+  justify-content: center;
+}
+
+.card-body {
+  padding: 10px 10px;
+}
+
+.calendar-card {
+  margin-bottom: 20px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: none;
+  background: #e0e7ff;
+  color: #1f2937;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  background: #c7d2fe;
+}
+
+.week-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.week-name {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #6b7280;
+  padding: 8px 0;
+  font-weight: 600;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.day-cell {
+  aspect-ratio: 1/1;
+  border-radius: 10px;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.2s;
+  cursor: pointer;
+  min-height: 95px;
+  font-size: 1rem;
+}
+
+.day-cell:hover {
+  background: #eef2ff;
+}
+
+.day-empty {
+  background: transparent;
+  visibility: hidden;
+}
+
+.day-number {
+  font-size: 0.9rem;
+  color: #4b5563;
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-weight: 600;
+}
+
+.day-emoji {
+  font-size: 1.3rem;
+  margin-top: 8px;
+}
+
+.day-today {
+  border: 2px solid #6366f1;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 900px) {
+  .grid-2 { 
+    grid-template-columns: 1fr 1fr; 
+  }
+}
+
+/* Grid-2 card specific styling for left-aligned headings */
+.grid-2 .card-head,
+.grid-2 .card-head-only {
+  justify-content: flex-start;
+  text-align: left;
+  padding-left: 20px;
+}
+
+.grid-2 .card-title {
+  text-align: left;
+  margin: 0;
+  padding: 0;
+}
+
+.summary-list, .insights {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.summary-emoji {
+  font-size: 1.4rem;
+}
+
+.summary-text {
+  text-align: left;
+}
+
+.summary-text .summary-label {
+  font-weight: 600;
+  color: #1f2937;
+  text-align: left;
+  display: block;
+}
+
+.summary-text .summary-sub {
+  font-size: 0.9rem;
+  color: #6b7280;
+  text-align: left;
+  display: block;
+}
+
+.stat {
+  width: 12px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.stat.tough { background: #ef4444; }
+.stat.okay { background: #fbbf24; }
+.stat.good { background: #10b981; }
+.stat.great { background: #6366f1; }
+.stat.amazing { background: #f97316; }
+
+.insight-positive {
+  text-align: center;
+  background: #e0f2fe;
+  padding: 20px 95px;
+  border-radius: 12px;
+  font-weight: 700;
+  color: #0c4a6e;
+}
+
+.insight-number {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.insight-label {
+  font-size: 0.95rem;
+  color: #1e3a8a;
+  margin-top: 4px;
+}
+
+.insights-card{
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.kv {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.kv-key { 
+  color: #6b7280;
+  text-align: left;
+}
+.kv-val { 
+  font-weight: 600; 
+  color: #1f2937;
+  text-align: right;
+}

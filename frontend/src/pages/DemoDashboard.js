@@ -1,9 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import "./DemoDashboard.css"
-import { Link, useNavigate } from "react-router-dom";
-
+import "./style/DemoDashboard.css"
 
 export default function DemoDashboard() {
   const [activeMood, setActiveMood] = useState(3)
