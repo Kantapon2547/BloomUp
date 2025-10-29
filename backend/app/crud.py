@@ -112,38 +112,43 @@ def get_user_gratitude_entries(db: Session, user_id: int) -> List[dict]:
         .order_by(models.GratitudeEntry.created_at.desc())
         .all()
     )
-    
+
     return [
         {
             "id": entry.gratitude_id,
             "text": entry.body,
             "category": entry.category or "",
             "date": entry.created_at.strftime("%d/%m/%Y"),  # DD/MM/YYYY
+            "image": entry.image_url,  # Include image URL
         }
         for entry in entries
     ]
 
+
 def create_gratitude_entry(
-    db: Session, 
-    user_id: int, 
-    text: str, 
-    category: Optional[str] = None
+    db: Session,
+    user_id: int,
+    text: str,
+    category: Optional[str] = None,
+    image_url: Optional[str] = None,
 ) -> dict:
     """Create a new gratitude entry."""
     entry = models.GratitudeEntry(
         user_id=user_id,
         body=text,
         category=category,
+        image_url=image_url,
     )
     db.add(entry)
     db.commit()
     db.refresh(entry)
-    
+
     return {
         "id": entry.gratitude_id,
         "text": entry.body,
         "category": entry.category or "",
-        "date": entry.created_at.strftime("%m/%d/%Y"),
+        "date": entry.created_at.strftime("%d/%m/%Y"),
+        "image": entry.image_url,
     }
 
 
@@ -157,10 +162,10 @@ def delete_gratitude_entry(db: Session, entry_id: int, user_id: int) -> bool:
         )
         .first()
     )
-    
+
     if not entry:
         return False
-    
+
     db.delete(entry)
     db.commit()
     return True

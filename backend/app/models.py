@@ -118,10 +118,15 @@ class GratitudeEntry(Base):
     __tablename__ = "gratitude_entries"
 
     gratitude_id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"),
-                     nullable=False, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     body = Column(Text, nullable=False)
     category = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)  # NEW: Add this line
     created_at = Column(DateTime, server_default=func.now())
 
     # GratitudeEntry ↔ User
@@ -159,8 +164,6 @@ class MoodLog(Base):
         ),
     )
 
-
-# ==================== ACHIEVEMENT MODELS ====================
 
 class Achievement(Base):
     __tablename__ = "achievements"
