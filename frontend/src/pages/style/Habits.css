@@ -1193,9 +1193,17 @@ select.input.select option {
   flex-wrap: wrap;
   gap: var(--space-md);
   justify-content: center;
-  margin-top: var(--space-lg);
-  margin-bottom: var(--space-md);
+  margin-top: 2px;
+  margin-bottom: 2px;
 }
+/* 
+.color-row-cat {
+  margin-top: 8px;     
+  margin-bottom: 8px;  
+  padding-top: 8px;
+  padding-bottom: 8px;
+} */
+
 
 .color-dot-main {
   width: 40px;
@@ -1438,6 +1446,26 @@ select.input.select option {
   gap: 24px;
   max-height: 80vh;
   animation: sheetUp 0.25s ease;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 100, 255, 0.5) rgba(240, 240, 255, 0.2);
+}
+
+.floating-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.floating-panel::-webkit-scrollbar-thumb {
+  background: rgba(155, 100, 255, 0.45);
+  border-radius: 10px;
+}
+
+.floating-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(155, 100, 255, 0.65);
+}
+
+.floating-panel::-webkit-scrollbar-track {
+  background: rgba(240, 240, 255, 0.15);
 }
 
 .floating-head {
@@ -1715,4 +1743,45 @@ select.input.select option {
 .duration-input:focus {
   border-color: var(--purple-700);
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+
+
+/* keep grid the same */
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: var(--space-xl);
+  padding: var(--space-xl) var(--space-xl) var(--space-2xl);
+}
+
+/* re-center text inside tiles (you already mostly have this, just double-check) */
+.option-tile {
+  position: relative;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-xl) var(--space-lg);
+  font-size: 18px;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* the “Add Category” tile spacing */
+.add-tile {
+  border: 2px dashed rgba(124, 58, 237, 0.4);
+  box-shadow: none;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.add-tile-plus {
+  font-size: 20px;
+  color: var(--purple-700);
+  font-weight: var(--font-weight-semibold);
 }

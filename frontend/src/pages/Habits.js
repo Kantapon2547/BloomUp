@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {Plus, Pencil, Trash2, ChevronDown, Filter, Trophy, CheckCircle2, Sun, DownloadCloud} 
+import {Plus, Pencil, Trash2, ChevronDown, Filter, Trophy, CheckCircle2, Sun} 
   from "lucide-react";
 import "./style/Habits.css";
 import EmojiPicker from "emoji-picker-react";
@@ -9,7 +9,7 @@ const USE_API_DEFAULT = true;
 const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 const AUTH_TOKEN = import.meta?.env?.VITE_API_TOKEN || "";
 const LS_KEY = "habit-tracker@hybrid";
-const DURATIONS = ["15 mins", "30 mins", "45 mins", "1 hour", "1.5 hours", "2 hours", "3 hours"];
+// const DURATIONS = ["15 mins", "30 mins", "45 mins", "1 hour", "1.5 hours", "2 hours", "3 hours"];
 const CATS_LS = "habit-tracker@categories";
 // const DEFAULT_CATEGORIES = ["General", "Study", "Health", "Mind"];
 const PASTELS = [
@@ -419,9 +419,9 @@ function DurationPickerModal({
         <div className="floating-head">
           <div className="floating-title">Set Duration</div>
           <div className="floating-actions">
-            <button className="floating-back" onClick={onClose}>
+            {/* <button className="floating-back" onClick={onClose}>
               Back
-            </button>
+            </button> */}
           </div>
         </div>
 
@@ -645,8 +645,14 @@ function HabitModal({
             current={category}
             onSelect={(catName) => {
               setCategory(catName);
+
+              const picked = categories.find(c => c.name === catName);
+              if (picked?.color) {
+              setColor(picked.color);
+              }
               setShowCategoryPicker(false);
             }}
+
             onClose={() => setShowCategoryPicker(false)}
             onAddNewRequest={() => {
               setShowCategoryPicker(false);
@@ -657,16 +663,27 @@ function HabitModal({
               onDeleteCategory(catNameToDelete);
               if (category === catNameToDelete) {
                 setCategory("General");
-            }}}
+                const fallback = categories.find(c => c.name === "General");
+                setColor(fallback?.color || PASTELS[0]);
+            }
+          }}
+            onApplyColor={(catName, pastel) => {
+              onApplyCategoryColor(catName, pastel);
+              if (catName === category) {
+                setColor(pastel);
+              }
+            }}
           />
         )}
             
         {showAddCategory && (
           <NewCategoryModal
             onClose={() => setShowAddCategory(false)}
-            onAdd={(newName) => {
-              onCreateCategory(newName, color); 
+            onAdd={(newName, pickedColor) => {
+              onCreateCategory(newName, pickedColor); 
               setCategory(newName);
+              setColor(pickedColor);
+              setShowAddCategory(false);
             }}
           />
         )}
@@ -687,6 +704,7 @@ function NewCategoryModal({
   onAdd,
 }) {
   const [draft, setDraft] = useState("");
+  const [pickedColor, setPickedColor] = useState(PASTELS[0]);
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -696,9 +714,20 @@ function NewCategoryModal({
       >
         <div className="floating-head">
           <div className="floating-title">Select Category</div>
-          <button className="floating-back" onClick={onClose}>
-            Back
-          </button>
+        </div>
+
+        <div className="color-row-main color-row-cat">
+          {PASTELS.map((c) => (
+            <button
+              key={c}
+              className={
+                "color-dot-main" +
+                (c === pickedColor ? " is-selected" : "")
+              }
+              style={{ backgroundColor: c }}
+              onClick={() => setPickedColor(c)}
+            />
+          ))}
         </div>
 
         <input
@@ -721,7 +750,8 @@ function NewCategoryModal({
             onClick={() => {
               const name = draft.trim();
               if (!name) return;
-              onAdd(name);
+              // now return both name + chosen color
+              onAdd(name, pickedColor);
               onClose();
             }}
           >
@@ -732,7 +762,6 @@ function NewCategoryModal({
     </div>
   );
 }
-
 
 function EmojiPickerModal({ onClose, onSelect }) {
   return (
@@ -773,8 +802,12 @@ function CategoryPickerModal({
   onClose,
   onAddNewRequest,
   onDeleteCategory,
+  onApplyColor, 
 }) {
   const [isEditing, setIsEditing] = useState(false);
+
+  const activeCat = categories.find(c => c.name === current);
+  const activeColor = activeCat?.color || PASTELS[0];
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -802,6 +835,24 @@ function CategoryPickerModal({
           </div>
         </div>
 
+        <div className="color-row-main color-row-cat">
+          {PASTELS.map((c) => (
+            <button
+              key={c}
+              className={
+                "color-dot-main" +
+                (c === activeColor ? " is-selected" : "")
+              }
+              style={{ backgroundColor: c }}
+              onClick={() => {
+                if (activeCat) {
+                  onApplyColor(activeCat.name, c);
+                }
+              }}
+            />
+          ))}
+        </div>
+
         <div className="option-grid">
           {categories.map((cat) => {
             const selected = cat.name === current;
@@ -816,12 +867,13 @@ function CategoryPickerModal({
                   (isEditing ? " is-editing" : "")
                 }
                 onClick={() => {
-                  if (isEditing) return;
+                  if (isEditing) return; 
                   onSelect(cat.name);
                   onClose();
                 }}
               >
                 <div className="option-tile-label">{cat.name}</div>
+
                 {isEditing && !isProtected && (
                   <button
                     className="option-tile-delete"
@@ -850,7 +902,6 @@ function CategoryPickerModal({
     </div>
   );
 }
-
 export default function HabitsPage() {
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
