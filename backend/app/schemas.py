@@ -78,6 +78,7 @@ class GratitudeEntryOut(BaseModel):
     text: str = Field(validation_alias="body")
     category: Optional[str] = None
     date: str  # formatted as local date string
+    image: Optional[str] = Field(None, validation_alias="image_url")  # NEW: Add image support
 
     class Config:
         from_attributes = True

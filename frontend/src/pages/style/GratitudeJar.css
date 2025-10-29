@@ -328,7 +328,7 @@ body {
   justify-content: center;
   gap: 8px;
   padding: 10px 15px;
-  background-color: transparent;
+  background-color: white;
   border: 1px solid #d1d5db;
   border-radius: 10px;
   cursor: pointer;
