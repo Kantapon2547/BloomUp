@@ -1027,6 +1027,7 @@ select.input.select option {
   display: flex;
   flex-direction: column;
   color: #1a1f35;
+  padding: 20px;
 }
 
 .task-header {
@@ -1083,7 +1084,7 @@ select.input.select option {
 }
 
 .task-name-input {
-  width: 100%;
+  width: 90%;
   font-size: 16px;
   font-weight: var(--font-weight-medium);
   text-align: center;
@@ -1091,11 +1092,13 @@ select.input.select option {
   background: transparent;
   color: var(--text-primary);
   outline: none;
-  border-bottom: 2px solid transparent;
+  border-bottom: 2px solid;
+  border-bottom-color: rgba(226, 209, 255, 0.35);
   padding: var(--space-sm);
 }
 
 .task-name-input:focus {
+  border-bottom: 2px solid;
   border-bottom-color: rgba(124, 58, 237, 0.35);
 }
 
@@ -1107,7 +1110,7 @@ select.input.select option {
 }
 
 .task-fields {
-  background: var(--purple-50);
+  /* background: var(--purple-50); */
   border-top: 1px solid rgba(0, 0, 0, 0.04);
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
   padding: var(--space-sm) 0;
@@ -1342,7 +1345,7 @@ select.input.select option {
     flex-direction: column;
     gap: 10px;
   }
-} */
+} 
 
 @media (max-width: 520px) {
   .grid-3 {
@@ -1418,7 +1421,7 @@ select.input.select option {
 }
 
 .task-emoji-hint {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-muted);
   margin-top: 8px;
   margin-bottom: 16px;
@@ -1446,7 +1449,6 @@ select.input.select option {
   justify-content: space-between;
   padding: 16px 20px 12px;
   border-bottom: 1px solid rgba(0,0,0,0.06);
-
 }
 .floating-title {
   font-size: 18px;

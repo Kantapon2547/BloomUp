@@ -467,7 +467,7 @@ export default function Reports() {
               </button>
               <span>
                 {periodMode === "week"
-                  ? `${period.start.toLocaleDateString()} – ${period.end.toLocaleDateString()}`
+                  ? `${period.start.toLocaleDateString("en-GB")} – ${period.end.toLocaleDateString("en-GB")}`                  
                   : period.start.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
               </span>
               <button onClick={() => setCursor(addDays(period.end, periodMode === "week" ? 7 : 30))}>
