@@ -108,6 +108,36 @@ const GratitudeDetailModal = ({ entry, onClose }) => {
     );
 };
 
+
+const StatCard = ({ children, className }) => {
+    const ref = useRef(null);
+    const [visible, setVisible] = useState(false);
+  
+    useEffect(() => {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setVisible(true);
+            observer.disconnect();
+          }
+        },
+        { threshold: 0.3 }
+      );
+  
+      if (ref.current) observer.observe(ref.current);
+  
+      return () => observer.disconnect();
+    }, []);
+  
+    return (
+      <div
+        ref={ref}
+        className={`stat-card ${className} ${visible ? "visible" : ""}`}
+      >
+        {children}
+      </div>
+    );
+  };
 // The entry form, designed to appear inside the jar as per your sketch
 const InJarEntryForm = ({ onAddEntry }) => {
     const [text, setText] = useState("");
@@ -257,7 +287,6 @@ const GratitudeJar = () => {
     return (
         <div className="app-container">
 
-            {/* This is the top section that fills the screen initially */}
             <section className="main-content">
                 <div className="jar-area">
                     <img src={jarImage} alt="Gratitude Jar" className="jar-image" />
@@ -275,43 +304,46 @@ const GratitudeJar = () => {
 
             {/* This is the section that appears when you scroll down */}
             <section className="collection-section">
-                <div className="stats-container">
-                    {/* ✨ 2. ANIMATED STATS CARDS */}
-                    <motion.div
-                        className="stat-card purple"
-                        initial={{ opacity: 0, y: 50 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6, ease: "easeOut" }}
-                    >
-                        <h2>{entries.length}</h2>
-                        <p>Total Entries</p>
-                    </motion.div>
-                    <motion.div
-                        className="stat-card blue"
-                        initial={{ opacity: 0, y: 50 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-                    >
-                        <h2>{entries.filter((e) => e.date === today).length}</h2>
-                        <p>Added Today</p>
-                    </motion.div>
-                </div>
+                
+            <div className="stats-container">
+  <StatCard className="purple">
+    <h2>{entries.length}</h2>
+    <p>Total Entries</p>
+  </StatCard>
+
+  <StatCard className="blue">
+    <h2>{entries.filter((e) => e.date === today).length}</h2>
+    <p>Added Today</p>
+  </StatCard>
+</div>
+
 
                 <h2 className="collection-title">Your Gratitude</h2>
                 <div className="entries-grid">
-  {entries.map((entry, index) => (
-    <EntryCard
-      key={entry.id}
-      entry={entry}
-      index={index}
-      handleCardClick={handleCardClick}
-      deleteEntry={deleteEntry}
-    />
-  ))}
-</div>
-
+                    {/* ✨ 3. ANIMATED & STAGGERED ENTRY CARDS */}
+                    {entries.map((entry, index) => (
+                        <motion.div
+                            key={entry.id}
+                            id={`entry-${entry.id}`}
+                            className="entry-card"
+                            onClick={() => handleCardClick(entry)}
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5, delay: index * 0.1 }}
+                        >
+                            {entry.image && <ExternalLink className="open-in-new-icon" title="This entry has an image" />}
+                            <div className="entry-content">
+                                <div className="entry-header">
+                                    <span className={`category ${categoryColors[entry.category] || "general"}`}>{entry.category}</span>
+                                    <span className="date">{entry.date}</span>
+                                </div>
+                                <p className="entry-text">{entry.text}</p>
+                                <Trash2 className="delete-icon" onClick={(e) => { e.stopPropagation(); deleteEntry(entry.id); }} title="Delete entry" />
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
             </section>
 
             {selectedEntry && <GratitudeDetailModal entry={selectedEntry} onClose={handleCloseModal} />}
