@@ -1675,3 +1675,44 @@ select.input.select option {
 }
 
 
+
+.duration-form {
+  display: flex;
+  gap: 16px;
+  padding: 24px;
+  flex-wrap: wrap;
+}
+
+.duration-field {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 120px;
+}
+
+.duration-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.duration-input {
+  font-size: 16px;
+  font-weight: 500;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  outline: none;
+  transition: all var(--transition-base);
+  width: 100px;
+}
+
+.duration-input:focus {
+  border-color: var(--purple-700);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}

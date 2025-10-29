@@ -10,9 +10,16 @@ const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 const AUTH_TOKEN = import.meta?.env?.VITE_API_TOKEN || "";
 const LS_KEY = "habit-tracker@hybrid";
 const DURATIONS = ["15 mins", "30 mins", "45 mins", "1 hour", "1.5 hours", "2 hours", "3 hours"];
-
 const CATS_LS = "habit-tracker@categories";
-const DEFAULT_CATEGORIES = ["General", "Study", "Health", "Mind"];
+// const DEFAULT_CATEGORIES = ["General", "Study", "Health", "Mind"];
+const PASTELS = [
+  "#ff99c8",
+  "#ffac81",
+  "#fcf6bd",
+  "#d0f4de",
+  "#a9def9",
+  "#e4c1f9",
+];
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -35,7 +42,7 @@ const normalizeHabit = (h) => ({
   name: h.name ?? "",
   category: h.category ?? "General",
   icon: h.icon ?? "📚",
-  duration: h.duration ?? "30 mins",
+  duration: h.duration ?? 30,
   color: h.color ?? "#ede9ff",
   history: h.history ?? {},
 });
@@ -333,20 +340,75 @@ function CategorySelector({ value, onChange, categories, onCreate }) {
   );
 }
 
+// function DurationPickerModal({
+//   current,
+//   onSelect,
+//   onClose,
+// }) {
+//   const OPTIONS = [
+//     "15 mins",
+//     "30 mins",
+//     "45 mins",
+//     "1 hour",
+//     "1.5 hours",
+//     "2 hours",
+//     "3 hours",
+//   ];
+
+//   return (
+//     <div className="sheet-backdrop" onClick={onClose}>
+//       <div
+//         className="floating-panel"
+//         onClick={(e) => e.stopPropagation()}
+//       >
+//         <div className="floating-head">
+//           <div className="floating-title">Select Duration</div>
+//           <div className="floating-actions">
+//             <button className="floating-back" onClick={onClose}>
+//               Back
+//             </button>
+//           </div>
+//         </div>
+
+//         <div className="option-grid">
+//           {OPTIONS.map((opt) => (
+//             <button
+//               key={opt}
+//               className={
+//                 "option-tile" +
+//                 (opt === current ? " is-active" : "")
+//               }
+//               onClick={() => {
+//                 onSelect(opt);
+//                 onClose();
+//               }}
+//             >
+//               <div className="option-tile-label">{opt}</div>
+//             </button>
+//           ))}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
 function DurationPickerModal({
   current,
   onSelect,
   onClose,
 }) {
-  const OPTIONS = [
-    "15 mins",
-    "30 mins",
-    "45 mins",
-    "1 hour",
-    "1.5 hours",
-    "2 hours",
-    "3 hours",
-  ];
+  // current is minutes (number)
+  const initHours = Math.floor(current / 60);
+  const initMins = current % 60;
+
+  const [hours, setHours] = useState(initHours);
+  const [mins, setMins] = useState(initMins);
+
+  // helper to clamp positive ints
+  const safeNum = (val) => {
+    const n = parseInt(val, 10);
+    return isNaN(n) || n < 0 ? 0 : n;
+  };
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -355,7 +417,7 @@ function DurationPickerModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="floating-head">
-          <div className="floating-title">Select Duration</div>
+          <div className="floating-title">Set Duration</div>
           <div className="floating-actions">
             <button className="floating-back" onClick={onClose}>
               Back
@@ -363,22 +425,54 @@ function DurationPickerModal({
           </div>
         </div>
 
-        <div className="option-grid">
-          {OPTIONS.map((opt) => (
-            <button
-              key={opt}
-              className={
-                "option-tile" +
-                (opt === current ? " is-active" : "")
-              }
-              onClick={() => {
-                onSelect(opt);
-                onClose();
+        <div className="duration-form">
+          <div className="duration-field">
+            <label className="duration-label">Hours</label>
+            <input
+              className="duration-input"
+              type="number"
+              min="0"
+              value={hours}
+              onChange={(e) => setHours(safeNum(e.target.value))}
+            />
+          </div>
+
+          <div className="duration-field">
+            <label className="duration-label">Minutes</label>
+            <input
+              className="duration-input"
+              type="number"
+              min="0"
+              max="59"
+              value={mins}
+              onChange={(e) => {
+                const v = safeNum(e.target.value);
+                setMins(v > 59 ? 59 : v);
               }}
-            >
-              <div className="option-tile-label">{opt}</div>
-            </button>
-          ))}
+            />
+          </div>
+        </div>
+
+        <div className="newcat-actions">
+          <button
+            className="newcat-cancel-btn"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+
+          <button
+            className="newcat-add-btn"
+            onClick={() => {
+              const totalMins = hours * 60 + mins;
+              // fallback: if hours=0 and mins=0, force at least 1 min
+              const finalVal = totalMins === 0 ? 1 : totalMins;
+              onSelect(finalVal);
+              onClose();
+            }}
+          >
+            Save
+          </button>
         </div>
       </div>
     </div>
@@ -398,16 +492,18 @@ function HabitModal({
   const [name, setName] = useState(initial?.name || "");
   const [category, setCategory] = useState(initial?.category || "General");
   const [emoji, setEmoji] = useState(initial?.icon || "📚"); 
-  const [duration, setDuration] = useState(initial?.duration || "30 mins");
+  // const [duration, setDuration] = useState(initial?.duration || "30 mins");
+  const [duration, setDuration] = useState(
+  typeof initial?.duration === "number" ? initial.duration : 30);
   const [error, setError] = useState("");
-  const PASTELS = [
-    "#ff99c8", 
-    "#ffac81", 
-    "#fcf6bd", 
-    "#d0f4de", 
-    "#a9def9", 
-    "#e4c1f9", 
-  ];
+  // const PASTELS = [
+  //   "#ff99c8", 
+  //   "#ffac81", 
+  //   "#fcf6bd", 
+  //   "#d0f4de", 
+  //   "#a9def9", 
+  //   "#e4c1f9", 
+  // ];
 
   const [color, setColor] = useState(initial?.color || PASTELS[0]);
 
@@ -422,7 +518,8 @@ function HabitModal({
       setName(initial?.name || "");
       setCategory(initial?.category || "General");
       setEmoji(initial?.icon || "📚");
-      setDuration(initial?.duration || "30 mins");
+      // setDuration(initial?.duration || "30 mins");
+      setDuration(typeof initial?.duration === "number" ? initial.duration : 30);
       setColor(initial?.color || PASTELS[0]);
       setError("");
       setShowEmojiPicker(false);
@@ -458,7 +555,7 @@ function HabitModal({
             }}
           />
           {error && <div className="field-error">{error}</div>}
-          <div className="color-row-main">
+          {/* <div className="color-row-main">
             {PASTELS.map((c) => (
               <button
                 key={c}
@@ -467,7 +564,7 @@ function HabitModal({
                 onClick={() => setColor(c)}
                 />
                 ))}
-              </div>
+              </div> */}
         </div>
 
         <div className="task-fields">
@@ -490,7 +587,14 @@ function HabitModal({
           >
             <div className="task-row-left">
               <div className="task-row-label">DURATION</div>
-              <div className="task-row-value">{duration}</div>
+              {/* <div className="task-row-value">{duration}</div> */}
+              <div className="task-row-value">
+                {duration < 60
+                  ? `${duration} mins`
+                  : duration % 60 === 0
+                    ? `${duration / 60} hour${duration === 60 ? "" : "s"}`
+                    : `${Math.floor(duration / 60)}h ${duration % 60}m`}
+              </div>
             </div>
             <div className="task-row-chevron">›</div>
           </button>
@@ -998,9 +1102,21 @@ const [categories, setCategories] = useState(() => {
           />
           <Dropdown
             value={durationFilter}
-            items={["All Durations", ...DURATIONS]}
+            items={[
+              "All Durations",
+              "1–30 mins",
+              "30 mins–1 hr",
+              "1–2 hrs",
+              "2+ hrs",
+            ]}
             onChange={setDurationFilter}
           />
+
+          {/* <Dropdown
+            value={durationFilter}
+            items={["All Durations", ...DURATIONS]}
+            onChange={setDurationFilter}
+          /> */}
         </div>
       </section>
 
