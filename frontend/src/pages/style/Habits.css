@@ -88,7 +88,7 @@ html, body {
 }
 
 body {
-  background: radial-gradient(1200px 220px at 50% 0, rgba(124, 58, 237, 0.06), transparent 65%) var(--bg);
+  background:#e4dbf2;
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 15px;
@@ -332,12 +332,29 @@ body {
   overflow: hidden;
 }
 
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
 .progress__bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--purple-700) 0%, var(--purple-600) 100%);
+  background: linear-gradient(
+    90deg,
+    #a78bfa,
+    #8b5cf6,
+    #7c3aed,
+    #c084fc,
+    #9333ea
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
   border-radius: var(--radius-full);
   transition: width 0.3s ease;
+  box-shadow: 0 0 12px rgba(147, 51, 234, 0.3);
 }
+
+
 
 .progress-wrap {
   position: relative;
