@@ -354,8 +354,6 @@ body {
   box-shadow: 0 0 12px rgba(147, 51, 234, 0.3);
 }
 
-
-
 .progress-wrap {
   position: relative;
 }
@@ -369,7 +367,7 @@ body {
   font-size: 28px;
 }
 
-/* ===== STATS ===== */
+/* ===== STATS CARD ===== */
 .summary-stats {
   display: grid;
   gap: var(--space-lg);
