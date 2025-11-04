@@ -1,8 +1,8 @@
 :root {
-  --violet-50: #ede9fe;
+  --violet-50: #f1f8e8;
   --violet-100: #e9d5ff;
-  --violet-400: #a78bfa;
-  --violet-600: #7c3aed;
+  --violet-400: #95d2b3;
+  --violet-600: #55ad9b;
   --bg: #f5f6ff;
   --card: #ffffff;
   --g200: #e5e7eb;
@@ -15,7 +15,7 @@
 
 /* ==== Page Layout ==== */
 .reports-root {
-  background: linear-gradient(to right, #ede9fe, #dbeafe);
+  background: #d8efd3;
   min-height: 100vh;
   display: flex;
   justify-content: center;
