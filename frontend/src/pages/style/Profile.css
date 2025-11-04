@@ -133,10 +133,19 @@ body.profile-page-active {
   line-height: 0.5;
 }
 
+.profile-header-actions {
+  display: flex;
+  flex-direction: column; /* This stacks the buttons vertically */
+  gap: 0.5rem; /* This adds a small space between the buttons */
+  align-items: flex-start; /* Aligns buttons to the left */
+}
+
+/* --- Restored Original Button Styles --- */
 .profile-logout-btn {
-  display: inline-flex;      
-  align-items: center;        
-  gap: 0.5rem; 
+  display: inline-flex;
+  align-items: center;
+  width: 90px;
+  gap: 0.5rem;
   background: white;
   border: 2px solid #ffe4ec;
   border-radius: 10px;
@@ -151,6 +160,27 @@ body.profile-page-active {
   background: #fffdfd;
   box-shadow: 0 2px 10px rgba(233, 30, 99, 0.2);
 }
+
+.profile-share-btn {
+  display: inline-flex;
+  align-items: center;
+  width: 90px;
+  gap: 0.5rem;
+  background: white;
+  border: 2px solid #ffe4ec;
+  border-radius: 10px;
+  color: #e91e63;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 5px;
+  padding-right: 7px;
+}
+
+.profile-share-btn:hover {
+  background: #fffdfd;
+  box-shadow: 0 2px 10px rgba(233, 30, 99, 0.2);
+}
+/* --- End of Restored Styles --- */
 
 .profile-bio-text {
   color: #8b5f7c;
@@ -747,28 +777,28 @@ body.profile-page-active {
     padding: 1.25rem;
     gap: 1.2rem;
   }
-  
+
   .profile-card {
     padding: 1.4rem;
   }
-  
+
   .profile-header-content {
     flex-direction: column;
     text-align: center;
     gap: 1.3rem;
   }
-  
+
   .profile-image-section {
     display: flex;
     justify-content: center;
   }
-  
+
   .profile-info-section {
     text-align: center;
     align-items: center;
     gap: 0.7rem;
   }
-  
+
   .profile-header-top {
     flex-direction: column;
     align-items: center;
@@ -776,36 +806,36 @@ body.profile-page-active {
     gap: 0.9rem;
     width: 100%;
   }
-  
+
   .profile-tags {
     flex-direction: column;
     align-items: center;
     gap: 0.7rem;
   }
-  
+
   .content-grid {
     grid-template-columns: 1fr;
     gap: 1.2rem;
   }
-  
+
   .profile-stats-cards-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.9rem;
   }
-  
+
   .profile-stat-card {
     padding: 1.4rem 0.9rem;
   }
-  
+
   .stat-number {
     font-size: 1.6rem;
   }
-  
+
   .profile-modal-content {
     margin: 1rem;
     padding: 1.6rem;
   }
-  
+
   .edit-buttons {
     flex-direction: column;
   }
@@ -817,3 +847,81 @@ body.profile-page-active {
     margin: 0 auto;
   }
 }
+
+/* ======== START: CSS FOR GRATITUDE SHARE MODAL ======== */
+
+.share-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(245, 210, 230, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1001;
+  padding: 1rem;
+  backdrop-filter: blur(3px);
+}
+
+.share-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.gratitude-card-shareable {
+  background: linear-gradient(135deg, #fefafc 0%, #fff0f8 100%);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 10px 30px rgba(233, 30, 99, 0.1);
+  border: 1px solid white;
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  color: #4e1b47;
+}
+
+.gratitude-card-header {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #c2185b;
+}
+
+.gratitude-card-body p {
+  font-size: 1.5rem;
+  font-style: italic;
+  line-height: 1.6;
+  margin: 0;
+  color: #6a2a5f;
+}
+
+.gratitude-card-footer {
+  margin-top: 2rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #e8c3d5;
+}
+
+.share-modal-actions {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.share-action-btn {
+  background-color: #e91e63;
+  color: white;
+}
+.share-action-btn:hover { background-color: #c2185b; }
+
+.cancel-action-btn {
+  background-color: #fce4ec;
+  color: #c2185b;
+}
+.cancel-action-btn:hover { background-color: #f8bbd0; }
