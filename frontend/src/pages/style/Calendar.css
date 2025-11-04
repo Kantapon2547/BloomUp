@@ -3,7 +3,7 @@
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;
-  background: #f5f7fa;
+  background: #FDF4CB;
   font-family: "Inter", system-ui, sans-serif;
   box-sizing: border-box;
 }
@@ -41,33 +41,45 @@
 }
 
 .card {
-  background: white;
+  background: #fffdf9;
   border-radius: 16px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.08);
   border: none;
 }
 
-.card-head, .card-head-only {
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px;
+  border-bottom: 1px solid #FCEFB4;
+  margin: 0;
+  text-align: center;
+  min-height: 60px;
+  background: #FAE588;
+  border-radius: 16px 16px 0 0;
+}
+
+.card-head-only {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 15px 20px;
-  border-bottom: 1px solid #f0f0f0;
-  margin: 0;
-  text-align: left;
-}
-
-.card-head-only {
-  gap: 10px;
   border-bottom: none;
+  margin: 0;
+  text-align: center;
+  gap: 10px;
+  min-height: 50px;
+  border-radius: 16px 16px 0 0;
 }
 
 .card-title {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 700;
-  width: 100%;
-  justify-content: center;
+  text-align: center;
+  line-height: 1.4;
+  color: #4b362c;
 }
 
 .card-body {
@@ -83,17 +95,26 @@
   height: 36px;
   border-radius: 12px;
   border: none;
-  background: #e0e7ff;
+  background: #fff3bf;
   color: #1f2937;
   font-size: 1.2rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
 }
 
-.icon-btn:hover {
-  background: #c7d2fe;
+.icon-btn:hover:not(:disabled) {
+  background: #FCEFB4;
+  transform: scale(1.05);
+}
+
+.icon-btn:disabled {
+  background: #FCEFB4;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .week-header {
@@ -106,9 +127,9 @@
 .week-name {
   text-align: center;
   font-size: 0.95rem;
-  color: #6b7280;
+  color: #795c44;
   padding: 8px 0;
-  font-weight: 600;
+  font-weight: 550;
 }
 
 .cal-grid {
@@ -120,7 +141,7 @@
 .day-cell {
   aspect-ratio: 1/1;
   border-radius: 10px;
-  background: #f9fafb;
+  background: #fffdf2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -130,15 +151,23 @@
   cursor: pointer;
   min-height: 95px;
   font-size: 1rem;
+  border: 1.3px solid #FCEFB4;
+}
+
+.day-cell {
+  --mood-color: #FDF4CB;
 }
 
 .day-cell:hover {
-  background: #eef2ff;
+  background: color-mix(in srgb, var(--mood-color) 30%, #ffffff 70%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .day-empty {
   background: transparent;
   visibility: hidden;
+  border: none;
 }
 
 .day-number {
@@ -156,7 +185,8 @@
 }
 
 .day-today {
-  border: 2px solid #6366f1;
+  border: 2px solid #F9DC5C;
+  background: #ffffff;
 }
 
 .grid-2 {
@@ -171,16 +201,16 @@
   }
 }
 
-/* Grid-2 card specific styling for left-aligned headings */
+/* left-aligned headings */
 .grid-2 .card-head,
 .grid-2 .card-head-only {
-  justify-content: flex-start;
-  text-align: left;
-  padding-left: 20px;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
 }
 
 .grid-2 .card-title {
-  text-align: left;
+  text-align: center;
   margin: 0;
   padding: 0;
 }
@@ -188,76 +218,96 @@
 .summary-list, .insights {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 15px;
 }
 
 .summary-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .summary-left {
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: space-between;
 }
 
 .summary-emoji {
   font-size: 1.4rem;
+  flex-shrink: 0;
 }
 
 .summary-text {
   text-align: left;
+  flex: 1;
+  margin-left: 12px;
 }
 
 .summary-text .summary-label {
   font-weight: 600;
   color: #1f2937;
   text-align: left;
-  display: block;
+  display: inline;
 }
 
-.summary-text .summary-sub {
-  font-size: 0.9rem;
+.summary-count {
+  font-size: 0.85rem;
   color: #6b7280;
-  text-align: left;
-  display: block;
+  font-weight: 400;
+  margin-left: 8px;
 }
 
-.stat {
-  width: 12px;
-  height: 32px;
-  border-radius: 6px;
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.stat.tough { background: #ef4444; }
-.stat.okay { background: #fbbf24; }
-.stat.good { background: #10b981; }
-.stat.great { background: #6366f1; }
-.stat.amazing { background: #f97316; }
+.progress-bar-container {
+  flex: 1;
+  height: 8.5px;
+  background: #fff5c9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-percentage {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+  min-width: 35px;
+  text-align: right;
+}
 
 .insight-positive {
   text-align: center;
-  background: #e0f2fe;
-  padding: 20px 95px;
-  border-radius: 12px;
-  font-weight: 700;
-  color: #0c4a6e;
+  background: #fff3bf;
+  padding: 18px 90px;
+  border-radius: 13px;
+  font-weight: 650;
+  color: #1f2937;
+  margin-bottom: 16px;
 }
 
 .insight-number {
   font-size: 2rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .insight-label {
   font-size: 0.95rem;
-  color: #1e3a8a;
-  margin-top: 4px;
+  color: #1f2937;
+  margin-top: 2px;
 }
 
-.insights-card{
+.insights-card {
   padding-top: 0;
   margin-top: 0;
 }
@@ -267,12 +317,14 @@
   justify-content: space-between;
   font-size: 0.95rem;
   text-align: left;
+  padding-top: 16px;
 }
 
 .kv-key { 
   color: #6b7280;
   text-align: left;
 }
+
 .kv-val { 
   font-weight: 600; 
   color: #1f2937;
