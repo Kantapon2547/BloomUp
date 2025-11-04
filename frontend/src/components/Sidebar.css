@@ -2,7 +2,6 @@
   --violet-50:#f3e8ff; --violet-100:#e9d5ff; --violet-600:#7c3aed;
   --gray-200:#e5e7eb; --gray-400:#9ca3af; --gray-700:#374151; --gray-900:#111827;
   --white:#fff;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.06);
 }
 
 body.sidebar-collapsed .habits-grid{
@@ -78,6 +77,20 @@ body.sidebar-collapsed .habits-grid{
 .sb.is-collapsed .sb-item[data-tooltip]:hover::before{
   content:""; position:absolute; left:62px; top:50%; transform: translateY(-50%);
   border:6px solid transparent; border-right-color:#111827;
+}
+
+.with-sidebar {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 260px 1fr;  
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+body.sidebar-collapsed .with-sidebar {
+  grid-template-columns: 72px 1fr !important;
 }
 
 @media (max-width: 900px){

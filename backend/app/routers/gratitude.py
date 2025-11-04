@@ -1,9 +1,10 @@
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from .. import schemas, crud, models
+from .. import crud, models, schemas
 from ..db import get_db
 from ..security import get_current_user
 from ..services.achievement_checker import check_gratitude_achievements
@@ -33,21 +34,18 @@ def create_gratitude_entry(
 ):
     """Create a new gratitude entry."""
     if not payload.text.strip():
-        raise HTTPException(
-            status_code=422,
-            detail="Gratitude text cannot be empty"
-        )
-    
+        raise HTTPException(status_code=422, detail="Gratitude text cannot be empty")
+
     result = crud.create_gratitude_entry(
         db,
         user_id=current_user.user_id,
         text=payload.text.strip(),
         category=payload.category if payload.category else None,
     )
-    
+
     # Check achievements after creating entry
     check_gratitude_achievements(db, current_user.user_id)
-    
+
     return result
 
 
@@ -61,11 +59,10 @@ def delete_gratitude_entry(
     ok = crud.delete_gratitude_entry(db, entry_id, current_user.user_id)
     if not ok:
         raise HTTPException(
-            status_code=404,
-            detail="Gratitude entry not found or not owned by user"
+            status_code=404, detail="Gratitude entry not found or not owned by user"
         )
-    
+
     # Check achievements after deleting entry
     check_gratitude_achievements(db, current_user.user_id)
-    
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)

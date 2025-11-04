@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import "./style/GratitudeJar.css";
 import { Trash2, ImagePlus, X, ExternalLink, Send } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, } from "framer-motion"; 
 
 // 1. IMPORT ASSETS
 import jarImage from '../assets/jar-wo-lid.png';
@@ -32,7 +32,49 @@ const AnimatedNewStar = ({ onAnimationEnd }) => {
     />
   );
 };
-
+const EntryCard = ({ entry, index, handleCardClick, deleteEntry }) => {
+    const ref = useRef(null);
+    const [visible, setVisible] = useState(false);
+  
+    useEffect(() => {
+      const observer = new IntersectionObserver(
+        ([entryObserver]) => {
+          if (entryObserver.isIntersecting) {
+            setVisible(true);
+            observer.disconnect();
+          }
+        },
+        { threshold: 0.1 }
+      );
+      if (ref.current) observer.observe(ref.current);
+  
+      return () => observer.disconnect();
+    }, []);
+  
+    return (
+      <div
+        ref={ref}
+        className={`entry-card ${visible ? "visible" : ""}`}
+        style={{ transitionDelay: `${index * 100}ms` }}
+        onClick={() => handleCardClick(entry)}
+      >
+        {entry.image && <ExternalLink className="open-in-new-icon" title="This entry has an image" />}
+        <div className="entry-content">
+          <div className="entry-header">
+            <span className={`category ${entry.category}`}>{entry.category}</span>
+            <span className="date">{entry.date}</span>
+          </div>
+          <p className="entry-text">{entry.text}</p>
+          <Trash2
+            className="delete-icon"
+            onClick={(e) => { e.stopPropagation(); deleteEntry(entry.id); }}
+            title="Delete entry"
+          />
+        </div>
+      </div>
+    );
+  };
+  
 // Component for the modal that shows entry details
 const GratitudeDetailModal = ({ entry, onClose }) => {
     useEffect(() => {
@@ -259,30 +301,17 @@ const GratitudeJar = () => {
 
                 <h2 className="collection-title">Your Gratitude</h2>
                 <div className="entries-grid">
-                    {/* ✨ 3. ANIMATED & STAGGERED ENTRY CARDS */}
-                    {entries.map((entry, index) => (
-                        <motion.div
-                            key={entry.id}
-                            id={`entry-${entry.id}`}
-                            className="entry-card"
-                            onClick={() => handleCardClick(entry)}
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5, delay: index * 0.1 }}
-                        >
-                            {entry.image && <ExternalLink className="open-in-new-icon" title="This entry has an image" />}
-                            <div className="entry-content">
-                                <div className="entry-header">
-                                    <span className={`category ${categoryColors[entry.category] || "general"}`}>{entry.category}</span>
-                                    <span className="date">{entry.date}</span>
-                                </div>
-                                <p className="entry-text">{entry.text}</p>
-                                <Trash2 className="delete-icon" onClick={(e) => { e.stopPropagation(); deleteEntry(entry.id); }} title="Delete entry" />
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
+  {entries.map((entry, index) => (
+    <EntryCard
+      key={entry.id}
+      entry={entry}
+      index={index}
+      handleCardClick={handleCardClick}
+      deleteEntry={deleteEntry}
+    />
+  ))}
+</div>
+
             </section>
 
             {selectedEntry && <GratitudeDetailModal entry={selectedEntry} onClose={handleCloseModal} />}

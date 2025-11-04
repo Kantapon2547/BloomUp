@@ -1,15 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import schemas, models
+from .. import models, schemas
 from ..db import get_db
-from ..security import hash_password, verify_password, create_access_token
+from ..security import create_access_token, hash_password, verify_password
 from ..services.achievement_checker import (
-    initialize_user_achievements, 
-    check_all_achievements
+    check_all_achievements,
+    initialize_user_achievements,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
 
 @router.post("/signup", response_model=schemas.UserOut)
 def signup(payload: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -26,14 +27,15 @@ def signup(payload: schemas.UserCreate, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
-    
+
     # Initialize achievements for new user
     initialize_user_achievements(db, user.user_id)
-    
+
     # Check all achievements to calculate initial progress
     check_all_achievements(db, user.user_id)
-    
+
     return user
+
 
 @router.post("/login", response_model=schemas.Token)
 def login(payload: schemas.UserLogin, db: Session = Depends(get_db)):

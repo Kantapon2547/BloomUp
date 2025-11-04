@@ -407,11 +407,11 @@ export default function Home({ user }) {
   useEffect(() => {
     const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
     gsap.set([".home-header", ".left-col > div", ".right-col > div"], { opacity: 1 });
-    
+
     tl.from(headerRef.current, { y: -50, opacity: 0, duration: 0.8 })
       .from(".left-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.5")
       .from(".right-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.7");
-  }, []);
+  }, [user?.email]);
 
   // Animate progress bar when percentage changes
   useEffect(() => {

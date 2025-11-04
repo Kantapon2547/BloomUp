@@ -84,7 +84,7 @@ docker-compose down -v
 - React + Next.js (fast, responsive, server-side rendering)  
 
 **Backend**  
-- Node.js with FAST API (auth, profile, CRUD habits, admin ops)  
+- FAST API (auth, profile, CRUD habits, admin ops)  
 
 **Database**  
 - PostgreSQL (flexible schema for evolving features)  

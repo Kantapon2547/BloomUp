@@ -1,6 +1,8 @@
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from typing import Optional, Dict, List, Any
-from datetime import date, datetime  
+from datetime import date, datetime
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
 
 # User
 class UserBase(BaseModel):
@@ -9,12 +11,15 @@ class UserBase(BaseModel):
     bio: Optional[str] = None
     profile_picture: Optional[str] = None
 
+
 class UserCreate(UserBase):
-    password: str   # raw password when creating
+    password: str  # raw password when creating
+
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -22,27 +27,30 @@ class UserUpdate(BaseModel):
     profile_picture: Optional[str] = None
     password: Optional[str] = None
 
+
 class UserOut(BaseModel):
-    user_id: int  
+    user_id: int
     name: str
     email: str
     bio: Optional[str] = None
     profile_picture: Optional[str] = None
-    created_at: datetime 
-    
+    created_at: datetime
+
     class Config:
         from_attributes = True
+
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
 
-# Habit 
+# Habit
 class HabitCreate(BaseModel):
     name: str
     category: str = "general"
     is_active: bool = True
+
 
 class HabitOut(BaseModel):
     habit_id: int
@@ -54,7 +62,7 @@ class HabitOut(BaseModel):
     best_streak: int
     is_active: bool
     history: Dict[str, bool] = Field(default_factory=dict)
-    
+
     class Config:
         from_attributes = True
 
@@ -64,12 +72,13 @@ class GratitudeEntryCreate(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
     category: Optional[str] = None
 
+
 class GratitudeEntryOut(BaseModel):
     id: int = Field(validation_alias="gratitude_id")
     text: str = Field(validation_alias="body")
     category: Optional[str] = None
     date: str  # formatted as local date string
-    
+
     class Config:
         from_attributes = True
         populate_by_name = True
@@ -81,9 +90,11 @@ class MoodLogCreate(BaseModel):
     note: Optional[str] = Field(None, max_length=500)
     logged_on: Optional[date] = None
 
+
 class MoodLogUpdate(BaseModel):
     mood_score: Optional[int] = Field(None, ge=1, le=10)
     note: Optional[str] = Field(None, max_length=500)
+
 
 class MoodLogOut(BaseModel):
     mood_id: int
@@ -91,7 +102,7 @@ class MoodLogOut(BaseModel):
     mood_score: int
     logged_on: date
     note: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -104,7 +115,7 @@ class AchievementRequirementOut(BaseModel):
     target_value: Optional[int] = None
     unit: Optional[str] = None
     extra_meta: Optional[Dict[str, Any]] = Field(default_factory=dict)
-    
+
     class Config:
         from_attributes = True
 
@@ -120,7 +131,7 @@ class AchievementOut(BaseModel):
     requirements: List[AchievementRequirementOut] = []
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -137,13 +148,14 @@ class UserAchievementOut(BaseModel):
     achievement: AchievementOut
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 
 class UserAchievementSummary(BaseModel):
     """Simplified achievement summary for profile"""
+
     achievement_id: int
     title: str
     description: Optional[str] = None
@@ -153,7 +165,6 @@ class UserAchievementSummary(BaseModel):
     earned_date: Optional[datetime] = None
     progress: int
     progress_unit_value: int
-    
+
     class Config:
         from_attributes = True
-        
