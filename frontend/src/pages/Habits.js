@@ -3,7 +3,7 @@ import {Plus, Pencil, Trash2, ChevronDown, Filter, Trophy, CheckCircle2, Sun}
   from "lucide-react";
 import "./style/Habits.css";
 import EmojiPicker from "emoji-picker-react";
-
+import confetti from "canvas-confetti";
 
 const USE_API_DEFAULT = true;
 const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
@@ -288,103 +288,6 @@ function Dropdown({ value, items, onChange, label }) {
   );
 }
 
-function CategorySelector({ value, onChange, categories, onCreate }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [showInput, setShowInput] = useState(false);
-  const ref = useRef(null);
-  
-  useClickOutside(ref, () => {
-    setIsOpen(false);
-    setShowInput(false);
-    setDraft("");
-  });
-
-  const handleSelect = (cat) => {
-    onChange(cat);
-    setIsOpen(false);
-  };
-
-  const handleAddNew = () => {
-    const name = draft.trim();
-    if (!name) return;
-    onCreate(name);
-    onChange(name);
-    setDraft("");
-    setShowInput(false);
-    setIsOpen(false);
-  };
-
-  return (
-    <div className="dd category-selector" ref={ref}>
-      <button
-        className="dd-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        type="button"
-      >
-        <span>{value}</span>
-        <ChevronDown size={16} />
-      </button>
-      
-      {isOpen && (
-        <div className="dd-pop">
-          {!showInput ? (
-            <>
-              {categories.map((cat) => (
-                <div
-                  key={cat}
-                  className={`dd-item ${cat === value ? "is-active" : ""}`}
-                  onClick={() => handleSelect(cat)}
-                >
-                  {cat}
-                </div>
-              ))}
-              <div className="dd-divider" />
-              <div
-                className="dd-item dd-item--add"
-                onClick={() => setShowInput(true)}
-              >
-                <Plus size={16} />
-                <span>Add new category</span>
-              </div>
-            </>
-          ) : (
-            <div className="dd-add-form">
-              <input
-                className="input"
-                placeholder="e.g., Fitness, Work"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddNew();
-                  if (e.key === "Escape") { setShowInput(false); setDraft(""); }
-                }}
-                autoFocus
-              />
-              <div className="dd-add-actions">
-                <button
-                  type="button"
-                  className="btn btn-sm cancel"
-                  onClick={() => { setShowInput(false); setDraft(""); }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm confirm"
-                  onClick={handleAddNew}
-                >
-                  Add
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function DurationPickerModal({
   current,
   onSelect,
@@ -411,9 +314,6 @@ function DurationPickerModal({
         <div className="floating-head">
           <div className="floating-title">Set Duration</div>
           <div className="floating-actions">
-            {/* <button className="floating-back" onClick={onClose}>
-              Back
-            </button> */}
           </div>
         </div>
 
@@ -533,16 +433,6 @@ function HabitModal({
             }}
           />
           {error && <div className="field-error">{error}</div>}
-          {/* <div className="color-row-main">
-            {PASTELS.map((c) => (
-              <button
-                key={c}
-                className={`color-dot-main ${color === c ? "is-selected" : ""}`}
-                style={{ backgroundColor: c }}
-                onClick={() => setColor(c)}
-                />
-                ))}
-              </div> */}
         </div>
 
         <div className="task-fields">
@@ -886,6 +776,37 @@ export default function HabitsPage() {
   const [openModal, setOpenModal] = useState(false);
   const [editing, setEditing] = useState(null);
 
+function triggerConfettiSides() {
+  confetti({
+    particleCount: 14,
+    spread: 50,
+    startVelocity: 40,
+    origin: { x: 0, y: 0.8 }, 
+    angle: 60,
+    gravity: 0.7,
+    scalar: 0.8,
+    colors: ["#a78bfa", "#c084fc", "#fbcfe8", "#facc15"],
+  });
+
+  confetti({
+    particleCount: 14,
+    spread: 50,
+    startVelocity: 40,
+    origin: { x: 1, y: 0.8 },
+    angle: 120,
+    gravity: 0.7,
+    scalar: 0.8,
+    colors: ["#a78bfa", "#c084fc", "#fbcfe8", "#facc15"],
+  });
+}
+const [rowFx, setRowFx] = useState({});
+  function fireRowFx(habitId) {
+    setRowFx((s) => ({ ...s, [habitId]: true }));
+    setTimeout(() => {
+      setRowFx((s) => ({ ...s, [habitId]: false }));
+    }, 900);
+  }
+  
   const DEFAULT_CATEGORIES = [
   { name: "General", color: "#ede9ff" },
   { name: "Study", color: "#fff4cc" },
@@ -1150,12 +1071,6 @@ const [categories, setCategories] = useState(() => {
             ]}
             onChange={setDurationFilter}
           />
-
-          {/* <Dropdown
-            value={durationFilter}
-            items={["All Durations", ...DURATIONS]}
-            onChange={setDurationFilter}
-          /> */}
         </div>
       </section>
 
@@ -1179,7 +1094,16 @@ const [categories, setCategories] = useState(() => {
                       className="checkbox"
                       type="checkbox"
                       checked={!!h.history?.[today]}
-                      onChange={(e) => toggle(h.id, today, e.target.checked)}
+                      onChange={(e) => {
+                        const wasChecked = !!h.history?.[today];
+                        const nowChecked = e.target.checked;
+     
+                        toggle(h.id, today, nowChecked);
+                        if (!wasChecked && nowChecked) {
+                          fireRowFx(h.id);
+                          triggerConfettiSides();
+                        }
+                      }}
                     />
                     <div className="hl-avatar">
                       <span className="hl-emoji">{h.icon || "📚"}</span>
@@ -1228,8 +1152,14 @@ const [categories, setCategories] = useState(() => {
                     </div>
                   </div>
                   <div className="hl-right">
-                    <div className="hl-stats">
-                      <span className="hl-fire">🔥</span>
+                    <div className={`hl-stats ${rowFx[h.id] ? "is-pop" : ""}`}>
+                      <span
+                        className={`hl-fire ${
+                          h.history?.[today] ? "is-on" : "is-off"
+                        } ${rowFx[h.id] ? "is-ignite" : ""}`}
+                      >
+                        🔥
+                      </span>
                       <div className="hl-streak">
                         <div className="hl-days">{plural(streak, "day")}</div>
                         <div className="hl-percent">{rate}% this week</div>
