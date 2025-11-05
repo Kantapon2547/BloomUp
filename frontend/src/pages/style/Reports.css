@@ -1,8 +1,8 @@
 :root {
-  --violet-50: #f1f8e8;
-  --violet-100: #e9d5ff;
-  --violet-400: #95d2b3;
-  --violet-600: #55ad9b;
+  --green-50: #f1f8e8;
+  --green-100: #e9d5ff;
+  --green-400: #95d2b3;
+  --green-600: #55ad9b;
   --bg: #f5f6ff;
   --card: #ffffff;
   --g200: #e5e7eb;
@@ -106,7 +106,7 @@
 
 .rp-kcard {
   background: var(--card);
-  border: 1px solid var(--violet-100);
+  border: 1px solid var(--green-100);
   border-radius: 18px;
   padding: 20px;
   box-shadow: var(--shadow);
@@ -198,7 +198,7 @@
 }
 
 .rp-chart-toggle .material-symbols-outlined.active {
-  color: var(--violet-600);
+  color: var(--green-600);
 }
 
 .rp-switch {
@@ -216,7 +216,7 @@
 }
 
 .rp-switch.pie {
-  background: var(--violet-100);
+  background: var(--green-100);
 }
 
 .rp-switch .rp-knob {
@@ -239,7 +239,7 @@
 /* ==== Cards ==== */
 .rp-card {
   background: var(--card);
-  border: 1px solid var(--violet-100);
+  border: 1px solid var(--green-100);
   border-radius: 18px;
   padding: 15px;
   box-shadow: var(--shadow);
