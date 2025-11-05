@@ -317,7 +317,7 @@
 
 .rp-pill {
   background: #ede9fe;
-  color: #5b21b6;
+  color: #23a76c;
   border-radius: 999px;
   padding: 4px 8px;
   font-weight: 600;
@@ -394,3 +394,38 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* === Download PDF Button === */
+.download-btn {
+  background:#55ad9b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: var(--shadow);
+  transition: all 0.2s ease;
+}
+
+.download-btn:hover {
+  background: #95d2b3;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.download-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.download-btn .material-symbols-outlined {
+  font-size: 18px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+
+

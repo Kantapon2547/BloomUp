@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import gsap from "gsap";
 import "./style/Reports.css";
 import { createStorage } from "./Habits";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 /* ===== Utility Functions ===== */
 const storage = createStorage();
@@ -353,6 +355,8 @@ const ReportsChartToggleSwitch = React.memo(({ chartType, onToggle }) => {
   );
 });
 
+
+
 /* ===== Main Component ===== */
 export default function Reports() {
   const [habits, setHabits] = useState([]);
@@ -362,6 +366,32 @@ export default function Reports() {
 
   const chartRef = useRef();
   const twoColRef = useRef();
+
+  const reportRef = useRef();
+
+  const downloadPDF = async () => {
+    const input = reportRef.current;
+    if (!input) return;
+
+    window.scrollTo(0, 0);
+
+    const canvas = await html2canvas(input, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const imgWidth = pageWidth - 20;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+    pdf.save("Habit_Report.pdf");
+  };
+
 
   useEffect(() => {
     storage.list().then(setHabits).catch(console.error);
@@ -445,7 +475,7 @@ export default function Reports() {
   }, [periodMode, cursor, chartType]);
 
   return (
-    <div className="reports-root">
+    <div className="reports-root" ref={reportRef}>
       <section className="reports-content">
         {/* Header */}
         <header className="reports-header">
@@ -474,6 +504,10 @@ export default function Reports() {
                 &gt;
               </button>
             </div>
+                        <button onClick={downloadPDF} className="download-btn"> 
+              <span className="material-symbols-outlined">download</span>
+              Export
+            </button>
           </div>
         </header>
 
