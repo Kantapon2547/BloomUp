@@ -93,7 +93,7 @@ const ReportsDonut = React.memo(({ value }) => {
         cx="50"
         cy="50"
         r={r}
-        stroke="#7c3aed"
+        stroke="#55ad9b"
         strokeWidth="12"
         fill="none"
         strokeDasharray={c}
@@ -170,7 +170,7 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
                 width={barWidth}
                 height={d.rate * 1.1}
                 rx="0"
-                fill="#7c3aed"
+                fill="#55ad9b"
                 opacity="0.9"
               />
               <text x={barWidth / 2} y="156" textAnchor="middle" fontSize="10" fill="#6b7280">

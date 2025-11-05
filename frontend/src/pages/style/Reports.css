@@ -59,7 +59,7 @@
 }
 
 .rp-seg {
-  background: #f1f5ff;
+  background: #f1f8e8;
   border-radius: 12px;
   padding: 4px;
   display: inline-flex;
@@ -204,7 +204,7 @@
 .rp-switch {
   width: 50px;
   height: 24px;
-  background: #e5e7eb;
+  background: #f1f8e8;
   border-radius: 20px;
   position: relative;
   cursor: pointer;
@@ -212,7 +212,7 @@
 }
 
 .rp-switch.bar {
-  background: #e5e7eb;
+  background: #f1f8e8;
 }
 
 .rp-switch.pie {
@@ -316,7 +316,7 @@
 }
 
 .rp-pill {
-  background: #ede9fe;
+  background: #f1f8e8;
   color: #23a76c;
   border-radius: 999px;
   padding: 4px 8px;
