@@ -5,7 +5,7 @@ import { createStorage } from "./Habits";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-/* ===== Utility Functions ===== */
+/* Utility Functions */
 const storage = createStorage();
 const fmt = (d) => d.toISOString().slice(0, 10);
 const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
@@ -23,7 +23,7 @@ const calcStreak = (habit) => {
   return s;
 };
 
-/* ===== Custom Hooks ===== */
+/* Custom Hooks */
 const usePeriod = (periodMode, cursor) =>
   useMemo(() => {
     if (periodMode === "week") {
@@ -39,7 +39,7 @@ const usePeriod = (periodMode, cursor) =>
     return { start, end, days };
   }, [periodMode, cursor]);
 
-/* ===== Animation Helper ===== */
+/* Animation Helper */
 const fadeIn = (targets, opts = {}) => {
   gsap.fromTo(
     targets,
@@ -48,7 +48,7 @@ const fadeIn = (targets, opts = {}) => {
   );
 };
 
-// Celebration animation for achievements
+
 const celebrate = (element) => {
   const colors = ['#a8d5ba', '#ffd4a3', '#c9b7eb', '#ffb3c1'];
   const particleCount = 30;
@@ -76,7 +76,7 @@ const celebrate = (element) => {
   }
 };
 
-/* ===== Reusable Components ===== */
+/* Reusable Components */
 const ReportsAnimatedCard = React.memo(({ children, dataHigh }) => {
   const ref = useRef(null);
   
@@ -88,8 +88,7 @@ const ReportsAnimatedCard = React.memo(({ children, dataHigh }) => {
       ease: "power3.out",
       scale: 0.95
     });
-    
-    // Celebration for high achievement
+
     if (dataHigh && ref.current) {
       setTimeout(() => celebrate(ref.current), 300);
     }
@@ -133,8 +132,7 @@ const ReportsDonut = React.memo(({ value }) => {
     const r = 38;
     const c = 2 * Math.PI * r;
     const off = c * (1 - value / 100);
-    
-    // Animated stroke
+
     gsap.fromTo(
       circleRef.current,
       { strokeDashoffset: c },
@@ -144,8 +142,7 @@ const ReportsDonut = React.memo(({ value }) => {
         ease: "power2.out" 
       }
     );
-    
-    // Animated number count
+
     gsap.fromTo(
       textRef.current,
       { textContent: 0 },
@@ -159,8 +156,7 @@ const ReportsDonut = React.memo(({ value }) => {
         }
       }
     );
-    
-    // Scale animation
+
     gsap.fromTo(
       containerRef.current,
       { scale: 0, rotate: -180 },
@@ -229,7 +225,6 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
   const spacing = periodMode === "week" ? 40 : 28;
 
   useEffect(() => {
-    // Staggered bar animation with bounce
     gsap.fromTo(
       barsRef.current,
       { 
@@ -306,7 +301,7 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
                 textAnchor="middle" 
                 fontSize="11" 
                 fill="#5a8266"
-                fontWeight="600"
+                fontWeight="500"
               >
                 {label}
               </text>
@@ -317,7 +312,7 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
                 textAnchor="middle"
                 fontSize="12"
                 fill="#7ebb8f"
-                fontWeight="800"
+                fontWeight="600"
                 style={{ opacity: 0 }}
               >
                 {d.rate}%
@@ -471,8 +466,7 @@ const ReportsChartToggleSwitch = React.memo(({ chartType, onToggle }) => {
   const handleToggle = () => {
     const newType = chartType === "bar" ? "pie" : "bar";
     onToggle(newType);
-    
-    // Animate the knob with bounce
+
     if (knobRef.current) {
       gsap.to(knobRef.current, {
         x: newType === "pie" ? 32 : 0,
@@ -510,7 +504,7 @@ const ReportsChartToggleSwitch = React.memo(({ chartType, onToggle }) => {
   );
 });
 
-/* ===== Main Component ===== */
+/* Main Component */
 export default function Reports() {
   const [habits, setHabits] = useState([]);
   const [periodMode, setPeriodMode] = useState("week");

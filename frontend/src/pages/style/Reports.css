@@ -1,21 +1,8 @@
-/* ===== Root Variables - Pastel Green Theme ===== */
 :root {
   --green-50: #f1f8e8;
   --green-100: #e9d5ff;
   --green-400: #95d2b3;
   --green-600: #55ad9b;
-  --bg: #f5f6ff;
-  --card: #ffffff;
-  --g200: #e5e7eb;
-  --g400: #9ca3af;
-  --g600: #6b7280;
-  --g900: #111827;
-  --shadow: 0 6px 18px rgba(24, 24, 40, 0.06);
-  --shadow-hover: 0 8px 20px rgba(24, 24, 40, 0.08);
-}
-
-
-:root {
   --primary-green: #7ebb8f;
   --primary-green-light: #a8d5ba;
   --primary-green-dark: #5a8266;
@@ -25,10 +12,18 @@
   --text-secondary: #5a8266;
   --text-muted: #8ba896;
   --border-color: #e8f3ec;
+  --bg: #f5f6ff;
+  --card: #ffffff;
+  --g200: #e5e7eb;
+  --g400: #9ca3af;
+  --g600: #6b7280;
+  --g900: #111827;
   --shadow-sm: 0 2px 8px rgba(126, 187, 143, 0.08);
   --shadow-md: 0 4px 15px rgba(126, 187, 143, 0.12);
   --shadow-lg: 0 4px 15px rgba(126, 187, 143, 0.15);
   --shadow-xl: 0 10px 30px rgba(126, 187, 143, 0.3);
+  --shadow: 0 6px 18px rgba(24, 24, 40, 0.06);
+  --shadow-hover: 0 8px 20px rgba(24, 24, 40, 0.08);
   
   /* Pastel accent colors for categories */
   --pastel-health: #a8d5ba;
@@ -39,7 +34,7 @@
   --pastel-general: #d4c5e8;
 }
 
-/* ===== Base Styles ===== */
+/* Base Styles */
 .reports-root {
   background: #d8efd3;
   min-height: 100vh;
@@ -56,8 +51,7 @@
   min-width: 0;
   margin: 0 auto;
 }
-/* ===== Header Styles ===== */
-
+/* Header Styles */
 .reports-header {
   display: flex;
   align-items: flex-start;
@@ -76,12 +70,15 @@
   flex-wrap: wrap;
 }
 
+.rp-controls .rp-pager {
+  background: var(--card);
+  border: 1px solid rgba(85, 173, 155, 0.15);
+}
+
 /* Segmented Control */
-
-
 .rp-seg {
   display: flex;
-  background: #f1f8e8;
+  background:var(--bg-card);
   border-radius: 12px;
   padding: 4px;
   box-shadow: var(--shadow-sm);
@@ -196,7 +193,7 @@
   vertical-align: middle;
 }
 
-/* ===== Motto ===== */
+/* Motto */
 .rp-motto {
   text-align: center;
   font-size: 1.3rem;
@@ -209,44 +206,27 @@
   border: 2px solid var(--border-color);
 }
 
-/* ===== KPI Cards ===== */
-/* .rp-kpi {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-} */
-/* 
+/* KPI Cards */
 .rp-kcard {
-  background: var(--bg-card);
-  border-radius: 20px;
-  padding: 2rem;
-  box-shadow: var(--shadow-lg);
-  border: 2px solid var(--border-color);
+  background: var(--card);
+  border: 1px solid var(--green-100);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: var(--shadow);
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-} */
-
-/* .rp-kcard::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--primary-green-light), var(--primary-green));
-} */
-
-/* .rp-kcard[data-high="true"]::before {
-  background: linear-gradient(90deg, #ffd4a3, #ffb3c1);
-  animation: shimmer 2s infinite;
+  width: 250px; 
+  display: flex;
+  flex-direction: column;
+  align-items: center; 
+  justify-content: center;
+  text-align: center; 
 }
 
-@keyframes shimmer {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-} */
+.rp-kcard:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+}
+
 .rp-kpi {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -255,22 +235,15 @@
 }
 
 .rp-kcap {
-  font-size: 0.95rem;
+  font-size: 15px;
   color: var(--g600);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
   justify-content: center;
   align-items: center;  
 }
-/* 
-.rp-kcap {
-  font-size: 15px;
-  color: var(--g600);
-  justify-content: center;
-  align-items: center;      
-} */
 
 .rp-kbody {
   display: flex;
@@ -282,7 +255,7 @@
 .rp-kbig {
   font-size: 35px;
   font-weight: 700;
-  color: var(--primary-green);
+  color: var(--text-primary);
   text-align: center;
   padding: 12px 0px;
 }
@@ -296,12 +269,12 @@
 }
 
 .rp-kchange {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
+  margin-top: 16px;
+  padding: 8px 16px;
   border-radius: 10px;
   text-align: center;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 15px;
 }
 
 .rp-kchange.up {
@@ -314,42 +287,69 @@
   color: #d97086;
 }
 
-/* ===== Card Styles ===== */
+/* Card Styles */
 .rp-card {
-  background: var(--bg-card);
-  border-radius: 20px;
-  padding: 2rem;
-  box-shadow: var(--shadow-lg);
-  border: 2px solid var(--border-color);
-  margin-bottom: 2rem;
+  background: var(--card);
+  border: 1px solid var(--green-100);
+  border-radius: 18px;
+  padding: 15px;
+  box-shadow: var(--shadow);
+  margin-bottom: 32px;
 }
 
 .rp-card-head {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0;
+  margin-bottom: 2px;
+  border-bottom: none !important;
 }
 
 .rp-card-head h3 {
   color: var(--text-primary);
-  font-size: 1.4rem;
+  font-size: 22px;
   font-weight: 700;
+  margin: 0 auto;
+  text-align: center;
+  flex: 1;
 }
 
-/* ===== Chart Styles ===== */
+/* Chart Styles */
 .rp-chart {
-  min-height: 300px;
+  text-align: center;
+  border-bottom: none;
+  margin-bottom: 6px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  min-height: 260px; 
 }
 
 .rp-chart-wrapper {
   width: 100%;
   overflow-x: auto;
-  padding: 1rem 0;
+  padding: 16px 0px;
 }
 
 .rp-svgb {
   width: 100%;
   height: auto;
+}
+
+.rp-chart svg {
+  width: 100%;
+  height: 200px;
+  margin: 0 auto;
+  display: block;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.rp-chart > div {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 20px; 
 }
 
 .reports-pie-wrapper {
@@ -360,75 +360,90 @@
 .rp-chart-toggle {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+  margin-bottom: 16px;
 }
 
 .rp-chart-toggle .material-symbols-outlined {
-  font-size: 24px;
-  color: var(--text-muted);
-  transition: all 0.3s ease;
+  font-size: 20px;
+  color: var(--g400);
+  cursor: pointer;
+  transition: color 0.3s ease;
 }
 
 .rp-chart-toggle .material-symbols-outlined.active {
-  color: var(--primary-green);
+  color: var(--green-600);
 }
 
 .rp-switch {
-  width: 60px;
-  height: 28px;
-  background: var(--border-color);
-  border-radius: 14px;
+  width: 55px;
+  height: 24px;
+  background: #f1f8e8;
+  border-radius: 20px;
   position: relative;
+  cursor: pointer;
   transition: background 0.3s ease;
 }
 
+.rp-switch.bar {
+  background: #f1f8e8;
+}
+
 .rp-switch.pie {
-  background: var(--primary-green-light);
+  background: #f1f8e8;
 }
 
-.rp-knob {
-  width: 24px;
-  height: 24px;
-  background: white;
-  border-radius: 50%;
+.rp-switch .rp-knob {
   position: absolute;
-  top: 2px;
-  left: 2px;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+} 
+
+.rp-switch.pie .rp-knob {
+  transform: translateX(26px);
 }
 
-/* ===== Two Column Layout ===== */
+/* Two Column Layout */
 .rp-twocol {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 14px;
+  margin-bottom: 32px;
 }
 
-@media (max-width: 1024px) {
-  .rp-twocol {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ===== Table Styles ===== */
+/* Table Styles */
 .rp-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.rp-table thead {
-  background: linear-gradient(135deg, rgba(168, 213, 186, 0.1), rgba(126, 187, 143, 0.05));
+.rp-table th,
+.rp-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--g200);
 }
 
 .rp-table th {
   text-align: left;
   padding: 1rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-weight: 600;
+  color: var(--g600);
   text-transform: uppercase;
   font-size: 0.85rem;
   letter-spacing: 0.5px;
+}
+
+.rp-table thead {
+  background: linear-gradient(135deg, rgba(168, 213, 186, 0.1), rgba(126, 187, 143, 0.05));
 }
 
 .rp-table td {
@@ -449,28 +464,36 @@
 
 .rp-pill {
   display: inline-block;
-  padding: 0.4rem 1rem;
-  background: linear-gradient(135deg, var(--primary-green-light), var(--primary-green));
-  color: white;
-  border-radius: 20px;
-  font-weight: 700;
-  font-size: 0.9rem;
+  background: #f1f8e8;
+  color: #23a76c;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-weight: 600;
+  font-size: 12px;
   box-shadow: 0 2px 6px rgba(126, 187, 143, 0.2);
 }
 
-/* ===== Category List with Animations ===== */
+.rp-twocol .rp-card {
+  padding: 28px 45px; 
+}
+
+.rp-twocol .rp-card:first-child {
+  padding-left: 40px;
+}
+
+/* Category List */
 .rp-list {
   list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 6px 0;
 }
 
 .rp-list-row {
-  display: grid;
+  display: flex;
   grid-template-columns: 100px 1fr 60px;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem 0;
+  gap: 10px;
+  padding: 6px 0;
   border-bottom: 1px solid var(--border-color);
   transition: all 0.3s ease;
   animation: slideInLeft 0.5s ease-out backwards;
@@ -509,24 +532,34 @@
   font-size: 16px;
 }
 
-
 .rp-bar-container {
   flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.rp-bar {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  overflow: hidden;
   position: relative;
 }
 
 .rp-bar-bg {
-  height: 24px;
-  background: var(--border-color);
-  border-radius: 12px;
+  width: 100%;
+  height: 10px;
+  background: #f3f4f6;
+  border-radius: 999px;
   overflow: hidden;
   position: relative;
 }
 
 .rp-bar-fill {
   height: 100%;
-  border-radius: 12px;
-  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 999px;
+  transition: width 0.4s ease;
   position: relative;
   animation: fillBar 1.5s ease-out;
   box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3);
@@ -588,18 +621,20 @@
   }
 }
 
-/* ===== Empty State ===== */
+/*  Empty State */
 .rp-empty-state {
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 20px 0;
   color: var(--text-muted);
 }
 
 .rp-empty-state p {
-  margin: 0.5rem 0;
+  margin-top: 70px;
+  color: #6b7280;
+  font-size: 16px;
 }
 
-/* ===== Summary ===== */
+/* Summary */
 .rp-summary {
   text-align: center;
   font-size: 1.2rem;
@@ -612,7 +647,7 @@
   margin-top: 2rem;
 }
 
-/* ===== Responsive Design ===== */
+/* Responsive Design */
 @media (max-width: 768px) {
   .rp-controls {
     flex-direction: column;
@@ -622,10 +657,6 @@
   .rp-pager {
     justify-content: center;
   }
-
-  /* .rp-kpi {
-    grid-template-columns: 1fr;
-  } */
 
   .rp-list-row {
     grid-template-columns: 80px 1fr 50px;
@@ -637,298 +668,6 @@
   }
 }
 
-
-
-
-
-
-
-:root {
-  --green-50: #f1f8e8;
-  --green-100: #e9d5ff;
-  --green-400: #95d2b3;
-  --green-600: #55ad9b;
-  --bg: #f5f6ff;
-  --card: #ffffff;
-  --g200: #e5e7eb;
-  --g400: #9ca3af;
-  --g600: #6b7280;
-  --g900: #111827;
-  --shadow: 0 6px 18px rgba(24, 24, 40, 0.06);
-  --shadow-hover: 0 8px 20px rgba(24, 24, 40, 0.08);
-}
-
-
-/* ==== Header ==== */
-.reports-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--g200);
-  margin-bottom: 14px;
-}
-
-
-
-
-
-
-
-
-
-
-
-/* ==== KPI Cards ==== */
-
-
-.rp-kcard {
-  background: var(--card);
-  border: 1px solid var(--green-100);
-  border-radius: 18px;
-  padding: 20px;
-  box-shadow: var(--shadow);
-  transition: all 0.3s ease;
-  width: 250px; 
-  display: flex;
-  flex-direction: column;
-  align-items: center; 
-  justify-content: center;
-  text-align: center; 
-}
-
-.rp-kcard:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-hover);
-}
-
-
-
-/* ==== Chart ==== */
-.rp-chart {
-  text-align: center;
-  border-bottom: none;
-  margin-bottom: 6px;
-  margin-top: 16px;
-  padding: 10px 12px;
-  min-height: 260px; 
-}
-
-.rp-chart-wrapper {
-  width: 100%;
-  overflow-x: auto;
-}
-
-.rp-svgb {
-  width: 100%;
-  height: 160px;
-}
-.rp-chart svg {
-  width: 100%;
-  height: 200px;
-  margin: 0 auto;
-  display: block;
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-.rp-chart > div {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0 20px; 
-}
-
-/* ===== Chart Toggle Switch ===== */
-.rp-chart-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 8px;
-  margin-bottom: 16px;
-}
-
-.rp-chart-toggle .material-symbols-outlined {
-  font-size: 20px;
-  color: var(--g400);
-  cursor: pointer;
-  transition: color 0.3s ease;
-}
-
-.rp-chart-toggle .material-symbols-outlined.active {
-  color: var(--green-600);
-}
-
-.rp-switch {
-  width: 50px;
-  height: 24px;
-  background: #f1f8e8;
-  border-radius: 20px;
-  position: relative;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.rp-switch.bar {
-  background: #f1f8e8;
-}
-
-.rp-switch.pie {
-  background: var(--green-100);
-}
-
-.rp-switch .rp-knob {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-/* Slide knob when mode = pie */
-.rp-switch.pie .rp-knob {
-  transform: translateX(26px);
-}
-
-/* ==== Cards ==== */
-.rp-card {
-  background: var(--card);
-  border: 1px solid var(--green-100);
-  border-radius: 18px;
-  padding: 15px;
-  box-shadow: var(--shadow);
-}
-
-.rp-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 0;
-  margin-bottom: 2px;
-  border-bottom: none !important;
-}
-.rp-card-head h3 {
-  margin: 0 auto;
-  text-align: center;
-  flex: 1;
-}
-
-.rp-card-head .icon,
-.rp-card-head button {
-  position: absolute;
-  right: 10px;
-}
-.rp-muted {
-  color: var(--g600);
-}
-
-.rp-empty-state {
-  text-align: center;
-  padding: 20px 0;
-}
-
-.rp-empty-state p {
-  margin-top: 70px;
-  color: #6b7280;
-  font-size: 16px;
-}
-
-/* ==== Two Columns ==== */
-.rp-twocol {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-top: 14px;
-}
-
-/* ==== Table ==== */
-.rp-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.rp-table th,
-.rp-table td {
-  padding: 10px;
-  border-bottom: 1px solid var(--g200);
-}
-
-.rp-table th {
-  text-align: left;
-  color: var(--g600);
-  font-weight: 600;
-}
-
-
-.rp-small {
-  color: var(--g600);
-}
-
-.rp-pill {
-  background: #f1f8e8;
-  color: #23a76c;
-  border-radius: 999px;
-  padding: 4px 8px;
-  font-weight: 600;
-  font-size: 12px;
-}
-.rp-twocol .rp-card {
-  padding: 28px 45px; 
-}
-
-.rp-twocol .rp-card:first-child {
-  padding-left: 40px;
-}
-/* ==== List Breakdown ==== */
-.rp-list {
-  list-style: none;
-  margin: 0;
-  padding: 6px 0;
-}
-
-.rp-list-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 0;
-}
-
-.rp-bar {
-  flex: 1;
-  height: 10px;
-  border-radius: 999px;
-  background: #f3f4f6;
-  overflow: hidden;
-  position: relative;
-}
-
-.rp-bar-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-.rp-bar-bg {
-  width: 100%;
-  height: 10px;
-  background: #f3f4f6;
-  border-radius: 999px;
-  overflow: hidden;
-  position: relative;
-}
-
-.rp-bar-fill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width 0.4s ease;
-}
-
-
-/* ==== Responsive ==== */
 @media (max-width: 1024px) {
   .reports-root {
     padding: 24px 16px;
@@ -941,17 +680,6 @@
   .rp-twocol {
     grid-template-columns: 1fr;
   }
-}
-
-
-
-
-
-
-
-.rp-controls .rp-pager {
-  background: #f9fdf9;
-  border: 1px solid rgba(85, 173, 155, 0.15);
 }
 
 
