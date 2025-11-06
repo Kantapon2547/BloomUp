@@ -724,7 +724,7 @@ export default function Reports() {
           <ReportsAnimatedCard>
             <div className="rp-kcap">Habits Tracked</div>
             <div className="rp-kbig">{habits.length}</div>
-            <div className="rp-kfoot">active habits</div>
+            <div className="rp-kfoot">Active habits</div>
           </ReportsAnimatedCard>
 
           <ReportsAnimatedCard dataHigh={longestStreak >= 7}>

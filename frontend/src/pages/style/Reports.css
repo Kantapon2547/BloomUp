@@ -158,13 +158,13 @@
 }
 
 /* ===== KPI Cards ===== */
-.rp-kpi {
+/* .rp-kpi {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
-}
-
+} */
+/* 
 .rp-kcard {
   background: var(--bg-card);
   border-radius: 20px;
@@ -174,9 +174,9 @@
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-}
+} */
 
-.rp-kcard::before {
+/* .rp-kcard::before {
   content: '';
   position: absolute;
   top: 0;
@@ -184,9 +184,9 @@
   right: 0;
   height: 4px;
   background: linear-gradient(90deg, var(--primary-green-light), var(--primary-green));
-}
+} */
 
-.rp-kcard[data-high="true"]::before {
+/* .rp-kcard[data-high="true"]::before {
   background: linear-gradient(90deg, #ffd4a3, #ffb3c1);
   animation: shimmer 2s infinite;
 }
@@ -194,16 +194,31 @@
 @keyframes shimmer {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+} */
+.rp-kpi {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 14px auto;
 }
 
 .rp-kcap {
   font-size: 0.95rem;
-  color: var(--text-secondary);
+  color: var(--g600);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 1rem;
+  justify-content: center;
+  align-items: center;  
 }
+/* 
+.rp-kcap {
+  font-size: 15px;
+  color: var(--g600);
+  justify-content: center;
+  align-items: center;      
+} */
 
 .rp-kbody {
   display: flex;
@@ -213,17 +228,19 @@
 }
 
 .rp-kbig {
-  font-size: 4rem;
-  font-weight: 900;
+  font-size: 35px;
+  font-weight: 700;
   color: var(--primary-green);
   text-align: center;
+  padding: 12px 0px;
 }
 
 .rp-kfoot {
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
+  color: var(--g600);
+  font-size: 13px;
+  margin-top: 6px;
+  justify-content: center; 
+  align-items: center;      
 }
 
 .rp-kchange {
@@ -370,6 +387,7 @@
 
 .rp-table tbody tr {
   transition: all 0.3s ease;
+  text-transform: capitalize;
 }
 
 .rp-table tbody tr:hover {
@@ -432,11 +450,13 @@
 }
 
 .rp-cap {
-  font-weight: 700;
-  color: var(--text-primary);
+  flex: 0 0 100px;
+  font-weight: 600;
+  color: var(--g600);
   text-transform: capitalize;
-  font-size: 1rem;
+  font-size: 16px;
 }
+
 
 .rp-bar-container {
   flex: 1;
@@ -497,9 +517,9 @@
 }
 
 .rp-rate {
-  font-weight: 800;
-  color: var(--primary-green);
-  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--g800);
+  font-size: 16px;
   min-width: 60px;
   text-align: right;
   animation: countUp 1s ease-out;
@@ -551,9 +571,9 @@
     justify-content: center;
   }
 
-  .rp-kpi {
+  /* .rp-kpi {
     grid-template-columns: 1fr;
-  }
+  } */
 
   .rp-list-row {
     grid-template-columns: 80px 1fr 50px;
@@ -670,12 +690,7 @@
 }
 
 /* ==== KPI Cards ==== */
-.rp-kpi {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin: 14px auto;
-}
+
 
 .rp-kcard {
   background: var(--card);
@@ -697,26 +712,7 @@
   box-shadow: var(--shadow-hover);
 }
 
-.rp-kcap {
-  font-size: 15px;
-  color: var(--g600);
-  justify-content: center;
-  align-items: center;      
-}
 
-.rp-kbig {
-  font-weight: 800;
-  font-size: 28px;
-  padding: 12px 0px;
-}
-
-.rp-kfoot {
-  color: var(--g600);
-  font-size: 12px;
-  margin-top: 6px;
-  justify-content: center; 
-  align-items: center;      
-}
 
 /* ==== Chart ==== */
 .rp-chart {
@@ -878,11 +874,6 @@
   font-weight: 600;
 }
 
-.rp-cap {
-  flex: 0 0 100px;
-  text-transform: capitalize;
-  color: var(--g600);
-}
 
 .rp-small {
   color: var(--g600);
@@ -946,12 +937,6 @@
   transition: width 0.4s ease;
 }
 
-.rp-rate {
-  flex: 0 0 40px;
-  text-align: right;
-  font-weight: 500;
-  color: var(--g800);
-}
 
 /* ==== Responsive ==== */
 @media (max-width: 1024px) {
@@ -1001,7 +986,6 @@
 }
 
 
-/* ==== Modern Flat Pager (Soft & Balanced) ==== */
 .rp-pager {
   display: flex;
   align-items: center;
@@ -1051,7 +1035,6 @@
   box-shadow: inset 0 0 0 1px rgba(85, 173, 155, 0.2);
 }
 
-/* Make pager blend better with background */
 .rp-controls .rp-pager {
   background: #f9fdf9;
   border: 1px solid rgba(85, 173, 155, 0.15);
