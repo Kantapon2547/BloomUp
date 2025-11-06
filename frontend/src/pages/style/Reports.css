@@ -1,5 +1,21 @@
 /* ===== Root Variables - Pastel Green Theme ===== */
 :root {
+  --green-50: #f1f8e8;
+  --green-100: #e9d5ff;
+  --green-400: #95d2b3;
+  --green-600: #55ad9b;
+  --bg: #f5f6ff;
+  --card: #ffffff;
+  --g200: #e5e7eb;
+  --g400: #9ca3af;
+  --g600: #6b7280;
+  --g900: #111827;
+  --shadow: 0 6px 18px rgba(24, 24, 40, 0.06);
+  --shadow-hover: 0 8px 20px rgba(24, 24, 40, 0.08);
+}
+
+
+:root {
   --primary-green: #7ebb8f;
   --primary-green-light: #a8d5ba;
   --primary-green-dark: #5a8266;
@@ -25,34 +41,47 @@
 
 /* ===== Base Styles ===== */
 .reports-root {
+  background: #d8efd3;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8fdf9 0%, #e8f3ec 100%);
-  padding: 2rem 1rem;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 35px 250px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .reports-content {
+  width: 100%;
   max-width: 1200px;
+  min-width: 0;
   margin: 0 auto;
 }
-
 /* ===== Header Styles ===== */
+
 .reports-header {
-  margin-bottom: 2rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--g200);
+  margin-bottom: 14px;
 }
 
+/* Controls */
 .rp-controls {
   display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 12px;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 /* Segmented Control */
+
+
 .rp-seg {
   display: flex;
-  background: var(--bg-card);
+  background: #f1f8e8;
   border-radius: 12px;
   padding: 4px;
   box-shadow: var(--shadow-sm);
@@ -60,7 +89,7 @@
 }
 
 .rp-seg-btn {
-  padding: 0.5rem 1.5rem;
+  padding: 8px 12px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
@@ -68,7 +97,7 @@
   cursor: pointer;
   border-radius: 8px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 0.95rem;
+  font-size: 15px;
 }
 
 .rp-seg-btn:hover {
@@ -76,7 +105,7 @@
 }
 
 .rp-seg-btn.is-active {
-  background: linear-gradient(135deg, var(--primary-green-light), var(--primary-green));
+  background:var(--green-600);
   color: white;
   box-shadow: 0 2px 8px rgba(126, 187, 143, 0.3);
 }
@@ -85,53 +114,65 @@
 .rp-pager {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  background: var(--bg-card);
-  padding: 0.5rem 1rem;
+  gap: 16 px;
+  background: #f1f8e8;
+  padding: 6px 18px;
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
   border: 2px solid var(--border-color);
+  color: var(--g600);
 }
 
 .rp-pager button {
-  background: var(--border-color);
-  border: none;
-  width: 36px;
-  height: 36px;
+  color: var(--text-primary);
+  background: #f4f5f3c3;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
+  border: 1px solid var(--g200);
   cursor: pointer;
-  color: var(--primary-green-dark);
-  font-weight: bold;
-  transition: all 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.25s ease;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(85, 173, 155, 0.15);
 }
 
 .rp-pager button:hover {
-  background: var(--primary-green-light);
+  background: var(--green-600);
   color: white;
   transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(85, 173, 155, 0.25);
+}
+
+.rp-pager button:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 0 0 1px rgba(85, 173, 155, 0.2);
 }
 
 .rp-pager span {
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
   min-width: 200px;
   text-align: center;
+  letter-spacing: 0.3px;
 }
 
 /* Download Button */
 .download-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1.5rem;
-  background: linear-gradient(135deg, var(--primary-green), var(--primary-green-dark));
+  background:var(--green-600);
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
+  padding: 10px 16px;
   cursor: pointer;
   font-weight: 600;
-  box-shadow: var(--shadow-md);
-  transition: all 0.3s ease;
+  font-size: 15px;
+  box-shadow: var(--shadow);
+  transition: all 0.2s ease;
 }
 
 .download-btn:hover {
@@ -142,6 +183,17 @@
 .download-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.download-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.download-btn .material-symbols-outlined {
+  font-size: 15px;
+  margin-right: 6px;
+  vertical-align: middle;
 }
 
 /* ===== Motto ===== */
@@ -606,22 +658,6 @@
   --shadow-hover: 0 8px 20px rgba(24, 24, 40, 0.08);
 }
 
-/* ==== Page Layout ==== */
-.reports-root {
-  background: #d8efd3;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  padding: 35px 250px;
-  box-sizing: border-box;
-  width: 100%;
-}
-
-.reports-content {
-  width: 100%;
-  max-width: 1200px;
-  min-width: 0;
-}
 
 /* ==== Header ==== */
 .reports-header {
@@ -633,61 +669,15 @@
   margin-bottom: 14px;
 }
 
-.rp-title {
-  font-size: 28px;
-  margin: 0;
-  color: var(--g900);
-}
 
-.rp-sub {
-  margin: 4px 0 0;
-  color: var(--g600);
-}
 
-/* Controls */
-.rp-controls {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
 
-.rp-seg {
-  background: #f1f8e8;
-  border-radius: 12px;
-  padding: 4px;
-  display: inline-flex;
-}
 
-.rp-seg-btn {
-  border: 0;
-  background: transparent;
-  padding: 8px 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  color: var(--g600);
-}
 
-.rp-seg-btn.is-active {
-  background: #fff;
-  color: var(--g900);
-  box-shadow: var(--shadow);
-}
 
-.rp-pager {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--g600);
-}
 
-.rp-pager button {
-  border: 1px solid var(--g200);
-  background: #fff;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  cursor: pointer;
-}
+
+
 
 /* ==== KPI Cards ==== */
 
@@ -954,86 +944,10 @@
 }
 
 
-/* === Download PDF Button === */
-.download-btn {
-  background:#55ad9b;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 14px;
-  box-shadow: var(--shadow);
-  transition: all 0.2s ease;
-}
-
-.download-btn:hover {
-  background: #95d2b3;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-hover);
-}
-
-.download-btn:active {
-  transform: translateY(1px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-.download-btn .material-symbols-outlined {
-  font-size: 18px;
-  margin-right: 6px;
-  vertical-align: middle;
-}
 
 
-.rp-pager {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 6px 18px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  color: var(--g600);
-  font-weight: 500;
-  font-family: inherit;
-}
 
-.rp-pager span {
-  font-size: 15px;
-  color: var(--g700);
-  letter-spacing: 0.3px;
-}
 
-/* Arrow buttons */
-.rp-pager button {
-  border: none;
-  background: #f8fcf8;
-  color: var(--g900);
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.25s ease;
-  font-size: 16px;
-  font-weight: 600;
-  box-shadow: inset 0 0 0 1px rgba(85, 173, 155, 0.15);
-}
-
-.rp-pager button:hover {
-  background: var(--green-600);
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(85, 173, 155, 0.25);
-}
-
-.rp-pager button:active {
-  transform: translateY(1px);
-  box-shadow: inset 0 0 0 1px rgba(85, 173, 155, 0.2);
-}
 
 .rp-controls .rp-pager {
   background: #f9fdf9;
