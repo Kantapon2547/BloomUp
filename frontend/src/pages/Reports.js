@@ -43,26 +43,80 @@ const usePeriod = (periodMode, cursor) =>
 const fadeIn = (targets, opts = {}) => {
   gsap.fromTo(
     targets,
-    { opacity: 0, y: 20 },
-    { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "power2.out", ...opts }
+    { opacity: 0, y: 30 },
+    { opacity: 1, y: 0, duration: 0.6, stagger: 0.15, ease: "power3.out", ...opts }
   );
 };
 
+// Celebration animation for achievements
+const celebrate = (element) => {
+  const colors = ['#a8d5ba', '#ffd4a3', '#c9b7eb', '#ffb3c1'];
+  const particleCount = 30;
+  
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div');
+    particle.style.position = 'absolute';
+    particle.style.width = '10px';
+    particle.style.height = '10px';
+    particle.style.borderRadius = '50%';
+    particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    particle.style.left = '50%';
+    particle.style.top = '50%';
+    particle.style.pointerEvents = 'none';
+    element.appendChild(particle);
+    
+    gsap.to(particle, {
+      x: (Math.random() - 0.5) * 200,
+      y: (Math.random() - 0.5) * 200,
+      opacity: 0,
+      duration: 1 + Math.random(),
+      ease: "power2.out",
+      onComplete: () => particle.remove()
+    });
+  }
+};
+
 /* ===== Reusable Components ===== */
-const ReportsAnimatedCard = React.memo(({ children }) => {
+const ReportsAnimatedCard = React.memo(({ children, dataHigh }) => {
   const ref = useRef(null);
+  
   useEffect(() => {
-    gsap.from(ref.current, { y: 20, opacity: 0, duration: 0.4, ease: "power2.out" });
-  }, []);
+    gsap.from(ref.current, { 
+      y: 30, 
+      opacity: 0, 
+      duration: 0.6, 
+      ease: "power3.out",
+      scale: 0.95
+    });
+    
+    // Celebration for high achievement
+    if (dataHigh && ref.current) {
+      setTimeout(() => celebrate(ref.current), 300);
+    }
+  }, [dataHigh]);
+
   return (
     <div
       ref={ref}
       className="rp-kcard"
+      data-high={dataHigh}
       onMouseEnter={() =>
-        gsap.to(ref.current, { y: -4, boxShadow: "var(--shadow-hover)", duration: 0.3 })
+        gsap.to(ref.current, { 
+          y: -8, 
+          scale: 1.02,
+          boxShadow: "0 10px 30px rgba(126, 187, 143, 0.3)", 
+          duration: 0.3,
+          ease: "power2.out"
+        })
       }
       onMouseLeave={() =>
-        gsap.to(ref.current, { y: 0, boxShadow: "var(--shadow)", duration: 0.3 })
+        gsap.to(ref.current, { 
+          y: 0, 
+          scale: 1,
+          boxShadow: "0 4px 15px rgba(126, 187, 143, 0.15)", 
+          duration: 0.3,
+          ease: "power2.out"
+        })
       }
     >
       {children}
@@ -73,43 +127,94 @@ const ReportsAnimatedCard = React.memo(({ children }) => {
 const ReportsDonut = React.memo(({ value }) => {
   const circleRef = useRef(null);
   const textRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
-    const r = 38,
-      c = 2 * Math.PI * r;
+    const r = 38;
+    const c = 2 * Math.PI * r;
     const off = c * (1 - value / 100);
-    gsap.to(circleRef.current, { strokeDashoffset: off, duration: 1, ease: "power2.out" });
-    gsap.fromTo(textRef.current, { scale: 0 }, { scale: 1, delay: 0.3, duration: 0.4 });
+    
+    // Animated stroke
+    gsap.fromTo(
+      circleRef.current,
+      { strokeDashoffset: c },
+      { 
+        strokeDashoffset: off, 
+        duration: 1.5, 
+        ease: "power2.out" 
+      }
+    );
+    
+    // Animated number count
+    gsap.fromTo(
+      textRef.current,
+      { textContent: 0 },
+      {
+        textContent: value,
+        duration: 1.5,
+        ease: "power2.out",
+        snap: { textContent: 1 },
+        onUpdate: function() {
+          textRef.current.textContent = Math.round(this.targets()[0].textContent) + '%';
+        }
+      }
+    );
+    
+    // Scale animation
+    gsap.fromTo(
+      containerRef.current,
+      { scale: 0, rotate: -180 },
+      { 
+        scale: 1, 
+        rotate: 0,
+        duration: 0.8, 
+        delay: 0.2,
+        ease: "back.out(1.7)" 
+      }
+    );
   }, [value]);
 
-  const r = 38,
-    c = 2 * Math.PI * r;
+  const r = 38;
+  const c = 2 * Math.PI * r;
 
   return (
-    <svg width="96" height="96" viewBox="0 0 100 100">
-      <circle cx="50" cy="50" r={r} stroke="#E5E7EB" strokeWidth="12" fill="none" />
+    <svg ref={containerRef} width="120" height="120" viewBox="0 0 100 100">
+      <circle 
+        cx="50" 
+        cy="50" 
+        r={r} 
+        stroke="#e8f3ec" 
+        strokeWidth="10" 
+        fill="none" 
+      />
       <circle
         ref={circleRef}
         cx="50"
         cy="50"
         r={r}
-        stroke="#55ad9b"
-        strokeWidth="12"
+        stroke="url(#gradient)"
+        strokeWidth="10"
         fill="none"
         strokeDasharray={c}
         strokeLinecap="round"
         transform="rotate(-90 50 50)"
       />
+      <defs>
+        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#7ebb8f" />
+          <stop offset="100%" stopColor="#a8d5ba" />
+        </linearGradient>
+      </defs>
       <text
         ref={textRef}
         x="50"
-        y="54"
+        y="56"
         textAnchor="middle"
-        fontWeight="700"
-        fontSize="18"
-        fill="#4b5563"
+        fontWeight="900"
+        fontSize="20"
+        fill="#2d5f3f"
       >
-        {value}%
+        0%
       </text>
     </svg>
   );
@@ -120,15 +225,25 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
   const numbersRef = useRef([]);
   const [hovered, setHovered] = useState(null);
 
-  const barWidth = periodMode === "week" ? 20 : 14;
-  const spacing = periodMode === "week" ? 36 : 24;
+  const barWidth = periodMode === "week" ? 24 : 16;
+  const spacing = periodMode === "week" ? 40 : 28;
 
   useEffect(() => {
-    // Animate bars when data changes
+    // Staggered bar animation with bounce
     gsap.fromTo(
       barsRef.current,
-      { scaleY: 0, transformOrigin: "bottom" },
-      { scaleY: 1, duration: 0.6, stagger: 0.05, ease: "back.out(1.2)" }
+      { 
+        scaleY: 0, 
+        transformOrigin: "bottom",
+        opacity: 0 
+      },
+      { 
+        scaleY: 1, 
+        opacity: 1,
+        duration: 0.8, 
+        stagger: 0.08, 
+        ease: "elastic.out(1, 0.5)" 
+      }
     );
   }, [data]);
   
@@ -137,24 +252,31 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
       if (!el) return;
       gsap.to(el, {
         opacity: hovered === idx ? 1 : 0,
-        scale: hovered === idx ? 1 : 0.8,
+        y: hovered === idx ? 0 : -5,
+        scale: hovered === idx ? 1.1 : 0.8,
         duration: 0.3,
-        ease: "power1.inOut",
+        ease: "back.out(2)",
       });
     });
   }, [hovered]);
-  
-  
 
   return (
     <div className="rp-chart-wrapper">
-      <svg viewBox={`0 0 ${data.length * spacing} 160`} className="rp-svgb">
-        <line x1="0" y1="140" x2={data.length * spacing} y2="140" stroke="#E5E7EB" />
+      <svg viewBox={`0 0 ${data.length * spacing} 180`} className="rp-svgb">
+        <defs>
+          <linearGradient id="barGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#a8d5ba" />
+            <stop offset="100%" stopColor="#7ebb8f" />
+          </linearGradient>
+        </defs>
+        <line x1="0" y1="150" x2={data.length * spacing} y2="150" stroke="#e8f3ec" strokeWidth="2"/>
         {data.map((d, i) => {
           const label =
             periodMode === "week"
               ? d.dateObj.toLocaleDateString("en-US", { weekday: "short" })
               : d.dateObj.getDate();
+          
+          const barHeight = Math.max(d.rate * 1.2, 8);
 
           return (
             <g
@@ -162,28 +284,40 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
               transform={`translate(${i * spacing}, 0)`}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
+              style={{ cursor: 'pointer' }}
             >
               <rect
                 ref={(el) => (barsRef.current[i] = el)}
                 x="0"
-                y={140 - d.rate * 1.1}
+                y={150 - barHeight}
                 width={barWidth}
-                height={d.rate * 1.1}
-                rx="0"
-                fill="#55ad9b"
+                height={barHeight}
+                rx="6"
+                fill="url(#barGradient)"
                 opacity="0.9"
+                style={{
+                  filter: hovered === i ? 'drop-shadow(0 4px 8px rgba(126, 187, 143, 0.4))' : 'none',
+                  transition: 'filter 0.3s ease'
+                }}
               />
-              <text x={barWidth / 2} y="156" textAnchor="middle" fontSize="10" fill="#6b7280">
+              <text 
+                x={barWidth / 2} 
+                y="168" 
+                textAnchor="middle" 
+                fontSize="11" 
+                fill="#5a8266"
+                fontWeight="600"
+              >
                 {label}
               </text>
               <text
                 ref={(el) => (numbersRef.current[i] = el)}
                 x={barWidth / 2}
-                y={140 - d.rate * 1.1 - 6}
+                y={150 - barHeight - 10}
                 textAnchor="middle"
-                fontSize="10"
-                fill="#7c3aed"
-                fontWeight="500"
+                fontSize="12"
+                fill="#7ebb8f"
+                fontWeight="800"
                 style={{ opacity: 0 }}
               >
                 {d.rate}%
@@ -206,22 +340,29 @@ const ReportsCategoryPieChart = ({ data }) => {
       ? data.map((d) => ({ ...d, pct: (d.rate / total) * 100 }))
       : [];
 
-  const radius = 55;
-  const center = 70;
-  const svgSize = 140;
+  const radius = 60;
+  const center = 75;
+  const svgSize = 150;
 
   useEffect(() => {
     gsap.fromTo(
       svgRef.current,
-      { opacity: 0 },
-      { opacity: 1, duration: 0.4, ease: "power1.out" }
+      { opacity: 0, scale: 0, rotate: -180 },
+      { 
+        opacity: 1, 
+        scale: 1, 
+        rotate: 0,
+        duration: 0.8, 
+        ease: "back.out(1.5)" 
+      }
     );
   }, [data]);
 
   if (total === 0) {
     return (
       <div className="rp-empty-state">
-        <p>Track habits to see progress</p>
+        <p style={{ fontSize: '48px', margin: '20px 0' }}>📊</p>
+        <p>Track habits to see your progress breakdown!</p>
       </div>
     );
   }
@@ -235,6 +376,14 @@ const ReportsCategoryPieChart = ({ data }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <svg ref={svgRef} viewBox={`0 0 ${svgSize} ${svgSize}`} width={svgSize} height={svgSize}>
+        <defs>
+          {normalizedData.map((item, idx) => (
+            <linearGradient key={idx} id={`pieGradient${idx}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={item.color} />
+              <stop offset="100%" stopColor={item.color} stopOpacity="0.7" />
+            </linearGradient>
+          ))}
+        </defs>
         {normalizedData.map((item, idx) => {
           const startAngle = (item.startPct / 100) * Math.PI * 2 - Math.PI / 2;
           const endAngle = ((item.startPct + item.pct) / 100) * Math.PI * 2 - Math.PI / 2;
@@ -250,13 +399,15 @@ const ReportsCategoryPieChart = ({ data }) => {
             <path
               key={idx}
               d={`M${center},${center} L${x1},${y1} A${radius},${radius} 0 ${largeArc} 1 ${x2},${y2} Z`}
-              fill={item.color || "#6366f1"}
+              fill={`url(#pieGradient${idx})`}
               onMouseEnter={() => setHoverIndex(idx)}
               onMouseLeave={() => setHoverIndex(null)}
               style={{
-                transition: "fill 0.3s, transform 0.25s",
-                transform: hoverIndex === idx ? "scale(1.05)" : "scale(1)",
-                transformOrigin: `${center}px ${center}px`
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: hoverIndex === idx ? 'scale(1.08)' : 'scale(1)',
+                transformOrigin: `${center}px ${center}px`,
+                filter: hoverIndex === idx ? 'drop-shadow(0 4px 12px rgba(0,0,0,0.2))' : 'none',
+                cursor: 'pointer'
               }}
             />
           );
@@ -266,10 +417,11 @@ const ReportsCategoryPieChart = ({ data }) => {
       <div
         style={{
           display: "flex",
-          gap: "12px",
+          gap: "16px",
           flexWrap: "wrap",
           justifyContent: "center",
-          marginTop: "8px",
+          marginTop: "20px",
+          padding: '0 20px'
         }}
       >
         {normalizedData.map((item, idx) => (
@@ -278,20 +430,31 @@ const ReportsCategoryPieChart = ({ data }) => {
             style={{
               display: "flex",
               alignItems: "center",
-              opacity: hoverIndex === idx ? 1 : 0.7,
+              opacity: hoverIndex === null || hoverIndex === idx ? 1 : 0.5,
+              transition: 'opacity 0.3s ease',
+              padding: '8px 12px',
+              borderRadius: '12px',
+              background: hoverIndex === idx ? '#f0f7f3' : 'transparent'
             }}
+            onMouseEnter={() => setHoverIndex(idx)}
+            onMouseLeave={() => setHoverIndex(null)}
           >
             <span
               style={{
-                width: 10,
-                height: 10,
+                width: 14,
+                height: 14,
                 borderRadius: "50%",
-                background: item.color || "#6366f1",
-                marginRight: 6,
+                background: item.color,
+                marginRight: 8,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
               }}
             ></span>
-            <span style={{ fontSize: "12px", color: "#374151" }}>
-              {item.label}: {item.pct.toFixed(0)}%
+            <span style={{ 
+              fontSize: "14px", 
+              color: "#2d5f3f",
+              fontWeight: '600'
+            }}>
+              {item.label}: <strong>{item.pct.toFixed(0)}%</strong>
             </span>
           </div>
         ))}
@@ -299,7 +462,6 @@ const ReportsCategoryPieChart = ({ data }) => {
     </div>
   );
 };
-
 
 // Chart Toggle Switch Component
 const ReportsChartToggleSwitch = React.memo(({ chartType, onToggle }) => {
@@ -310,21 +472,12 @@ const ReportsChartToggleSwitch = React.memo(({ chartType, onToggle }) => {
     const newType = chartType === "bar" ? "pie" : "bar";
     onToggle(newType);
     
-    // Animate the knob
+    // Animate the knob with bounce
     if (knobRef.current) {
       gsap.to(knobRef.current, {
-        x: newType === "pie" ? 26 : 0,
-        duration: 0.3,
-        ease: "power2.out"
-      });
-    }
-    
-    // Animate the switch background
-    if (switchRef.current) {
-      gsap.to(switchRef.current, {
-        backgroundColor: newType === "pie" ? "var(--violet-100)" : "#e5e7eb",
-        duration: 0.3,
-        ease: "power2.out"
+        x: newType === "pie" ? 32 : 0,
+        duration: 0.4,
+        ease: "back.out(2)"
       });
     }
   };
@@ -334,6 +487,7 @@ const ReportsChartToggleSwitch = React.memo(({ chartType, onToggle }) => {
       <span
         className={`material-symbols-outlined ${chartType === "bar" ? "active" : ""}`}
         onClick={() => onToggle("bar")}
+        style={{ cursor: 'pointer' }}
       >
         bar_chart
       </span>
@@ -348,6 +502,7 @@ const ReportsChartToggleSwitch = React.memo(({ chartType, onToggle }) => {
       <span
         className={`material-symbols-outlined ${chartType === "pie" ? "active" : ""}`}
         onClick={() => onToggle("pie")}
+        style={{ cursor: 'pointer' }}
       >
         pie_chart
       </span>
@@ -355,43 +510,57 @@ const ReportsChartToggleSwitch = React.memo(({ chartType, onToggle }) => {
   );
 });
 
-
-
 /* ===== Main Component ===== */
 export default function Reports() {
   const [habits, setHabits] = useState([]);
   const [periodMode, setPeriodMode] = useState("week");
   const [cursor, setCursor] = useState(new Date());
   const [chartType, setChartType] = useState("bar");
+  const [prevAvg, setPrevAvg] = useState(null);
 
   const chartRef = useRef();
   const twoColRef = useRef();
-
   const reportRef = useRef();
 
   const downloadPDF = async () => {
     const input = reportRef.current;
     if (!input) return;
-
+    
+    const btn = document.querySelector('.download-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Generating...';
+    btn.disabled = true;
+    
     window.scrollTo(0, 0);
-
-    const canvas = await html2canvas(input, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-    });
-
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
-
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const imgWidth = pageWidth - 20;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
-    pdf.save("Habit_Report.pdf");
+    
+    try {
+      const canvas = await html2canvas(input, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth - 20;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let position = 10;
+      let heightLeft = imgHeight;
+      pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      pdf.save("Habit_Report.pdf");
+    } finally {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
   };
-
 
   useEffect(() => {
     storage.list().then(setHabits).catch(console.error);
@@ -432,21 +601,19 @@ export default function Reports() {
 
   const categoryPct = useMemo(() => {
     const colors = {
-      health: "#34d399",
-      mind: "#60a5fa",
-      work: "#60a5fa",
-      study: "#fbbf24",
-      personal: "#f472b6",
-      general: "#a78bfa",
+      health: "#a8d5ba",
+      mind: "#b8d4e8",
+      work: "#c9b7eb",
+      study: "#ffd4a3",
+      personal: "#ffb3c1",
+      general: "#d4c5e8",
     };
-  
-    // Normalize habit categories to lowercase
+
     const normalized = habits.map(h => ({
       ...h,
       category: (h.category || "general").toLowerCase()
     }));
   
-    // Count completion per category
     const results = Object.keys(colors).map(cat => {
       const catHabits = normalized.filter(h => h.category === cat);
       const totalHabits = catHabits.length;
@@ -464,15 +631,36 @@ export default function Reports() {
   
     return results.sort((a, b) => b.rate - a.rate);
   }, [habits, period]);
-  
 
   const handleChartTypeToggle = (newType) => {
     setChartType(newType);
   };
 
   useEffect(() => {
+    const saved = localStorage.getItem("prevAvg");
+    if (saved) setPrevAvg(parseFloat(saved));
+    localStorage.setItem("prevAvg", avgCompletion);
+  }, [avgCompletion]);
+  
+  const changePct = prevAvg ? Math.round(((avgCompletion - prevAvg) / prevAvg) * 100) : null;
+
+  useEffect(() => {
     fadeIn([chartRef.current, ...twoColRef.current?.children]);
   }, [periodMode, cursor, chartType]);
+
+  const getMotivationalMessage = () => {
+    if (avgCompletion >= 80) return "🌟 Outstanding! You're crushing it!";
+    if (avgCompletion >= 60) return "🚀 Great momentum! Keep it up!";
+    if (avgCompletion >= 40) return "💪 You're making progress! Stay strong!";
+    return "🌱 Every small step counts. You got this!";
+  };
+
+  const getStreakMessage = () => {
+    if (longestStreak >= 30) return "🔥 Epic streak! You're unstoppable!";
+    if (longestStreak >= 14) return "⚡ Amazing consistency!";
+    if (longestStreak >= 7) return "✨ Week streak! Nice work!";
+    return "💎 Start building your streak today!";
+  };
 
   return (
     <div className="reports-root" ref={reportRef}>
@@ -485,7 +673,13 @@ export default function Reports() {
                 <button
                   key={m}
                   className={`rp-seg-btn ${periodMode === m ? "is-active" : ""}`}
-                  onClick={() => setPeriodMode(m)}
+                  onClick={() => {
+                    setPeriodMode(m);
+                    gsap.fromTo('.rp-seg-btn.is-active', 
+                      { scale: 0.95 }, 
+                      { scale: 1.05, duration: 0.2, yoyo: true, repeat: 1 }
+                    );
+                  }}
                 >
                   {m === "week" ? "Weekly" : "Monthly"}
                 </button>
@@ -497,41 +691,50 @@ export default function Reports() {
               </button>
               <span>
                 {periodMode === "week"
-                  ? `${period.start.toLocaleDateString("en-GB")} – ${period.end.toLocaleDateString("en-GB")}`                  
+                  ? `${period.start.toLocaleDateString("en-GB")} – ${period.end.toLocaleDateString("en-GB")}`
                   : period.start.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
               </span>
               <button onClick={() => setCursor(addDays(period.end, periodMode === "week" ? 7 : 30))}>
                 &gt;
               </button>
             </div>
-                        <button onClick={downloadPDF} className="download-btn"> 
+            <button onClick={downloadPDF} className="download-btn">
               <span className="material-symbols-outlined">download</span>
-              Export
+              Export PDF
             </button>
           </div>
         </header>
 
+        <p className="rp-motto">{getMotivationalMessage()}</p>
+
         {/* KPI Cards */}
         <div className="rp-kpi">
-          <ReportsAnimatedCard>
+          <ReportsAnimatedCard dataHigh={avgCompletion > 70}>
             <div className="rp-kcap">Average Completion</div>
             <div className="rp-kbody">
               <ReportsDonut value={avgCompletion} />
             </div>
+            {changePct !== null && (
+              <div className={`rp-kchange ${changePct >= 0 ? "up" : "down"}`}>
+                {changePct >= 0 ? "↑" : "↓"} {Math.abs(changePct)}% from last period
+              </div>
+            )}
           </ReportsAnimatedCard>
+
           <ReportsAnimatedCard>
             <div className="rp-kcap">Habits Tracked</div>
             <div className="rp-kbig">{habits.length}</div>
             <div className="rp-kfoot">active habits</div>
           </ReportsAnimatedCard>
-          <ReportsAnimatedCard>
+
+          <ReportsAnimatedCard dataHigh={longestStreak >= 7}>
             <div className="rp-kcap">Longest Streak</div>
             <div className="rp-kbig">{longestStreak}</div>
-            <div className="rp-kfoot">across all habits</div>
+            <div className="rp-kfoot">{getStreakMessage()}</div>
           </ReportsAnimatedCard>
         </div>
 
-        {/* Chart with toggle - Centered */}
+        {/* Chart Section */}
         <div ref={chartRef} className="rp-card rp-chart">
           <div className="rp-card-head" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
             <h3 style={{ margin: '0 auto', textAlign: 'center' }}>Daily Completion</h3>
@@ -540,12 +743,11 @@ export default function Reports() {
             </div>
           </div>
           {chartType === "bar" ? (
-            <ReportsBarChart key={periodMode} data={dailyCompletion} periodMode={periodMode} />
+            <ReportsBarChart key={`${periodMode}-${cursor}`} data={dailyCompletion} periodMode={periodMode} />
           ) : (
             <div className="reports-pie-wrapper">
-  <ReportsCategoryPieChart key={periodMode} data={categoryPct} />
-</div>
-
+              <ReportsCategoryPieChart key={`${periodMode}-${cursor}`} data={categoryPct} />
+            </div>
           )}
         </div>
 
@@ -553,7 +755,7 @@ export default function Reports() {
         <div ref={twoColRef} className="rp-twocol">
           <div className="rp-card">
             <div className="rp-card-head">
-              <h3>Top 5 Habits</h3>
+              <h3>🏆 Top 5 Habits</h3>
             </div>
             {topHabits.length > 0 ? (
               <table className="rp-table">
@@ -567,8 +769,13 @@ export default function Reports() {
                 <tbody>
                   {topHabits.slice(0, 5).map((r, index) => (
                     <tr key={`${r.name}-${index}`}>
-                      <td>{r.name}</td>
-                      <td>{r.category}</td>
+                      <td>
+                        {index === 0 && '🥇'} 
+                        {index === 1 && '🥈'} 
+                        {index === 2 && '🥉'} 
+                        {r.name}
+                      </td>
+                      <td style={{ textTransform: 'capitalize' }}>{r.category}</td>
                       <td>
                         <span className="rp-pill">{r.rate}%</span>
                       </td>
@@ -577,37 +784,55 @@ export default function Reports() {
                 </tbody>
               </table>
             ) : (
-              <p className="rp-muted empty-state">No habits tracked yet</p>
+              <p className="rp-empty-state">
+                <span style={{ fontSize: '48px' }}>📈</span>
+                <p>Start tracking habits to see your top performers!</p>
+              </p>
             )}
           </div>
 
           <div className="rp-card">
             <div className="rp-card-head">
-              <h3>Category Breakdown</h3>
+              <h3>📊 Category Breakdown</h3>
             </div>
             <ul className="rp-list">
-  {categoryPct.map((c) => (
-    <li key={c.label} className="rp-list-row">
-      <span className="rp-cap">{c.label}</span>
-      <div className="rp-bar-container">
-        <div className="rp-bar-bg">
-          <div
-            className="rp-bar-fill"
-            style={{
-              width: `${c.rate}%`,
-              backgroundColor: c.rate === 0 ? "#E5E7EB" : c.color,
-            }}
-          />
-        </div>
-      </div>
-      <span className="rp-rate">{c.rate}%</span>
-    </li>
-  ))}
-  {categoryPct.length === 0 && <li className="rp-muted">No data</li>}
-</ul>
-
+              {categoryPct.map((c) => (
+                <li key={c.label} className="rp-list-row">
+                  <span className="rp-cap">{c.label}</span>
+                  <div className="rp-bar-container">
+                    <div className="rp-bar-bg">
+                      <div
+                        className="rp-bar-fill"
+                        style={{
+                          width: `${c.rate}%`,
+                          background: c.rate === 0 ? "#e8f3ec" : c.color,
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <span className="rp-rate">{c.rate}%</span>
+                </li>
+              ))}
+              {categoryPct.length === 0 && (
+                <li className="rp-empty-state">
+                  <span style={{ fontSize: '48px' }}>🎯</span>
+                  <p>No data yet - start your journey!</p>
+                </li>
+              )}
+            </ul>
           </div>
         </div>
+
+        {/* Motivational Summary */}
+        <p className="rp-summary">
+          {avgCompletion >= 80
+            ? "🎉 Incredible work! You're a habit master!"
+            : avgCompletion >= 60
+            ? "💫 You're on fire! Keep this energy going!"
+            : avgCompletion >= 40
+            ? "🌿 Steady progress! Every day makes a difference!"
+            : "🌱 Rome wasn't built in a day. Keep showing up!"}
+        </p>
       </section>
     </div>
   );
