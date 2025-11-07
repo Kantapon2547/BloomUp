@@ -229,7 +229,6 @@ const InJarEntryForm = ({ onAddEntry, isLoading }) => {
 };
 
 // --- Main Component ---
-// --- Main Component ---
 const GratitudeJar = () => {
   const [entries, setEntries] = useState([]);
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -305,8 +304,8 @@ const GratitudeJar = () => {
           <motion.div className="stat-card purple" initial={{opacity:0,y:50}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:0.6}}> 
             <h2>{entries.length}</h2><p>Total Entries</p>
           </motion.div>
-          <motion.div className="stat-card blue" initial={{opacity:0,y:50}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:0.6,delay:0.2}}> 
-            <h2>{entries.filter(e=>e.date===today).length}</h2><p>Added Today</p>
+          <motion.div className="stat-card blue" initial={{opacity:0,y:50}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:0.6,delay:0.2}}>
+            <h2>{entries.filter(e => e.date.startsWith(today)).length}</h2><p>Added Today</p>
           </motion.div>
         </div>
         <h2 className="collection-title">Your Gratitude</h2>

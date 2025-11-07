@@ -26,25 +26,60 @@ const handleLogout = () => {
 };
 
 // =================================================================
-// START: UPDATED GRATITUDE SHARE MODAL WITH NEW DESIGN
+// CROWN ICON COMPONENT - Reused for Share Modals
 // =================================================================
-const GratitudeShareModal = ({ userProfile, gratitudeEntry, onClose }) => {
+const CrownIcon = ({ bgColorClass, isActive }) => (
+  <div className={`crown-icon ${bgColorClass} ${isActive ? 'active' : ''}`}>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 14L3 6L8 9L12 4L16 9L21 6L20 14H4Z" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 14V20H20V14" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {isActive && <circle cx="12" cy="11.5" r="2" fill="#34D399" />}
+    </svg>
+  </div>
+);
+
+
+// =================================================================
+// NEW: PAGE INDICATOR COMPONENT
+// =================================================================
+const PageIndicator = ({ count, activeIndex }) => (
+    <div className="page-indicator">
+      {/* Create an array from the count and map over it to render dots */}
+      {Array.from({ length: count }).map((_, index) => (
+        <span
+          key={index}
+          className={`dot ${index === activeIndex ? 'active' : ''}`}
+        />
+      ))}
+    </div>
+  );
+
+// =================================================================
+// START: SHARE MODAL CONTAINER - NOW WITH PAGE INDICATOR
+// =================================================================
+const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClose, goToNextCard, goToPreviousCard }) => {
   const cardRef = useRef(null);
+  const currentCard = shareCards[currentCardIndex];
 
   const handleVisualShare = async () => {
     if (!cardRef.current) return;
     try {
+      cardRef.current.style.boxShadow = 'none';
+
       const canvas = await html2canvas(cardRef.current, {
         useCORS: true,
-        backgroundColor: null, // Ensures transparency is captured
+        backgroundColor: null,
       });
+
+      cardRef.current.style.boxShadow = '';
+
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-      const file = new File([blob], 'my-gratitude.png', { type: 'image/png' });
+      const file = new File([blob], 'bloomup-share.png', { type: blob.type });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          title: 'My Gratitude Moment',
-          text: `From the BloomUp app: "${gratitudeEntry.text}"`,
+          title: 'My BloomUp Moment',
+          text: `Check out my ${currentCard.type} progress with BloomUp!`,
           files: [file],
         });
       } else {
@@ -61,39 +96,125 @@ const GratitudeShareModal = ({ userProfile, gratitudeEntry, onClose }) => {
   return (
     <div className="share-modal-overlay" onClick={onClose}>
       <div className="share-modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="share-modal-close-btn" onClick={onClose}>×</button>
+        <div className="card-and-external-nav-wrapper">
+          <button className="nav-arrow-btn external-nav-left" onClick={goToPreviousCard} disabled={currentCardIndex === 0}>
+            <span className="material-symbols-outlined">chevron_left</span>
+          </button>
 
-        {/* This is the new structure for the card from your image */}
-        <div className="share-card-container" ref={cardRef}>
-          <div className="share-card-pfp">
-            <img
-              src={userProfile.profile_picture || 'default-avatar.png'}
-              alt={userProfile.name}
-            />
-          </div>
-          <div className="share-card-fg">
-            <div className="share-card-title">
-              {userProfile.name} is grateful for...
+          <div className="share-card-container" ref={cardRef}>
+            <div className="share-card-fg">
+              <span className="card-type-indicator-internal">{currentCard.label}</span>
+              {currentCard.content}
             </div>
-            <div className="share-card-text">
-              "{gratitudeEntry.text}"
-            </div>
-            <div className="share-card-footer">
-              🌸 Shared from BloomUp
+            <div className="share-card-footer-action">
+              <button className="share-action-btn-visual" onClick={handleVisualShare}>
+                <span className="material-symbols-outlined">ios_share</span>
+                Share
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Action buttons remain outside the visual card */}
-        <div className="share-modal-actions">
-          <button className="btn share-action-btn" onClick={handleVisualShare}>Share Image</button>
-          <button className="btn cancel-action-btn" onClick={onClose}>Close</button>
+          <button className="nav-arrow-btn external-nav-right" onClick={goToNextCard} disabled={currentCardIndex === shareCards.length - 1}>
+            <span className="material-symbols-outlined">chevron_right</span>
+          </button>
         </div>
+        <PageIndicator
+          count={shareCards.length}
+          activeIndex={currentCardIndex}
+        />
       </div>
     </div>
   );
 };
 // =================================================================
-// END: UPDATED GRATITUDE SHARE MODAL
+// END: SHARE MODAL CONTAINER
+// =================================================================
+
+// =================================================================
+// START: INDIVIDUAL SHARE CARD COMPONENTS
+// =================================================================
+
+const GratitudeShareCard = ({ gratitudeCount }) => (
+  <>
+    <div className="crown-progress-bar">
+      <CrownIcon bgColorClass="c-blue" isActive={gratitudeCount >= 1} />
+      <CrownIcon bgColorClass="c-purple" isActive={gratitudeCount >= 5} />
+      <CrownIcon bgColorClass="c-grey" isActive={gratitudeCount >= 10} />
+    </div>
+    <div className="label-display">{gratitudeCount}</div>
+    <div className="label-2-display">Gratitude Entries Logged</div>
+  </>
+);
+
+const AchievementShareCard = ({ earnedCount, totalCount, latestAchievement }) => (
+  <>
+    <div className="share-icon-large">🏆</div>
+    <div className="label-display">{earnedCount}/{totalCount}</div>
+    <div className="label-2-display">Achievements Unlocked</div>
+    {latestAchievement && (
+      <div className="share-detail-text">
+        Latest: "{latestAchievement.title}" {latestAchievement.icon}
+      </div>
+    )}
+  </>
+);
+
+const MoodShareCard = ({ moodData }) => (
+  <>
+    <div className="share-icon-large"></div>
+    <div className="label-display">{moodData?.averageMood || "N/A"}</div>
+    <div className="label-2-display">Average Mood This Week</div>
+    <div className="share-detail-text">Feeling: {moodData?.moodDescription || "Good!"}</div>
+  </>
+);
+
+const HabitShareCard = ({ habitData }) => (
+  <>
+    <div className="share-icon-large">🌿</div>
+    <div className="label-display">{habitData?.completedCount || 0}</div>
+    <div className="label-2-display">{habitData?.habitName || "Habits"} Completed</div>
+    <div className="share-detail-text">Streak: {habitData?.currentStreak || 0} days 🔥</div>
+  </>
+);
+
+const WeeklyReviewShareCard = ({ reviewData }) => (
+  <>
+    <div className="share-icon-large">📅</div>
+    <div className="label-display">{reviewData?.habitsCompleted || 0}</div>
+    <div className="=label-2-display">Habits Completed This Week</div>
+    <div className="share-detail-text">Overall progress: {reviewData?.progressPercentage || 0}%</div>
+  </>
+);
+
+const NewHabitStatShareCard = ({ newHabitStat }) => (
+  <>
+    <div className="share-icon-large">🚀</div>
+    <div className="label-display">{newHabitStat?.newHabitCount || 0}</div>
+    <div className="label-2-display">New Habits Started</div>
+    <div className="share-detail-text">Excited to grow!</div>
+  </>
+);
+
+const HighestProgressHabitShareCard = ({ highestProgressHabit }) => (
+  <>
+    <div className="share-icon-large">📈</div>
+    <div className="label-display">{highestProgressHabit?.habitName || "Top Habit"}</div>
+    <div className="label-2-display">Highest Progress ({highestProgressHabit?.progressPercentage || 0}%)</div>
+    <div className="share-detail-text">Keep it up!</div>
+  </>
+);
+
+const OverallStreakShareCard = ({ overallStreak }) => (
+  <>
+    <div className="share-icon-large">🔥</div>
+    <div className="label-display">{overallStreak?.longestOverallStreak || 0}</div>
+    <div className="label-2-display">Longest Overall Streak</div>
+    <div className="share-detail-text">Across all habits!</div>
+  </>
+);
+// =================================================================
+// END: INDIVIDUAL SHARE CARD COMPONENTS
 // =================================================================
 
 
@@ -135,7 +256,7 @@ const ProfileHeader = ({ profileData, onEditProfileClick, onShareClick, formatMe
   </div>
 );
 
-// --- Other Page Components (Unchanged) ---
+// --- Other Page Components ---
 const StatsSection = ({ userStats }) => (
   <div className="profile-stats-cards-container">
     <div className="profile-stats-cards-grid">
@@ -267,7 +388,8 @@ export default function ProfilePage() {
   const [allAchievementsList, setAllAchievementsList] = useState([]);
   const [earnedAchievementsList, setEarnedAchievementsList] = useState([]);
   const [showAchievementsModal, setShowAchievementsModal] = useState(false);
-  const [showGratitudeShareModal, setShowGratitudeShareModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false); // Changed from showGratitudeShareModal
+  const [currentShareCardIndex, setCurrentShareCardIndex] = useState(0); // New state for card index
   const fileInputReference = useRef(null);
 
   useEffect(() => {
@@ -305,7 +427,7 @@ export default function ProfilePage() {
     if (files && files[0]) {
       const reader = new FileReader();
       reader.onload = (e) => setTemporaryProfileData({ ...temporaryProfileData, profile_picture: e.target.result });
-      reader.readAsDataURL(files[0]);
+      reader.readAsURL(files[0]);
     } else {
       setTemporaryProfileData({ ...temporaryProfileData, [name]: value });
     }
@@ -333,17 +455,72 @@ export default function ProfilePage() {
     return new Date(userProfile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" });
   };
 
+  const goToNextShareCard = () => {
+    setCurrentShareCardIndex(prevIndex => (prevIndex + 1) % shareCardsConfig.length);
+  };
+
+  const goToPreviousShareCard = () => {
+    setCurrentShareCardIndex(prevIndex => (prevIndex - 1 + shareCardsConfig.length) % shareCardsConfig.length);
+  };
+
   if (isLoading) return <p className="loading">Loading...</p>;
   if (!userProfile) return <div className="error-message">{errorMessage || "Failed to load profile"}</div>;
 
-  const sampleGratitudeEntry = { text: "The feeling of a warm cup of coffee on a chilly morning." };
+  // --- Dynamic Share Card Configuration ---
+  const shareCardsConfig = [
+    {
+      type: "gratitude",
+      label: "Gratitude Entries",
+      content: <GratitudeShareCard gratitudeCount={userStatistics?.gratitudeEntries || 0} />,
+    },
+    {
+      type: "achievement",
+      label: "Achievements",
+      content: <AchievementShareCard
+        earnedCount={earnedAchievementsList.length}
+        totalCount={allAchievementsList.length}
+        latestAchievement={earnedAchievementsList.length > 0 ? earnedAchievementsList[earnedAchievementsList.length - 1] : null}
+      />,
+    },
+    {
+      type: "mood",
+      label: "Weekly Mood",
+      content: <MoodShareCard moodData={{ averageMood: "😄", moodDescription: "Joyful" }} />, // Placeholder data
+    },
+    {
+      type: "habit",
+      label: "Habit Progress",
+      content: <HabitShareCard habitData={{ habitName: "Morning Routine", completedCount: 25, currentStreak: 7 }} />, // Placeholder data
+    },
+    {
+      type: "new_habit_stat",
+      label: "New Habits Started",
+      content: <NewHabitStatShareCard newHabitStat={{ newHabitCount: 3 }} />, // Placeholder data
+    },
+    {
+      type: "weekly_review",
+      label: "Weekly Review",
+      content: <WeeklyReviewShareCard reviewData={{ habitsCompleted: 15, progressPercentage: 80 }} />, // Placeholder data
+    },
+    {
+      type: "highest_progress_habit",
+      label: "Highest Progress Habit",
+      content: <HighestProgressHabitShareCard highestProgressHabit={{ habitName: "Reading", progressPercentage: 92 }} />, // Placeholder data
+    },
+    {
+      type: "overall_streak",
+      label: "Overall Streak",
+      content: <OverallStreakShareCard overallStreak={{ longestOverallStreak: 30 }} />, // Placeholder data
+    },
+  ];
+
 
   return (
     <div className="profile-page">
       <ProfileHeader
         profileData={userProfile}
         onEditProfileClick={() => setIsEditingProfile(true)}
-        onShareClick={() => setShowGratitudeShareModal(true)}
+        onShareClick={() => setShowShareModal(true)} // Changed to showShareModal
         formatMemberSinceDate={formatMemberSinceDate}
       />
       {userStatistics && (
@@ -363,9 +540,16 @@ export default function ProfilePage() {
       {showAchievementsModal && <AchievementsModal allAchievements={allAchievementsList} onCloseModal={() => setShowAchievementsModal(false)} />}
       {isEditingProfile && <EditProfileModal temporaryProfileData={temporaryProfileData} fileInputReference={fileInputReference} onCloseModal={() => setIsEditingProfile(false)} onInputChange={handleInputChange} onSaveProfile={handleSaveProfile} onCancelEdit={() => setTemporaryProfileData(userProfile)} onChangeProfileImageClick={() => fileInputReference.current.click()} onProfileImageFileChange={handleInputChange} />}
 
-      {/* Passing userProfile to the modal is crucial */}
-      {showGratitudeShareModal && <GratitudeShareModal userProfile={userProfile} gratitudeEntry={sampleGratitudeEntry} onClose={() => setShowGratitudeShareModal(false)} />}
-
+      {showShareModal && (
+        <ShareModalContainer
+          userProfile={userProfile}
+          shareCards={shareCardsConfig}
+          currentCardIndex={currentShareCardIndex}
+          onClose={() => setShowShareModal(false)}
+          goToNextCard={goToNextShareCard}
+          goToPreviousCard={goToPreviousShareCard}
+        />
+      )}
       {errorMessage && <div className="error-message">{errorMessage}</div>}
     </div>
   );
