@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef} from "react";
 import "./style/GratitudeJar.css";
 import { Trash2, ImagePlus, X, ExternalLink, Send } from "lucide-react";
 import { motion } from "framer-motion";
@@ -30,10 +30,7 @@ const makeAbsoluteImageUrl = (imageUrl) => {
   return imageUrl.startsWith("http") ? imageUrl : `${API_BASE_URL}${imageUrl}`;
 };
 
-// --- Components ---
-const GratitudeStar = ({ style, imageSrc }) => (
-  <img src={imageSrc} alt="Gratitude star" className="gratitude-star" style={style} />
-);
+
 
 const AnimatedNewStar = ({ onAnimationEnd }) => {
   const starSrc = starImagePaths[Math.floor(Math.random() * starImagePaths.length)];
@@ -229,7 +226,6 @@ const InJarEntryForm = ({ onAddEntry, isLoading }) => {
 };
 
 // --- Main Component ---
-// --- Main Component ---
 const GratitudeJar = () => {
   const [entries, setEntries] = useState([]);
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -252,11 +248,31 @@ const GratitudeJar = () => {
       const res = await fetch(`${API_BASE_URL}/gratitude/`, { method: "GET", headers: { "Authorization": `Bearer ${token}`, "Content-Type":"application/json" } });
       if (!res.ok) throw new Error(res.status);
       const data = await res.json();
-      setEntries(data.map(e => ({ ...e, image: makeAbsoluteImageUrl(e.image) })));
+     
+     setEntries(
+  data.map(e => ({
+    ...e,
+    image: makeAbsoluteImageUrl(e.image),
+    date: e.date?.split("T")[0] || "", // ensure consistent format
+  }))
+);
+
     } catch (err) { console.error(err); }
   };
 
-  const addEntry = (newEntry) => { setShowNewStar(true); setEntries([newEntry, ...entries]); };
+const addEntry = (newEntry) => {
+  setShowNewStar(true);
+
+  const todayDate = new Date().toISOString().split("T")[0];
+  const entryWithDate = { 
+    ...newEntry, 
+    date: newEntry.date ? newEntry.date.split(/[ T]/)[0] : todayDate 
+  };
+
+  setEntries((prev) => [entryWithDate, ...prev]);
+};
+
+
 
   const deleteEntry = async (id) => {
     const el = document.getElementById(`entry-${id}`);
@@ -270,21 +286,6 @@ const GratitudeJar = () => {
   };
 
   const today = new Date().toISOString().split("T")[0];
-
-  // --- Star positions with floating + scroll ---
-  const starData = useMemo(() => entries.map(() => {
-    const baseTop = Math.random() * 40 + 50; // base % from top
-    const baseLeft = Math.random() * 40 + 30; // base % from left
-    const rotate = Math.random() * 40 - 20;
-    const floatOffset = Math.sin(Date.now() / 1000 + Math.random()*5) * 5; // floating motion
-    const scrollOffset = scrollY * 0.02; // small scroll parallax
-    return {
-      top: `${baseTop + floatOffset + scrollOffset}%`,
-      left: `${baseLeft}%`,
-      transform: `rotate(${rotate}deg)`,
-      imageSrc: starImagePaths[Math.floor(Math.random() * starImagePaths.length)]
-    };
-  }), [entries, scrollY]);
 
   return (
     <div className="app-container">
@@ -306,7 +307,9 @@ const GratitudeJar = () => {
             <h2>{entries.length}</h2><p>Total Entries</p>
           </motion.div>
           <motion.div className="stat-card blue" initial={{opacity:0,y:50}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:0.6,delay:0.2}}> 
-            <h2>{entries.filter(e=>e.date===today).length}</h2><p>Added Today</p>
+            <h2>{entries.filter((e) => e.date === today).length}</h2><p>Added Today</p>
+
+
           </motion.div>
         </div>
         <h2 className="collection-title">Your Gratitude</h2>

@@ -129,7 +129,7 @@ export default function DailyMotivationCard({ completedHabits, totalHabits }) {
     // Build message with stats
     let finalMessage = baseMessage;
     if (improvement > 0) {
-      finalMessage = `${baseMessage} Improved by ${improvement > 0 ? '+' : ''}${improvement}% vs last week.`;
+      finalMessage = `${baseMessage} Improved by ${improvement > 0 ? '+' : ''}${improvement}% from last week.`;
     } else if (weeklyProgress > 0) {
       finalMessage = `${baseMessage} Weekly progress: ${weeklyProgress}%.`;
     }

@@ -143,7 +143,6 @@ body {
   animation: fadeIn 0.35s ease-out;
 }
 
-
 .btn {
   padding: var(--space-sm) var(--space-lg);
   border: none;

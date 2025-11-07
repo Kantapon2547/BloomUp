@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Login } from "./pages/Login";
 import { Signup } from "./pages/Signup";
 import Home from "./pages/Home";
@@ -10,26 +10,53 @@ import Profile from "./pages/Profile";
 import Calendar from "./pages/Calendar";
 import GratitudeJar from "./pages/GratitudeJar";
 import Layout from "./components/Layout";
+import "./App.css"; // ✅ move CSS rules here
+
+// ✅ A helper component to handle background updates
+function BackgroundHandler() {
+  const location = useLocation();
+
+  useEffect(() => {
+    document.body.className = ""; // reset previous class
+
+    if (location.pathname === "/home") {
+      document.body.classList.add("home-bg");
+    } else if (location.pathname === "/gratitude") {
+      document.body.classList.add("gratitude-bg");
+    } else if (location.pathname === "/habits") {
+      document.body.classList.add("habits-bg");
+    } else if (location.pathname === "/reports") {
+      document.body.classList.add("reports-bg");
+    } else if (location.pathname === "/calendar") {
+      document.body.classList.add("calendar-bg");
+    } else if (location.pathname === "/profile") {
+      document.body.classList.add("profile-bg");
+    } else {
+      // default for login, signup, demo, etc.
+      document.body.classList.add("default-bg");
+    }
+  }, [location.pathname]);
+
+  return null; // this component only manages body classes
+}
 
 function App() {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // 👈 Add a loading flag
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false); // 👈 Only finish loading after checking storage
+    if (savedUser) setUser(JSON.parse(savedUser));
+    setLoading(false);
   }, []);
 
   if (loading) {
-    // 👇 Optional: simple placeholder to prevent redirect flicker
     return <div style={{ textAlign: "center", marginTop: "30vh" }}>Loading...</div>;
   }
 
   return (
     <Router>
+      <BackgroundHandler /> {/* ✅ keeps background synced with route */}
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<DemoDashboard user={user} setUser={setUser} />} />
@@ -110,7 +137,7 @@ function App() {
           }
         />
 
-        {/* Fallback route */}
+        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

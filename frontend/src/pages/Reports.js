@@ -659,7 +659,7 @@ export default function Reports() {
     if (longestStreak >= 30) return "🔥 Epic streak! You're unstoppable!";
     if (longestStreak >= 14) return "⚡ Amazing consistency!";
     if (longestStreak >= 7) return "✨ Week streak! Nice work!";
-    return "💎 Start building your streak today!";
+    return "Start building your streak today!";
   };
 
   return (
