@@ -1,4 +1,4 @@
-/* Timer Base Styles */
+/* Base Styles */
 .timer-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -7,6 +7,7 @@
   margin: 0 auto;
   padding: 0 40px;
   height: 550px;
+  background: transparent;
 }
 
 .timer-container {
@@ -34,9 +35,17 @@
 }
 
 /* Theme Colors */
+html {
+  background: transparent;
+  min-height: 100vh;
+}
+
 body {
   background: linear-gradient(135deg, #ffe0e0 0%, #ffd4d4 100%);
   transition: background 0.3s ease;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
 body.short-break-mode {
