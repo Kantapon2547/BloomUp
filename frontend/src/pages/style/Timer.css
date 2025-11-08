@@ -1,0 +1,720 @@
+/* Base Styles */
+.timer-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 40px;
+  height: 550px;
+}
+
+.timer-container {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 30px;
+  padding: 30px;
+  padding-top: 60px;
+  box-shadow: 0 10px 40px rgba(220, 100, 100, 0.15);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 550px;
+  overflow: hidden;
+}
+
+.tasks-container {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 30px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(220, 100, 100, 0.15);
+  display: flex;
+  flex-direction: column;
+  height: 550px;
+  overflow: hidden;
+}
+
+/* Theme Colors */
+body {
+  background: linear-gradient(135deg, #ffe0e0 0%, #ffd4d4 100%);
+  transition: background 0.3s ease;
+}
+
+body.short-break-mode {
+  background: linear-gradient(135deg, #e8f5e9 0%, #ddf0db 100%);
+}
+
+body.long-break-mode {
+  background: linear-gradient(135deg, #e3f2fd 0%, #d6ebf5 100%);
+}
+
+body.short-break-mode .timer-container,
+body.short-break-mode .tasks-container {
+  box-shadow: 0 10px 40px rgba(76, 175, 80, 0.15);
+}
+
+body.long-break-mode .timer-container,
+body.long-break-mode .tasks-container {
+  box-shadow: 0 10px 40px rgba(100, 181, 246, 0.15);
+}
+
+/* Header */
+.mode-selector {
+  display: flex;
+  gap: 8px;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+}
+
+.mode-btn {
+  padding: 8px 14px;
+  border: none;
+  background: #ffcccc;
+  color: #c44545;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.mode-btn.active {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.mode-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* Pomodoro Tabs */
+.pomodoro-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  margin-top: 0;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.pomodoro-tabs.hidden {
+  display: none;
+}
+
+.pomo-tab {
+  padding: 10px 16px;
+  border: 2px solid #ffcccc;
+  background: white;
+  color: #c44545;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.pomo-tab.active {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+  color: white;
+  border-color: #ff6b6b;
+}
+
+.pomo-tab:hover {
+  transform: translateY(-2px);
+}
+
+/* Timer Card */
+.timer-card {
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+  border-radius: 25px;
+  padding: 40px 30px;
+  margin-bottom: 15px;
+  margin-top: 0;
+  text-align: center;
+  box-shadow: 0 8px 30px rgba(220, 100, 100, 0.125);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+body.short-break-mode .timer-card {
+  background: linear-gradient(135deg, #f1fdf0 0%, #e8f9e7 100%);
+}
+
+body.long-break-mode .timer-card {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f3ff 100%);
+}
+
+.time {
+  font-size: 85px;
+  font-weight: 700;
+  color: #c44545;
+  font-family: "Courier New", monospace;
+  letter-spacing: 2px;
+  margin: 0;
+}
+
+body.short-break-mode .time {
+  color: #4caf50;
+}
+
+body.long-break-mode .time {
+  color: #2196f3;
+}
+
+.timer-session-info {
+  font-size: 14px;
+  font-weight: 450;
+  color: #d98888;
+  margin-top: 8px;
+  height: 20px;
+}
+
+body.short-break-mode .timer-session-info {
+  color: #81c784;
+}
+
+body.long-break-mode .timer-session-info {
+  color: #64b5f6;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+  color: white;
+  flex: 1;
+  min-width: 0;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
+body.short-break-mode .btn-primary {
+  background: linear-gradient(135deg, #81c784 0%, #66bb6a 100%);
+  box-shadow: 0 4px 15px rgba(129, 199, 132, 0.3);
+}
+
+body.long-break-mode .btn-primary {
+  background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
+  box-shadow: 0 4px 15px rgba(100, 181, 246, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+}
+
+body.short-break-mode .btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(129, 199, 132, 0.4);
+}
+
+body.long-break-mode .btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(100, 181, 246, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: #ffcccc;
+  color: #c44545;
+  padding: 12px 20px;
+  white-space: nowrap;
+}
+
+body.short-break-mode .btn-secondary {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+
+body.long-break-mode .btn-secondary {
+  background: #bbdefb;
+  color: #1565c0;
+}
+
+.btn-secondary:hover {
+  background: #ffbbbb;
+}
+
+body.short-break-mode .btn-secondary:hover {
+  background: #a5d6a7;
+}
+
+body.long-break-mode .btn-secondary:hover {
+  background: #90caf9;
+}
+
+/* Tasks Section */
+.tasks-section {
+  margin-top: 0;
+  margin-bottom: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tasks-title {
+  color: #c44545;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+body.short-break-mode .tasks-title {
+  color: #2e7d32;
+}
+
+body.long-break-mode .tasks-title {
+  color: #1565c0;
+}
+
+.tasks-list {
+  background: #fff5f5;
+  border-radius: 20px;
+  padding: 12px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+body.short-break-mode .tasks-list {
+  background: #f1fdf0;
+}
+
+body.long-break-mode .tasks-list {
+  background: #f0f7ff;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  transition: all 0.3s ease;
+  cursor: grab;
+  user-select: none;
+}
+
+.task-item:last-child {
+  margin-bottom: 0;
+}
+
+.task-item.dragging {
+  opacity: 0.5;
+}
+
+.task-item.drag-over {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.task-item.completed {
+  opacity: 0.6;
+}
+
+.task-item.completed .task-name {
+  text-decoration: line-through;
+  color: #d98888;
+}
+
+.task-item.active {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+}
+
+body.short-break-mode .task-item.active {
+  background: linear-gradient(135deg, #81c784 0%, #66bb6a 100%);
+}
+
+body.long-break-mode .task-item.active {
+  background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
+}
+
+.task-item.active .task-name,
+.task-item.active .task-info {
+  color: white;
+}
+
+.task-item.active .task-time {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.task-checkbox {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #ffcccc;
+  border-radius: 6px;
+  cursor: pointer;
+  background: white;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+body.short-break-mode .task-checkbox {
+  border-color: #c8e6c9;
+}
+
+body.long-break-mode .task-checkbox {
+  border-color: #bbdefb;
+}
+
+.task-item.active .task-checkbox {
+  border-color: white;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.task-checkbox:hover {
+  border-color: #ff6b6b;
+}
+
+body.short-break-mode .task-checkbox:hover {
+  border-color: #81c784;
+}
+
+body.long-break-mode .task-checkbox:hover {
+  border-color: #64b5f6;
+}
+
+.task-checkbox.checked {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+  border-color: #ff6b6b;
+  color: white;
+}
+
+body.short-break-mode .task-checkbox.checked {
+  background: linear-gradient(135deg, #81c784 0%, #66bb6a 100%);
+  border-color: #81c784;
+}
+
+body.long-break-mode .task-checkbox.checked {
+  background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
+  border-color: #64b5f6;
+}
+
+.task-info {
+  flex: 1;
+  color: #c44545;
+  text-align: left;
+  min-width: 0;
+}
+
+body.short-break-mode .task-info {
+  color: #2e7d32;
+}
+
+body.long-break-mode .task-info {
+  color: #1565c0;
+}
+
+.task-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.task-status {
+  font-size: 11px;
+  color: #000000;
+}
+
+.task-time {
+  color: #d98888;
+  font-size: 12px;
+  background: #ffcccc;
+  padding: 4px 10px;
+  border-radius: 8px;
+  min-width: 70px;
+  text-align: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+body.short-break-mode .task-time {
+  color: #2e7d32;
+  background: #c8e6c9;
+}
+
+body.long-break-mode .task-time {
+  color: #1565c0;
+  background: #bbdefb;
+}
+
+.empty-state {
+  text-align: center;
+  color: #d98888;
+  padding: 20px;
+  font-size: 14px;
+}
+
+body.short-break-mode .empty-state {
+  color: #81c784;
+}
+
+body.long-break-mode .empty-state {
+  color: #64b5f6;
+}
+
+/* Stats */
+.stats {
+  display: flex;
+  gap: 15px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 2px solid #ffcccc;
+  text-align: center;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+body.short-break-mode .stats {
+  border-top-color: #c8e6c9;
+}
+
+body.long-break-mode .stats {
+  border-top-color: #bbdefb;
+}
+
+.stat {
+  flex: 1;
+  min-width: 120px;
+}
+
+.stat-label {
+  color: #d98888;
+  font-size: 11px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+body.short-break-mode .stat-label {
+  color: #81c784;
+}
+
+body.long-break-mode .stat-label {
+  color: #64b5f6;
+}
+
+.stat-value {
+  color: #c44545;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+body.short-break-mode .stat-value {
+  color: #2e7d32;
+}
+
+body.long-break-mode .stat-value {
+  color: #1565c0;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .timer-layout {
+    grid-template-columns: 1fr;
+    padding: 0 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .timer-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 0 15px;
+    height: auto;
+  }
+
+  .timer-container,
+  .tasks-container {
+    height: auto;
+    padding: 25px 15px;
+    padding-top: 50px;
+  }
+
+  .time {
+    font-size: 56px;
+  }
+
+  .pomo-tab {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+
+  .mode-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .mode-selector {
+    top: 15px;
+    right: 15px;
+  }
+
+  .tasks-list {
+    padding: 10px;
+    max-height: 250px;
+  }
+
+  .task-item {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .controls {
+    gap: 10px;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-size: 12px;
+  }
+
+  .stat {
+    min-width: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .timer-container,
+  .tasks-container {
+    padding: 20px 12px;
+    padding-top: 50px;
+  }
+
+  .mode-selector {
+    top: 12px;
+    right: 12px;
+    gap: 6px;
+  }
+
+  .mode-btn {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+
+  .pomodoro-tabs {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .pomo-tab {
+    padding: 8px 10px;
+    font-size: 10px;
+  }
+
+  .time {
+    font-size: 48px;
+  }
+
+  .timer-session-info {
+    font-size: 12px;
+  }
+
+  .timer-card {
+    padding: 30px 20px;
+    margin-bottom: 12px;
+  }
+
+  .controls {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .button-group {
+    gap: 8px;
+  }
+
+  .btn {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+
+  .btn-secondary {
+    padding: 10px 12px;
+  }
+
+  .tasks-title {
+    font-size: 14px;
+  }
+
+  .task-item {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .task-name {
+    font-size: 12px;
+  }
+
+  .task-status {
+    font-size: 10px;
+  }
+
+  .task-time {
+    font-size: 11px;
+    min-width: 60px;
+    padding: 3px 8px;
+  }
+
+  .stats {
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+
+  .stat {
+    min-width: 80px;
+  }
+
+  .stat-label {
+    font-size: 9px;
+  }
+
+  .stat-value {
+    font-size: 16px;
+  }
+}
