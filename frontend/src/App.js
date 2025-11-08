@@ -8,23 +8,23 @@ import Habits from "./pages/Habits";
 import Reports from "./pages/Reports";
 import Profile from "./pages/Profile";
 import Calendar from "./pages/Calendar";
+import Timer from "./pages/Timer";
 import GratitudeJar from "./pages/GratitudeJar";
 import Layout from "./components/Layout";
 
 function App() {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // 👈 Add a loading flag
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
-    setLoading(false); // 👈 Only finish loading after checking storage
+    setLoading(false);
   }, []);
 
   if (loading) {
-    // 👇 Optional: simple placeholder to prevent redirect flicker
     return <div style={{ textAlign: "center", marginTop: "30vh" }}>Loading...</div>;
   }
 
@@ -67,6 +67,18 @@ function App() {
             user ? (
               <Layout>
                 <Reports />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/timer"
+          element={
+            user ? (
+              <Layout>
+                <Timer />
               </Layout>
             ) : (
               <Navigate to="/login" />
