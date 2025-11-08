@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import "./style/Timer.css";
 
 export default function Timer() {
@@ -19,9 +19,6 @@ export default function Timer() {
   };
 
   const [displayTime, setDisplayTime] = useState("25:00");
-  const [displayMode, setDisplayMode] = useState("pomodoro");
-  const [displayTasks, setDisplayTasks] = useState([]);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [displaySessionInfo, setDisplaySessionInfo] = useState("Session 1 of 1");
 
   function calculatePomodoros(minutes) {
@@ -36,9 +33,17 @@ export default function Timer() {
     );
   }
 
+  function updateTheme() {
+    document.body.classList.remove("short-break-mode", "long-break-mode");
+    if (pomodoroType === "short") {
+      document.body.classList.add("short-break-mode");
+    } else if (pomodoroType === "long") {
+      document.body.classList.add("long-break-mode");
+    }
+  }
+
   function switchMode(newMode, btnElement) {
     mode = newMode;
-    setDisplayMode(newMode);
     document.querySelectorAll(".mode-btn").forEach((btn) => btn.classList.remove("active"));
     btnElement.classList.add("active");
 
@@ -91,7 +96,6 @@ export default function Timer() {
       }, 1000);
     }
     isRunning = !isRunning;
-    setIsTimerRunning(isRunning);
     renderTasks();
   }
 
@@ -115,8 +119,8 @@ export default function Timer() {
 
     updateDisplay();
     document.getElementById("startBtn").textContent = "START";
-    setIsTimerRunning(false);
     renderTasks();
+    updateTheme();
   }
 
   function completeTimer() {
@@ -185,6 +189,7 @@ export default function Timer() {
 
     updateDisplay();
     renderTasks();
+    updateTheme();
   }
 
   function selectTask(index) {
@@ -325,16 +330,8 @@ export default function Timer() {
     renderTasks();
   }
 
-  function updateTheme() {
-    document.body.classList.remove("short-break-mode", "long-break-mode");
-    if (pomodoroType === "short") {
-      document.body.classList.add("short-break-mode");
-    } else if (pomodoroType === "long") {
-      document.body.classList.add("long-break-mode");
-    }
-  }
-
   useEffect(() => {
+    // mode buttons
     const modeButtons = document.querySelectorAll(".mode-btn");
     if (modeButtons.length > 0) {
       modeButtons.forEach((btn) => {
@@ -347,18 +344,29 @@ export default function Timer() {
       });
     }
 
-    document.getElementById("startBtn").addEventListener("click", toggleTimer);
-    document.getElementById("resetBtn").addEventListener("click", resetTimer);
+    // control buttons
+    const startBtn = document.getElementById("startBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    
+    if (startBtn) startBtn.addEventListener("click", toggleTimer);
+    if (resetBtn) resetBtn.addEventListener("click", resetTimer);
 
+    // app
     setTimeout(() => {
       loadTasks();
       setupTabListeners();
       updateDisplay();
+      updateTheme();
     }, 0);
+
+    // Cleanup function
+    return () => {
+      if (timerInterval) clearInterval(timerInterval);
+    };
   }, []);
 
   return (
-    <div style={{ width: "100%", background: "linear-gradient(135deg, #ffe0e0 0%, #ffd4d4 100%)", minHeight: "100vh", paddingTop: "20px", paddingBottom: "20px" }}>
+    <>
       <div className="timer-layout">
         <div className="timer-container">
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0px" }}>
@@ -429,6 +437,6 @@ export default function Timer() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
