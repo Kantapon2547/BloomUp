@@ -40,11 +40,10 @@ const CrownIcon = ({ bgColorClass, isActive }) => (
 
 
 // =================================================================
-// NEW: PAGE INDICATOR COMPONENT
+// PAGE INDICATOR COMPONENT
 // =================================================================
 const PageIndicator = ({ count, activeIndex }) => (
     <div className="page-indicator">
-      {/* Create an array from the count and map over it to render dots */}
       {Array.from({ length: count }).map((_, index) => (
         <span
           key={index}
@@ -55,23 +54,28 @@ const PageIndicator = ({ count, activeIndex }) => (
   );
 
 // =================================================================
-// START: SHARE MODAL CONTAINER - NOW WITH PAGE INDICATOR
+// START: SHARE MODAL CONTAINER - REFACTORED AND FIXED
 // =================================================================
 const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClose, goToNextCard, goToPreviousCard }) => {
-  const cardRef = useRef(null);
+  const cardRef = useRef(null); // Ref to the single visible card for capturing
   const currentCard = shareCards[currentCardIndex];
 
-  const handleVisualShare = async () => {
-    if (!cardRef.current) return;
-    try {
-      cardRef.current.style.boxShadow = 'none';
+  const [selectedTheme, setSelectedTheme] = useState('default');
 
-      const canvas = await html2canvas(cardRef.current, {
+  const handleVisualShare = async () => {
+    const cardToCapture = cardRef.current;
+    if (!cardToCapture) return;
+
+    const shareFooter = cardToCapture.querySelector('.share-card-footer-action');
+
+    try {
+      if (shareFooter) shareFooter.style.display = 'none';
+      cardToCapture.style.boxShadow = 'none';
+
+      const canvas = await html2canvas(cardToCapture, {
         useCORS: true,
         backgroundColor: null,
       });
-
-      cardRef.current.style.boxShadow = '';
 
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
       const file = new File([blob], 'bloomup-share.png', { type: blob.type });
@@ -90,6 +94,9 @@ const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClos
       if (error.name !== 'AbortError') {
         alert('Oops! Something went wrong while trying to share.');
       }
+    } finally {
+      if (shareFooter) shareFooter.style.display = '';
+      cardToCapture.style.boxShadow = '';
     }
   };
 
@@ -102,7 +109,8 @@ const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClos
             <span className="material-symbols-outlined">chevron_left</span>
           </button>
 
-          <div className="share-card-container" ref={cardRef}>
+          {/* --- FIXED: Display only the single, current card --- */}
+          <div ref={cardRef} className={`share-card-container ${selectedTheme}`}>
             <div className="share-card-fg">
               <span className="card-type-indicator-internal">{currentCard.label}</span>
               {currentCard.content}
@@ -119,9 +127,14 @@ const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClos
             <span className="material-symbols-outlined">chevron_right</span>
           </button>
         </div>
+
         <PageIndicator
           count={shareCards.length}
           activeIndex={currentCardIndex}
+        />
+        <TemplateSelector
+          selectedTheme={selectedTheme}
+          onSelectTheme={setSelectedTheme}
         />
       </div>
     </div>
@@ -182,7 +195,7 @@ const WeeklyReviewShareCard = ({ reviewData }) => (
   <>
     <div className="share-icon-large">📅</div>
     <div className="label-display">{reviewData?.habitsCompleted || 0}</div>
-    <div className="=label-2-display">Habits Completed This Week</div>
+    <div className="label-2-display">Habits Completed This Week</div>
     <div className="share-detail-text">Overall progress: {reviewData?.progressPercentage || 0}%</div>
   </>
 );
@@ -213,6 +226,34 @@ const OverallStreakShareCard = ({ overallStreak }) => (
     <div className="share-detail-text">Across all habits!</div>
   </>
 );
+
+const TemplateSelector = ({ selectedTheme, onSelectTheme }) => {
+  const themes = [
+    { id: 'default', name: 'Pastel Bloom', color: '#FEF7F8' },
+    { id: 'theme-lavender', name: 'Pastel Dream', color: '#E6E0F0' },
+    { id: 'theme-sky', name: 'Soft Sky', color: '#B3E5FC' },
+    { id: 'theme-minty', name: 'Minty', color: '#E0F2F1' },
+    { id: 'theme-forest', name: 'Serene Forest', color: '#D8E4D8' },
+    { id: 'theme-sunlight', name: 'Cosmic Sunlight', color: '#FDF3CF' },
+  ];
+
+  return (
+    <div className="template-selector">
+      <p className="template-selector-title">Choose a Style</p>
+      <div className="template-options">
+        {themes.map(theme => (
+          <button
+            key={theme.id}
+            className={`template-option ${selectedTheme === theme.id ? 'active' : ''}`}
+            style={{ backgroundColor: theme.color }}
+            onClick={() => onSelectTheme(theme.id)}
+            title={theme.name}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
 // =================================================================
 // END: INDIVIDUAL SHARE CARD COMPONENTS
 // =================================================================
@@ -388,8 +429,8 @@ export default function ProfilePage() {
   const [allAchievementsList, setAllAchievementsList] = useState([]);
   const [earnedAchievementsList, setEarnedAchievementsList] = useState([]);
   const [showAchievementsModal, setShowAchievementsModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false); // Changed from showGratitudeShareModal
-  const [currentShareCardIndex, setCurrentShareCardIndex] = useState(0); // New state for card index
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [currentShareCardIndex, setCurrentShareCardIndex] = useState(0);
   const fileInputReference = useRef(null);
 
   useEffect(() => {
@@ -427,7 +468,7 @@ export default function ProfilePage() {
     if (files && files[0]) {
       const reader = new FileReader();
       reader.onload = (e) => setTemporaryProfileData({ ...temporaryProfileData, profile_picture: e.target.result });
-      reader.readAsURL(files[0]);
+      reader.readAsDataURL(files[0]);
     } else {
       setTemporaryProfileData({ ...temporaryProfileData, [name]: value });
     }
@@ -520,7 +561,7 @@ export default function ProfilePage() {
       <ProfileHeader
         profileData={userProfile}
         onEditProfileClick={() => setIsEditingProfile(true)}
-        onShareClick={() => setShowShareModal(true)} // Changed to showShareModal
+        onShareClick={() => setShowShareModal(true)}
         formatMemberSinceDate={formatMemberSinceDate}
       />
       {userStatistics && (
