@@ -1,11 +1,12 @@
-/* Base Styles */
+/* Timer Base */
 .timer-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 30px;
-  max-width: 1400px;
+  max-width: 1250px;
   margin: 0 auto;
   padding: 0 40px;
+  margin-top: 95px;
   height: 550px;
   background: transparent;
 }
@@ -127,8 +128,8 @@ body.long-break-mode .mode-btn.active {
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 15px;
-  margin-top: 20px;
+  margin-bottom: 25px;
+  margin-top: 25px;
   flex-shrink: 0;
   flex-wrap: wrap;
 }
@@ -187,7 +188,7 @@ body.long-break-mode .pomo-tab.active {
   background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
   border-radius: 25px;
   padding: 40px 30px;
-  margin-bottom: 15px;
+  margin-bottom: 30px;
   margin-top: 0;
   text-align: center;
   box-shadow: 0 8px 30px rgba(220, 100, 100, 0.125);
@@ -268,7 +269,7 @@ body.long-break-mode .timer-session-info {
 .btn-primary {
   background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
   color: white;
-  flex: 1;
+  flex: 7;
   min-width: 0;
   box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
 }
@@ -358,6 +359,7 @@ body.long-break-mode .tasks-title {
 
 .tasks-list {
   background: #fff5f5;
+  max-height: 400px;
   border-radius: 20px;
   padding: 12px;
   flex: 1;
@@ -376,7 +378,7 @@ body.long-break-mode .tasks-list {
 .task-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 13px;
   padding: 12px;
   background: white;
   border-radius: 12px;
@@ -431,8 +433,9 @@ body.long-break-mode .task-item.active {
 }
 
 .task-checkbox {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
   border: 2px solid #ffcccc;
   border-radius: 6px;
   cursor: pointer;
@@ -555,7 +558,8 @@ body.long-break-mode .empty-state {
   display: flex;
   gap: 15px;
   margin-top: 15px;
-  padding-top: 15px;
+  padding-top: 25px;
+  padding-bottom: 15px;
   border-top: 2px solid #ffcccc;
   text-align: center;
   flex-shrink: 0;
