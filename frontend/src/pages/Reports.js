@@ -261,6 +261,12 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
   const barWidth = periodMode === "week" ? 24 : 16;
   const spacing = periodMode === "week" ? 40 : 28;
 
+  const chartData = useMemo(() => {
+    if (periodMode !== "week") return data ?? [];
+    const toMonIdx = (d) => ((d?.dateObj?.getDay?.() ?? 0) + 6) % 7; // Mon=0..Sun=6
+    return [...(data ?? [])].sort((a, b) => toMonIdx(a) - toMonIdx(b));
+  }, [data, periodMode]);
+
   useEffect(() => {
     gsap.fromTo(
       barsRef.current,
@@ -277,7 +283,7 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
         ease: "elastic.out(1, 0.5)" 
       }
     );
-  }, [data]);
+  }, [chartData]);
   
   useEffect(() => {
     numbersRef.current.forEach((el, idx) => {
@@ -292,19 +298,22 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
     });
   }, [hovered]);
 
+  const svgWidth = Math.max(chartData.length * spacing, 1);
+
   return (
     <div className="rp-chart-wrapper">
-      <svg viewBox={`0 0 ${data.length * spacing} 180`} className="rp-svgb">
+      <svg viewBox={`0 0 ${svgWidth} 180`} className="rp-svgb">
         <defs>
           <linearGradient id="barGradient" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="#a8d5ba" />
             <stop offset="100%" stopColor="#7ebb8f" />
           </linearGradient>
         </defs>
-        <line x1="0" y1="150" x2={data.length * spacing} y2="150" stroke="#e8f3ec" strokeWidth="2"/>
-        {data.map((d, i) => {
-          const label =
-            periodMode === "week"
+        <line x1="0" y1="150" x2={svgWidth} y2="150" stroke="#e8f3ec" strokeWidth="2"/>
+        
+        {chartData.map((d, i) => {
+          const isWeek = periodMode === "week";
+          const label = isWeek
               ? d.dateObj.toLocaleDateString("en-US", { weekday: "short" })
               : d.dateObj.getDate();
           
