@@ -1,3 +1,16 @@
+/* Timer Page Background */
+body.timer-bg {
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%) !important;
+}
+
+body.timer-bg.timer-short-break-mode {
+  background: linear-gradient(135deg, #e8f5e9 0%, #ddf0db 100%) !important;
+}
+
+body.timer-bg.timer-long-break-mode {
+  background: linear-gradient(135deg, #e3f2fd 0%, #d6ebf5 100%) !important;
+}
+
 /* Timer Base */
 .timer-layout {
   display: grid;
@@ -33,25 +46,6 @@
   flex-direction: column;
   height: 550px;
   overflow: hidden;
-}
-
-/* Theme Colors - Only apply when on Timer page */
-body.timer-short-break-mode {
-  background: linear-gradient(135deg, #e8f5e9 0%, #ddf0db 100%);
-}
-
-body.timer-long-break-mode {
-  background: linear-gradient(135deg, #e3f2fd 0%, #d6ebf5 100%);
-}
-
-body.timer-short-break-mode .timer-container,
-body.timer-short-break-mode .timer-tasks-container {
-  box-shadow: 0 10px 40px rgba(76, 175, 80, 0.15);
-}
-
-body.timer-long-break-mode .timer-container,
-body.timer-long-break-mode .timer-tasks-container {
-  box-shadow: 0 10px 40px rgba(100, 181, 246, 0.15);
 }
 
 /* Header */
