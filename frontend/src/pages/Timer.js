@@ -34,20 +34,20 @@ export default function Timer() {
   }
 
   function updateTheme() {
-    document.body.classList.remove("short-break-mode", "long-break-mode");
+    document.body.classList.remove("timer-short-break-mode", "timer-long-break-mode");
     if (pomodoroType === "short") {
-      document.body.classList.add("short-break-mode");
+      document.body.classList.add("timer-short-break-mode");
     } else if (pomodoroType === "long") {
-      document.body.classList.add("long-break-mode");
+      document.body.classList.add("timer-long-break-mode");
     }
   }
 
   function switchMode(newMode, btnElement) {
     mode = newMode;
-    document.querySelectorAll(".mode-btn").forEach((btn) => btn.classList.remove("active"));
+    document.querySelectorAll(".timer-mode-btn").forEach((btn) => btn.classList.remove("active"));
     btnElement.classList.add("active");
 
-    const pomodoroTabs = document.getElementById("pomodoroTabs");
+    const pomodoroTabs = document.getElementById("timerPomodoroTabs");
     if (mode === "pomodoro") {
       pomodoroTabs.classList.remove("hidden");
       setupTabListeners();
@@ -55,21 +55,21 @@ export default function Timer() {
       pomodoroTabs.classList.add("hidden");
       // Reset to red theme when switching to Regular mode
       pomodoroType = "work";
-      document.body.classList.remove("short-break-mode", "long-break-mode");
+      document.body.classList.remove("timer-short-break-mode", "timer-long-break-mode");
     }
 
     resetTimer();
   }
 
   function setupTabListeners() {
-    const tabs = document.querySelectorAll(".pomo-tab");
+    const tabs = document.querySelectorAll(".timer-pomo-tab");
     tabs.forEach((tab) => {
       tab.addEventListener("click", handleTabClick);
     });
   }
 
   function handleTabClick(e) {
-    document.querySelectorAll(".pomo-tab").forEach((t) => t.classList.remove("active"));
+    document.querySelectorAll(".timer-pomo-tab").forEach((t) => t.classList.remove("active"));
     e.currentTarget.classList.add("active");
 
     const type = e.currentTarget.getAttribute("data-type");
@@ -78,7 +78,7 @@ export default function Timer() {
     timeLeft = POMODORO_TIMES[type];
     isRunning = false;
     if (timerInterval) clearInterval(timerInterval);
-    document.getElementById("startBtn").textContent = "START";
+    document.getElementById("timerStartBtn").textContent = "START";
     updateDisplay();
     updateTheme();
   }
@@ -86,9 +86,9 @@ export default function Timer() {
   function toggleTimer() {
     if (isRunning) {
       if (timerInterval) clearInterval(timerInterval);
-      document.getElementById("startBtn").textContent = "RESUME";
+      document.getElementById("timerStartBtn").textContent = "RESUME";
     } else {
-      document.getElementById("startBtn").textContent = "PAUSE";
+      document.getElementById("timerStartBtn").textContent = "PAUSE";
       timerInterval = setInterval(() => {
         if (timeLeft > 0) {
           timeLeft--;
@@ -109,7 +109,7 @@ export default function Timer() {
     if (mode === "pomodoro") {
       timeLeft = POMODORO_TIMES["work"];
       pomodoroType = "work";
-      document.querySelectorAll(".pomo-tab").forEach((t) => t.classList.remove("active"));
+      document.querySelectorAll(".timer-pomo-tab").forEach((t) => t.classList.remove("active"));
       const workTab = document.querySelector('[data-type="work"]');
       if (workTab) workTab.classList.add("active");
     } else {
@@ -121,7 +121,7 @@ export default function Timer() {
     }
 
     updateDisplay();
-    document.getElementById("startBtn").textContent = "START";
+    document.getElementById("timerStartBtn").textContent = "START";
     renderTasks();
     updateTheme();
   }
@@ -129,7 +129,7 @@ export default function Timer() {
   function completeTimer() {
     if (timerInterval) clearInterval(timerInterval);
     isRunning = false;
-    document.getElementById("startBtn").textContent = "START";
+    document.getElementById("timerStartBtn").textContent = "START";
 
     if (mode === "pomodoro") {
       if (pomodoroType === "work") {
@@ -145,7 +145,7 @@ export default function Timer() {
             if (currentTaskIndex < tasks.length) {
               alert("Task completed! Take a short break.");
               pomodoroType = "short";
-              document.querySelectorAll(".pomo-tab").forEach((t) => t.classList.remove("active"));
+              document.querySelectorAll(".timer-pomo-tab").forEach((t) => t.classList.remove("active"));
               const shortTab = document.querySelector('[data-type="short"]');
               if (shortTab) shortTab.classList.add("active");
               timeLeft = POMODORO_TIMES["short"];
@@ -158,7 +158,7 @@ export default function Timer() {
           } else {
             alert("Pomodoro complete! Take a short break.");
             pomodoroType = "short";
-            document.querySelectorAll(".pomo-tab").forEach((t) => t.classList.remove("active"));
+            document.querySelectorAll(".timer-pomo-tab").forEach((t) => t.classList.remove("active"));
             const shortTab = document.querySelector('[data-type="short"]');
             if (shortTab) shortTab.classList.add("active");
             timeLeft = POMODORO_TIMES["short"];
@@ -167,14 +167,14 @@ export default function Timer() {
       } else if (pomodoroType === "short") {
         alert("Short break complete! Take a long break.");
         pomodoroType = "long";
-        document.querySelectorAll(".pomo-tab").forEach((t) => t.classList.remove("active"));
+        document.querySelectorAll(".timer-pomo-tab").forEach((t) => t.classList.remove("active"));
         const longTab = document.querySelector('[data-type="long"]');
         if (longTab) longTab.classList.add("active");
         timeLeft = POMODORO_TIMES["long"];
       } else if (pomodoroType === "long") {
         alert("Long break complete! Back to work.");
         pomodoroType = "work";
-        document.querySelectorAll(".pomo-tab").forEach((t) => t.classList.remove("active"));
+        document.querySelectorAll(".timer-pomo-tab").forEach((t) => t.classList.remove("active"));
         const workTab = document.querySelector('[data-type="work"]');
         if (workTab) workTab.classList.add("active");
         timeLeft = POMODORO_TIMES["work"];
@@ -205,7 +205,7 @@ export default function Timer() {
   function startDrag(index) {
     if (isRunning) return;
     draggedItem = index;
-    document.querySelectorAll(".task-item")[index].classList.add("dragging");
+    document.querySelectorAll(".timer-task-item")[index].classList.add("dragging");
   }
 
   function dragOver(e) {
@@ -215,7 +215,7 @@ export default function Timer() {
   function drop(e, index) {
     e.preventDefault();
     if (draggedItem === null || draggedItem === index) {
-      document.querySelectorAll(".task-item").forEach((item) => item.classList.remove("dragging", "drag-over"));
+      document.querySelectorAll(".timer-task-item").forEach((item) => item.classList.remove("dragging", "drag-over"));
       draggedItem = null;
       return;
     }
@@ -234,7 +234,7 @@ export default function Timer() {
     currentTaskIndex = index;
     workSessionsCompleted = 0;
 
-    document.querySelectorAll(".task-item").forEach((item) => {
+    document.querySelectorAll(".timer-task-item").forEach((item) => {
       item.classList.remove("dragging", "drag-over");
     });
     draggedItem = null;
@@ -243,9 +243,9 @@ export default function Timer() {
   }
 
   function renderTasks() {
-    const tasksList = document.getElementById("tasksList");
+    const tasksList = document.getElementById("timerTasksList");
     if (tasks.length === 0) {
-      tasksList.innerHTML = '<div class="empty-state">No tasks yet</div>';
+      tasksList.innerHTML = '<div class="timer-empty-state">No tasks yet</div>';
       updateStats();
       return;
     }
@@ -260,23 +260,23 @@ export default function Timer() {
             : "";
 
         return `
-          <div class="task-item ${task.completed ? "completed" : ""} ${isActive ? "active" : ""}" 
+          <div class="timer-task-item ${task.completed ? "completed" : ""} ${isActive ? "active" : ""}" 
                draggable="true"
                data-index="${idx}">
-            <div class="task-checkbox ${task.completed ? "checked" : ""}">
+            <div class="timer-task-checkbox ${task.completed ? "checked" : ""}">
               ${task.completed ? "✓" : ""}
             </div>
-            <div class="task-info">
-              <div class="task-name">${task.name}</div>
-              <div class="task-status">${statusText}${sessionText}</div>
+            <div class="timer-task-info">
+              <div class="timer-task-name">${task.name}</div>
+              <div class="timer-task-status">${statusText}${sessionText}</div>
             </div>
-            <div class="task-time">${task.minutes} mins</div>
+            <div class="timer-task-time">${task.minutes} mins</div>
           </div>
         `;
       })
       .join("");
 
-    document.querySelectorAll(".task-item").forEach((item) => {
+    document.querySelectorAll(".timer-task-item").forEach((item) => {
       const idx = parseInt(item.getAttribute("data-index"));
       item.addEventListener("dragstart", () => {
         startDrag(idx);
@@ -286,13 +286,13 @@ export default function Timer() {
         drop(e, idx);
       });
       item.addEventListener("dragend", () => {
-        document.querySelectorAll(".task-item").forEach((i) => i.classList.remove("dragging", "drag-over"));
+        document.querySelectorAll(".timer-task-item").forEach((i) => i.classList.remove("dragging", "drag-over"));
       });
       item.addEventListener("click", (e) => {
         if (
-          e.target.classList.contains("task-info") ||
-          e.target.classList.contains("task-name") ||
-          e.target.classList.contains("task-status")
+          e.target.classList.contains("timer-task-info") ||
+          e.target.classList.contains("timer-task-name") ||
+          e.target.classList.contains("timer-task-status")
         ) {
           selectTask(idx);
         }
@@ -312,8 +312,8 @@ export default function Timer() {
   function updateStats() {
     const completedCount = tasks.filter((t) => t.completed).length;
     const totalMinutes = tasks.filter((t) => t.completed).reduce((sum, t) => sum + t.minutes, 0);
-    document.getElementById("completedCount").textContent = completedCount;
-    document.getElementById("totalTime").textContent = totalMinutes + "m";
+    document.getElementById("timerCompletedCount").textContent = completedCount;
+    document.getElementById("timerTotalTime").textContent = totalMinutes + "m";
   }
 
   function loadTasks() {
@@ -338,7 +338,7 @@ export default function Timer() {
 
   useEffect(() => {
     // mode buttons
-    const modeButtons = document.querySelectorAll(".mode-btn");
+    const modeButtons = document.querySelectorAll(".timer-mode-btn");
     if (modeButtons.length > 0) {
       modeButtons.forEach((btn) => {
         btn.addEventListener("click", function () {
@@ -351,8 +351,8 @@ export default function Timer() {
     }
 
     // control buttons
-    const startBtn = document.getElementById("startBtn");
-    const resetBtn = document.getElementById("resetBtn");
+    const startBtn = document.getElementById("timerStartBtn");
+    const resetBtn = document.getElementById("timerResetBtn");
     
     if (startBtn) startBtn.addEventListener("click", toggleTimer);
     if (resetBtn) resetBtn.addEventListener("click", resetTimer);
@@ -368,6 +368,7 @@ export default function Timer() {
     // Cleanup function
     return () => {
       if (timerInterval) clearInterval(timerInterval);
+      document.body.classList.remove("timer-short-break-mode", "timer-long-break-mode");
     };
   }, []);
 
@@ -376,67 +377,67 @@ export default function Timer() {
       <div className="timer-layout">
         <div className="timer-container">
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0px" }}>
-            <div className="mode-selector">
-              <button className="mode-btn active" data-mode="pomodoro">
+            <div className="timer-mode-selector">
+              <button className="timer-mode-btn active" data-mode="pomodoro">
                 Pomodoro
               </button>
-              <button className="mode-btn" data-mode="regular">
+              <button className="timer-mode-btn" data-mode="regular">
                 Regular
               </button>
             </div>
           </div>
 
-          <div className="pomodoro-tabs" id="pomodoroTabs">
-            <button className="pomo-tab active" data-type="work">
+          <div className="timer-pomodoro-tabs" id="timerPomodoroTabs">
+            <button className="timer-pomo-tab active" data-type="work">
               Pomodoro (25m)
             </button>
-            <button className="pomo-tab" data-type="short">
+            <button className="timer-pomo-tab" data-type="short">
               Short Break (5m)
             </button>
-            <button className="pomo-tab" data-type="long">
+            <button className="timer-pomo-tab" data-type="long">
               Long Break (15m)
             </button>
           </div>
 
           <div className="timer-card">
-            <div className="time" id="timeDisplay">
+            <div className="timer-time" id="timerTimeDisplay">
               {displayTime}
             </div>
-            <div className="timer-session-info" id="sessionInfo">
+            <div className="timer-session-info" id="timerSessionInfo">
               {displaySessionInfo}
             </div>
           </div>
 
-          <div className="controls">
-            <div className="button-group">
-              <button className="btn btn-primary" id="startBtn">
+          <div className="timer-controls">
+            <div className="timer-button-group">
+              <button className="timer-btn timer-btn-primary" id="timerStartBtn">
                 START
               </button>
-              <button className="btn btn-secondary" id="resetBtn">
+              <button className="timer-btn timer-btn-secondary" id="timerResetBtn">
                 RESET
               </button>
             </div>
           </div>
         </div>
 
-        <div className="tasks-container">
-          <div className="tasks-section">
-            <h3 className="tasks-title">Tasks</h3>
-            <div className="tasks-list" id="tasksList">
-              <div className="empty-state">No tasks yet</div>
+        <div className="timer-tasks-container">
+          <div className="timer-tasks-section">
+            <h3 className="timer-tasks-title">Tasks</h3>
+            <div className="timer-tasks-list" id="timerTasksList">
+              <div className="timer-empty-state">No tasks yet</div>
             </div>
           </div>
 
-          <div className="stats">
-            <div className="stat">
-              <div className="stat-label">Tasks Completed</div>
-              <div className="stat-value" id="completedCount">
+          <div className="timer-stats">
+            <div className="timer-stat">
+              <div className="timer-stat-label">Tasks Completed</div>
+              <div className="timer-stat-value" id="timerCompletedCount">
                 0
               </div>
             </div>
-            <div className="stat">
-              <div className="stat-label">Total Time Spent</div>
-              <div className="stat-value" id="totalTime">
+            <div className="timer-stat">
+              <div className="timer-stat-label">Total Time Spent</div>
+              <div className="timer-stat-value" id="timerTotalTime">
                 0m
               </div>
             </div>
