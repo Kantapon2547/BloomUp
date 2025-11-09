@@ -1,16 +1,43 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./style/Timer.css";
+import { useSharedTasks } from "./SharedTaskContext";
+
+function formatLocalDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatTotalTime(minutes) {
+  if (minutes === 0) return "0 mins";
+  
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  
+  if (hours === 0) {
+    return `${mins}m`;
+  } else if (mins === 0) {
+    return `${hours}h`;
+  } else {
+    return `${hours}h ${mins}m`;
+  }
+}
 
 export default function Timer() {
-  let mode = "pomodoro";
-  let pomodoroType = "work";
-  let isRunning = false;
-  let timeLeft = 25 * 60;
-  let timerInterval = null;
-  let tasks = [];
-  let currentTaskIndex = 0;
-  let workSessionsCompleted = 0;
-  let draggedItem = null;
+  const { habits } = useSharedTasks();
+  
+  // Timer state
+  const [mode, setMode] = useState("pomodoro");
+  const [pomodoroType, setPomodoroType] = useState("work");
+  const [isRunning, setIsRunning] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [tasks, setTasks] = useState([]);
+  const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
+  const [workSessionsCompleted, setWorkSessionsCompleted] = useState(0);
+  const [draggedItem, setDraggedItem] = useState(null);
+  
+  const timerIntervalRef = useRef(null);
 
   const POMODORO_TIMES = {
     work: 25 * 60,
@@ -18,432 +45,375 @@ export default function Timer() {
     long: 15 * 60,
   };
 
-  const [displayTime, setDisplayTime] = useState("25:00");
-  const [displaySessionInfo, setDisplaySessionInfo] = useState("Session 1 of 1");
+  // Helper to convert duration to minutes
+  const durationToMins = (raw) => {
+    if (typeof raw === "number") return raw;
+    if (typeof raw === "string") {
+      const lower = raw.toLowerCase().trim();
+      const mMatch = lower.match(/(\d+)\s*m/);
+      if (mMatch) return parseInt(mMatch[1], 10);
+      const hMatch = lower.match(/(\d+)\s*h/);
+      if (hMatch) return parseInt(hMatch[1], 10) * 60;
+    }
+    return 30; // fallback
+  };
 
-  function calculatePomodoros(minutes) {
-    return Math.ceil(minutes / 25);
-  }
+  // Sync tasks from habits
+  useEffect(() => {
+    const todayKey = formatLocalDate(new Date());
+    const tasksFromHabits = habits
+      .map(h => {
+        const minutes = durationToMins(h.duration);
+        return {
+          id: h.id,
+          name: h.name,
+          minutes: minutes,
+          icon: h.icon,
+          category: h.category,
+          color: h.color,
+          completed: !!h.history?.[todayKey],
+          requiredPomos: Math.ceil(minutes / 25),
+          fromHabit: true
+        };
+      });
+    
+    setTasks(tasksFromHabits);
+  }, [habits]);
 
-  function updateDisplay() {
+  // Timer countdown effect
+  useEffect(() => {
+    if (isRunning) {
+      timerIntervalRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    }
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, [isRunning]);
+
+  // Handle timer completion - using ref to avoid dependency issues
+  useEffect(() => {
+    if (timeLeft === 0 && isRunning) {
+      setIsRunning(false);
+      
+      if (mode === "pomodoro") {
+        if (pomodoroType === "work") {
+          const newSessionCount = workSessionsCompleted + 1;
+          setWorkSessionsCompleted(newSessionCount);
+
+          if (currentTaskIndex < tasks.length) {
+            const currentTask = tasks[currentTaskIndex];
+            if (newSessionCount >= currentTask.requiredPomos) {
+              const updatedTasks = [...tasks];
+              updatedTasks[currentTaskIndex].completed = true;
+              setTasks(updatedTasks);
+              setCurrentTaskIndex(currentTaskIndex + 1);
+              setWorkSessionsCompleted(0);
+
+              if (currentTaskIndex + 1 < tasks.length) {
+                alert("Task completed! Take a short break.");
+                setPomodoroType("short");
+                setTimeLeft(5 * 60);
+              } else {
+                alert("🎉 All tasks completed!");
+                setIsRunning(false);
+                setTimeLeft(25 * 60);
+                setPomodoroType("work");
+              }
+            } else {
+              alert("Pomodoro complete! Take a short break.");
+              setPomodoroType("short");
+              setTimeLeft(5 * 60);
+            }
+          }
+        } else if (pomodoroType === "short") {
+          alert("Short break complete! Take a long break.");
+          setPomodoroType("long");
+          setTimeLeft(15 * 60);
+        } else if (pomodoroType === "long") {
+          alert("Long break complete! Back to work.");
+          setPomodoroType("work");
+          setTimeLeft(25 * 60);
+        }
+      } else {
+        if (currentTaskIndex < tasks.length) {
+          const updatedTasks = [...tasks];
+          updatedTasks[currentTaskIndex].completed = true;
+          setTasks(updatedTasks);
+          setCurrentTaskIndex(currentTaskIndex + 1);
+          if (currentTaskIndex + 1 < tasks.length) {
+            setTimeLeft(tasks[currentTaskIndex + 1].minutes * 60);
+          }
+        }
+        alert("Timer complete!");
+      }
+    }
+  }, [timeLeft, isRunning, mode, pomodoroType, currentTaskIndex, tasks, workSessionsCompleted]);
+
+  // Display time formatting
+  const displayTime = () => {
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
-    setDisplayTime(
-      `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
-    );
-  }
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  };
 
-  function updateTheme() {
-    document.body.classList.remove("timer-short-break-mode", "timer-long-break-mode");
-    if (pomodoroType === "short") {
-      document.body.classList.add("timer-short-break-mode");
-    } else if (pomodoroType === "long") {
-      document.body.classList.add("timer-long-break-mode");
+  // Session info display
+  const displaySessionInfo = () => {
+    if (currentTaskIndex < tasks.length && mode === "pomodoro" && !tasks[currentTaskIndex]?.completed) {
+      const task = tasks[currentTaskIndex];
+      return `Session ${Math.min(workSessionsCompleted + 1, task.requiredPomos)} of ${task.requiredPomos}`;
     }
-  }
+    return "";
+  };
 
-  function switchMode(newMode, btnElement) {
-    mode = newMode;
-    document.querySelectorAll(".timer-mode-btn").forEach((btn) => btn.classList.remove("active"));
-    btnElement.classList.add("active");
-
-    const pomodoroTabs = document.getElementById("timerPomodoroTabs");
-    if (mode === "pomodoro") {
-      pomodoroTabs.classList.remove("hidden");
-      setupTabListeners();
+  const switchMode = (newMode) => {
+    setMode(newMode);
+    setIsRunning(false);
+    setWorkSessionsCompleted(0);
+    
+    if (newMode === "pomodoro") {
+      // Always start with work pomodoro (25 min)
+      setPomodoroType("work");
+      setTimeLeft(POMODORO_TIMES["work"]);
     } else {
-      pomodoroTabs.classList.add("hidden");
-      // Reset to red theme when switching to Regular mode
-      pomodoroType = "work";
-      document.body.classList.remove("timer-short-break-mode", "timer-long-break-mode");
-    }
-
-    resetTimer();
-  }
-
-  function setupTabListeners() {
-    const tabs = document.querySelectorAll(".timer-pomo-tab");
-    tabs.forEach((tab) => {
-      tab.addEventListener("click", handleTabClick);
-    });
-  }
-
-  function handleTabClick(e) {
-    document.querySelectorAll(".timer-pomo-tab").forEach((t) => t.classList.remove("active"));
-    e.currentTarget.classList.add("active");
-
-    const type = e.currentTarget.getAttribute("data-type");
-    pomodoroType = type;
-
-    timeLeft = POMODORO_TIMES[type];
-    isRunning = false;
-    if (timerInterval) clearInterval(timerInterval);
-    document.getElementById("timerStartBtn").textContent = "START";
-    updateDisplay();
-    updateTheme();
-  }
-
-  function toggleTimer() {
-    if (isRunning) {
-      if (timerInterval) clearInterval(timerInterval);
-      document.getElementById("timerStartBtn").textContent = "RESUME";
-    } else {
-      document.getElementById("timerStartBtn").textContent = "PAUSE";
-      timerInterval = setInterval(() => {
-        if (timeLeft > 0) {
-          timeLeft--;
-          updateDisplay();
-        } else {
-          completeTimer();
-        }
-      }, 1000);
-    }
-    isRunning = !isRunning;
-    renderTasks();
-  }
-
-  function resetTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-    isRunning = false;
-
-    if (mode === "pomodoro") {
-      timeLeft = POMODORO_TIMES["work"];
-      pomodoroType = "work";
-      document.querySelectorAll(".timer-pomo-tab").forEach((t) => t.classList.remove("active"));
-      const workTab = document.querySelector('[data-type="work"]');
-      if (workTab) workTab.classList.add("active");
-    } else {
+      // Regular mode - use current task's duration
       if (currentTaskIndex < tasks.length) {
-        timeLeft = tasks[currentTaskIndex].minutes * 60;
+        setTimeLeft(tasks[currentTaskIndex].minutes * 60);
       } else {
-        timeLeft = 25 * 60;
+        setTimeLeft(25 * 60);
       }
     }
+  };
 
-    updateDisplay();
-    document.getElementById("timerStartBtn").textContent = "START";
-    renderTasks();
-    updateTheme();
-  }
+  const switchPomodoroType = (type) => {
+    setPomodoroType(type);
+    setTimeLeft(POMODORO_TIMES[type]);
+    setIsRunning(false);
+  };
 
-  function completeTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-    isRunning = false;
-    document.getElementById("timerStartBtn").textContent = "START";
+  const toggleTimer = () => {
+    setIsRunning(!isRunning);
+  };
 
+  const resetTimer = () => {
+    setIsRunning(false);
+    
     if (mode === "pomodoro") {
-      if (pomodoroType === "work") {
-        workSessionsCompleted++;
-
-        if (currentTaskIndex < tasks.length) {
-          const currentTask = tasks[currentTaskIndex];
-          if (workSessionsCompleted >= currentTask.requiredPomos) {
-            tasks[currentTaskIndex].completed = true;
-            currentTaskIndex++;
-            workSessionsCompleted = 0;
-
-            if (currentTaskIndex < tasks.length) {
-              alert("Task completed! Take a short break.");
-              pomodoroType = "short";
-              document.querySelectorAll(".timer-pomo-tab").forEach((t) => t.classList.remove("active"));
-              const shortTab = document.querySelector('[data-type="short"]');
-              if (shortTab) shortTab.classList.add("active");
-              timeLeft = POMODORO_TIMES["short"];
-            } else {
-              alert("🎉 All tasks completed!");
-              resetTimer();
-              renderTasks();
-              return;
-            }
-          } else {
-            alert("Pomodoro complete! Take a short break.");
-            pomodoroType = "short";
-            document.querySelectorAll(".timer-pomo-tab").forEach((t) => t.classList.remove("active"));
-            const shortTab = document.querySelector('[data-type="short"]');
-            if (shortTab) shortTab.classList.add("active");
-            timeLeft = POMODORO_TIMES["short"];
-          }
-        }
-      } else if (pomodoroType === "short") {
-        alert("Short break complete! Take a long break.");
-        pomodoroType = "long";
-        document.querySelectorAll(".timer-pomo-tab").forEach((t) => t.classList.remove("active"));
-        const longTab = document.querySelector('[data-type="long"]');
-        if (longTab) longTab.classList.add("active");
-        timeLeft = POMODORO_TIMES["long"];
-      } else if (pomodoroType === "long") {
-        alert("Long break complete! Back to work.");
-        pomodoroType = "work";
-        document.querySelectorAll(".timer-pomo-tab").forEach((t) => t.classList.remove("active"));
-        const workTab = document.querySelector('[data-type="work"]');
-        if (workTab) workTab.classList.add("active");
-        timeLeft = POMODORO_TIMES["work"];
-      }
+      setTimeLeft(POMODORO_TIMES["work"]);
+      setPomodoroType("work");
     } else {
       if (currentTaskIndex < tasks.length) {
-        tasks[currentTaskIndex].completed = true;
-        currentTaskIndex++;
-        if (currentTaskIndex < tasks.length) {
-          timeLeft = tasks[currentTaskIndex].minutes * 60;
-        }
+        setTimeLeft(tasks[currentTaskIndex].minutes * 60);
+      } else {
+        setTimeLeft(25 * 60);
       }
-      alert("Timer complete!");
     }
+  };
 
-    updateDisplay();
-    renderTasks();
-    updateTheme();
-  }
 
-  function selectTask(index) {
+
+  const selectTask = (index) => {
     if (isRunning) return;
-    currentTaskIndex = index;
-    workSessionsCompleted = 0;
-    resetTimer();
-  }
+    setCurrentTaskIndex(index);
+    setWorkSessionsCompleted(0);
+    
+    // Only change time in regular mode, not in pomodoro breaks
+    if (mode === "regular") {
+      // Regular mode - use selected task's duration
+      if (index < tasks.length) {
+        setTimeLeft(tasks[index].minutes * 60);
+      } else {
+        setTimeLeft(25 * 60);
+      }
+    }
+    // In pomodoro mode, don't change the time when selecting tasks
+  };
 
-  function startDrag(index) {
+  const handleDragStart = (index) => {
     if (isRunning) return;
-    draggedItem = index;
-    document.querySelectorAll(".timer-task-item")[index].classList.add("dragging");
-  }
+    setDraggedItem(index);
+  };
 
-  function dragOver(e) {
+  const handleDragOver = (e) => {
     e.preventDefault();
-  }
+  };
 
-  function drop(e, index) {
+  const handleDrop = (e, index) => {
     e.preventDefault();
     if (draggedItem === null || draggedItem === index) {
-      document.querySelectorAll(".timer-task-item").forEach((item) => item.classList.remove("dragging", "drag-over"));
-      draggedItem = null;
+      setDraggedItem(null);
       return;
     }
 
-    const temp = tasks[draggedItem];
-    if (draggedItem < index) {
-      for (let i = draggedItem; i < index; i++) {
-        tasks[i] = tasks[i + 1];
-      }
-    } else {
-      for (let i = draggedItem; i > index; i--) {
-        tasks[i] = tasks[i - 1];
-      }
-    }
-    tasks[index] = temp;
-    currentTaskIndex = index;
-    workSessionsCompleted = 0;
-
-    document.querySelectorAll(".timer-task-item").forEach((item) => {
-      item.classList.remove("dragging", "drag-over");
-    });
-    draggedItem = null;
-
-    resetTimer();
-  }
-
-  function renderTasks() {
-    const tasksList = document.getElementById("timerTasksList");
-    if (tasks.length === 0) {
-      tasksList.innerHTML = '<div class="timer-empty-state">No tasks yet</div>';
-      updateStats();
-      return;
-    }
-
-    tasksList.innerHTML = tasks
-      .map((task, idx) => {
-        const isActive = idx === currentTaskIndex;
-        const statusText = task.completed ? "Completed" : isActive && isRunning ? "Currently doing" : "";
-        const sessionText =
-          isActive && mode === "pomodoro" && !task.completed
-            ? ` - Session ${Math.min(workSessionsCompleted + 1, task.requiredPomos)} of ${task.requiredPomos}`
-            : "";
-
-        return `
-          <div class="timer-task-item ${task.completed ? "completed" : ""} ${isActive ? "active" : ""}" 
-               draggable="true"
-               data-index="${idx}">
-            <div class="timer-task-checkbox ${task.completed ? "checked" : ""}">
-              ${task.completed ? "✓" : ""}
-            </div>
-            <div class="timer-task-info">
-              <div class="timer-task-name">${task.name}</div>
-              <div class="timer-task-status">${statusText}${sessionText}</div>
-            </div>
-            <div class="timer-task-time">${task.minutes} mins</div>
-          </div>
-        `;
-      })
-      .join("");
-
-    document.querySelectorAll(".timer-task-item").forEach((item) => {
-      const idx = parseInt(item.getAttribute("data-index"));
-      item.addEventListener("dragstart", () => {
-        startDrag(idx);
-      });
-      item.addEventListener("dragover", dragOver);
-      item.addEventListener("drop", (e) => {
-        drop(e, idx);
-      });
-      item.addEventListener("dragend", () => {
-        document.querySelectorAll(".timer-task-item").forEach((i) => i.classList.remove("dragging", "drag-over"));
-      });
-      item.addEventListener("click", (e) => {
-        if (
-          e.target.classList.contains("timer-task-info") ||
-          e.target.classList.contains("timer-task-name") ||
-          e.target.classList.contains("timer-task-status")
-        ) {
-          selectTask(idx);
-        }
-      });
-    });
-
-    if (currentTaskIndex < tasks.length && mode === "pomodoro" && !tasks[currentTaskIndex].completed) {
-      const sessionText = `Session ${Math.min(workSessionsCompleted + 1, tasks[currentTaskIndex].requiredPomos)} of ${tasks[currentTaskIndex].requiredPomos}`;
-      setDisplaySessionInfo(sessionText);
-    } else {
-      setDisplaySessionInfo("");
-    }
-
-    updateStats();
-  }
-
-  function updateStats() {
-    const completedCount = tasks.filter((t) => t.completed).length;
-    const totalMinutes = tasks.filter((t) => t.completed).reduce((sum, t) => sum + t.minutes, 0);
-    document.getElementById("timerCompletedCount").textContent = completedCount;
-    document.getElementById("timerTotalTime").textContent = totalMinutes + "m";
-  }
-
-  function loadTasks() {
-    tasks = [
-      { name: "Reading", minutes: 60, requiredPomos: calculatePomodoros(60), completed: false },
-      { name: "Cooking", minutes: 30, requiredPomos: calculatePomodoros(30), completed: false },
-      { name: "Walking", minutes: 40, requiredPomos: calculatePomodoros(40), completed: false },
-      { name: "Reading", minutes: 60, requiredPomos: calculatePomodoros(60), completed: false },
-      { name: "Cooking", minutes: 30, requiredPomos: calculatePomodoros(30), completed: false },
-      { name: "Walking", minutes: 40, requiredPomos: calculatePomodoros(40), completed: false },
-      { name: "Reading", minutes: 60, requiredPomos: calculatePomodoros(60), completed: false },
-      { name: "Cooking", minutes: 30, requiredPomos: calculatePomodoros(30), completed: false },
-      { name: "Walking", minutes: 40, requiredPomos: calculatePomodoros(40), completed: false },
-      { name: "Reading", minutes: 60, requiredPomos: calculatePomodoros(60), completed: false },
-      { name: "Cooking", minutes: 30, requiredPomos: calculatePomodoros(30), completed: false },
-      { name: "Walking", minutes: 40, requiredPomos: calculatePomodoros(40), completed: false },
-    ];
-    currentTaskIndex = 0;
-    workSessionsCompleted = 0;
-    renderTasks();
-  }
-
-  useEffect(() => {
-    // mode buttons
-    const modeButtons = document.querySelectorAll(".timer-mode-btn");
-    if (modeButtons.length > 0) {
-      modeButtons.forEach((btn) => {
-        btn.addEventListener("click", function () {
-          const newMode = this.getAttribute("data-mode");
-          if (newMode) {
-            switchMode(newMode, this);
-          }
-        });
-      });
-    }
-
-    // control buttons
-    const startBtn = document.getElementById("timerStartBtn");
-    const resetBtn = document.getElementById("timerResetBtn");
+    const newTasks = [...tasks];
+    const [removed] = newTasks.splice(draggedItem, 1);
+    newTasks.splice(index, 0, removed);
     
-    if (startBtn) startBtn.addEventListener("click", toggleTimer);
-    if (resetBtn) resetBtn.addEventListener("click", resetTimer);
+    setTasks(newTasks);
+    setCurrentTaskIndex(index);
+    setWorkSessionsCompleted(0);
+    setDraggedItem(null);
+    resetTimer();
+  };
 
-    // app
-    setTimeout(() => {
-      loadTasks();
-      setupTabListeners();
-      updateDisplay();
-      updateTheme();
-    }, 0);
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+  };
 
-    // Cleanup function
+  // Calculate stats
+  const completedCount = tasks.filter(t => t.completed).length;
+  const totalMinutes = tasks.filter(t => t.completed).reduce((sum, t) => sum + t.minutes, 0);
+
+  // Handle break mode theme changes (only for Pomodoro mode)
+  useEffect(() => {
+    document.body.classList.remove("timer-short-break-mode", "timer-long-break-mode");
+    
+    // Only apply break mode colors if in Pomodoro mode
+    if (mode === "pomodoro") {
+      if (pomodoroType === "short") {
+        document.body.classList.add("timer-short-break-mode");
+      } else if (pomodoroType === "long") {
+        document.body.classList.add("timer-long-break-mode");
+      }
+    }
+
     return () => {
-      if (timerInterval) clearInterval(timerInterval);
       document.body.classList.remove("timer-short-break-mode", "timer-long-break-mode");
     };
-  }, []);
+  }, [pomodoroType, mode]);
 
   return (
-    <>
-      <div className="timer-layout">
-        <div className="timer-container">
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0px" }}>
-            <div className="timer-mode-selector">
-              <button className="timer-mode-btn active" data-mode="pomodoro">
-                Pomodoro
-              </button>
-              <button className="timer-mode-btn" data-mode="regular">
-                Regular
-              </button>
-            </div>
-          </div>
-
-          <div className="timer-pomodoro-tabs" id="timerPomodoroTabs">
-            <button className="timer-pomo-tab active" data-type="work">
-              Pomodoro (25m)
+    <div className="timer-layout">
+      <div className="timer-container">
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0px" }}>
+          <div className="timer-mode-selector">
+            <button 
+              className={`timer-mode-btn ${mode === "pomodoro" ? "active" : ""}`}
+              onClick={() => switchMode("pomodoro")}
+            >
+              Pomodoro
             </button>
-            <button className="timer-pomo-tab" data-type="short">
-              Short Break (5m)
+            <button 
+              className={`timer-mode-btn ${mode === "regular" ? "active" : ""}`}
+              onClick={() => switchMode("regular")}
+            >
+              Regular
             </button>
-            <button className="timer-pomo-tab" data-type="long">
-              Long Break (15m)
-            </button>
-          </div>
-
-          <div className="timer-card">
-            <div className="timer-time" id="timerTimeDisplay">
-              {displayTime}
-            </div>
-            <div className="timer-session-info" id="timerSessionInfo">
-              {displaySessionInfo}
-            </div>
-          </div>
-
-          <div className="timer-controls">
-            <div className="timer-button-group">
-              <button className="timer-btn timer-btn-primary" id="timerStartBtn">
-                START
-              </button>
-              <button className="timer-btn timer-btn-secondary" id="timerResetBtn">
-                RESET
-              </button>
-            </div>
           </div>
         </div>
 
-        <div className="timer-tasks-container">
-          <div className="timer-tasks-section">
-            <h3 className="timer-tasks-title">Tasks</h3>
-            <div className="timer-tasks-list" id="timerTasksList">
-              <div className="timer-empty-state">No tasks yet</div>
-            </div>
-          </div>
+        <div className={`timer-pomodoro-tabs ${mode === "regular" ? "hidden" : ""}`}>
+          <button 
+            className={`timer-pomo-tab ${pomodoroType === "work" ? "active" : ""}`}
+            onClick={() => switchPomodoroType("work")}
+          >
+            Pomodoro (25m)
+          </button>
+          <button 
+            className={`timer-pomo-tab ${pomodoroType === "short" ? "active" : ""}`}
+            onClick={() => switchPomodoroType("short")}
+          >
+            Short Break (5m)
+          </button>
+          <button 
+            className={`timer-pomo-tab ${pomodoroType === "long" ? "active" : ""}`}
+            onClick={() => switchPomodoroType("long")}
+          >
+            Long Break (15m)
+          </button>
+        </div>
 
-          <div className="timer-stats">
-            <div className="timer-stat">
-              <div className="timer-stat-label">Tasks Completed</div>
-              <div className="timer-stat-value" id="timerCompletedCount">
-                0
-              </div>
-            </div>
-            <div className="timer-stat">
-              <div className="timer-stat-label">Total Time Spent</div>
-              <div className="timer-stat-value" id="timerTotalTime">
-                0m
-              </div>
-            </div>
+        <div className="timer-card">
+          <div className="timer-time">
+            {displayTime()}
+          </div>
+          <div className="timer-session-info">
+            {displaySessionInfo()}
+          </div>
+        </div>
+
+        <div className="timer-controls">
+          <div className="timer-button-group">
+            <button className="timer-btn timer-btn-primary" onClick={toggleTimer}>
+              {isRunning ? "PAUSE" : "START"}
+            </button>
+            <button className="timer-btn timer-btn-secondary" onClick={resetTimer}>
+              RESET
+            </button>
           </div>
         </div>
       </div>
-    </>
+
+      <div className="timer-tasks-container">
+        <div className="timer-tasks-section">
+          <h3 className="timer-tasks-title">Tasks</h3>
+          <div className="timer-tasks-list">
+            {tasks.length === 0 ? (
+              <div className="timer-empty-state">No tasks yet</div>
+            ) : (
+              tasks.map((task, idx) => {
+                const isActive = idx === currentTaskIndex;
+                const statusText = task.completed 
+                  ? "Completed" 
+                  : isActive && isRunning 
+                    ? "Currently doing" 
+                    : "";
+                const sessionText = isActive && mode === "pomodoro" && !task.completed
+                  ? ` - Session ${Math.min(workSessionsCompleted + 1, task.requiredPomos)} of ${task.requiredPomos}`
+                  : "";
+
+                return (
+                  <div
+                    key={task.id}
+                    className={`timer-task-item ${task.completed ? "completed" : ""} ${isActive ? "active" : ""} ${draggedItem === idx ? "dragging" : ""}`}
+                    draggable={!isRunning}
+                    onDragStart={() => handleDragStart(idx)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, idx)}
+                    onDragEnd={handleDragEnd}
+                    onClick={() => selectTask(idx)}
+                  >
+                    <div className={`timer-task-checkbox ${task.completed ? "checked" : ""}`}>
+                      {task.completed ? "✓" : ""}
+                    </div>
+                    <div className="timer-task-info">
+                      <div className="timer-task-name">
+                        {task.icon ? task.icon + " " : ""}{task.name}
+                      </div>
+                      <div className="timer-task-status">{statusText}{sessionText}</div>
+                    </div>
+                    <div className="timer-task-time">{task.minutes}m</div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <div className="timer-stats">
+          <div className="timer-stat">
+            <div className="timer-stat-label">Tasks Completed</div>
+            <div className="timer-stat-value">{completedCount}</div>
+          </div>
+          <div className="timer-stat">
+            <div className="timer-stat-label">Total Time Spent</div>
+            <div className="timer-stat-value">{formatTotalTime(totalMinutes)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
