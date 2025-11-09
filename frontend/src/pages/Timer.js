@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./style/Timer.css";
 
 export default function Timer() {
+  // Using useRef would be better, but keeping as module variables for now
   let mode = "pomodoro";
   let pomodoroType = "work";
   let isRunning = false;
@@ -53,6 +54,9 @@ export default function Timer() {
       setupTabListeners();
     } else {
       pomodoroTabs.classList.add("hidden");
+      // Reset to red theme when switching to Regular mode
+      pomodoroType = "work";
+      document.body.classList.remove("short-break-mode", "long-break-mode");
     }
 
     resetTimer();
@@ -331,7 +335,7 @@ export default function Timer() {
   }
 
   useEffect(() => {
-    // mode buttons
+    // Initialize mode buttons
     const modeButtons = document.querySelectorAll(".mode-btn");
     if (modeButtons.length > 0) {
       modeButtons.forEach((btn) => {
@@ -344,14 +348,14 @@ export default function Timer() {
       });
     }
 
-    // control buttons
+    // Initialize control buttons
     const startBtn = document.getElementById("startBtn");
     const resetBtn = document.getElementById("resetBtn");
     
     if (startBtn) startBtn.addEventListener("click", toggleTimer);
     if (resetBtn) resetBtn.addEventListener("click", resetTimer);
 
-    // app
+    // Initialize app
     setTimeout(() => {
       loadTasks();
       setupTabListeners();
@@ -363,6 +367,7 @@ export default function Timer() {
     return () => {
       if (timerInterval) clearInterval(timerInterval);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
