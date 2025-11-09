@@ -28,6 +28,23 @@ const doneOnDay = (habit, date) => {
 };
 const pct = (num, den) => (den === 0 ? 0 : Math.round((num / den) * 100));
 
+const startOfWeekMon = (d) => {
+  const base = atMidnight(d);
+  const day = base.getDay();          
+  const offset = (day + 6) % 7;       
+  return addDays(base, -offset);
+};
+
+const countDoneOnDay = (habitsArr, date) => {
+  const key = fmtLocal(date);
+  let count = 0;
+  for (const h of habitsArr || []) {
+    const v = h?.history?.[key] ?? h?.history?.[fmtUTCKey(date)];
+    if (v === true || v === 1 || v === "1") count++;
+  }
+  return count;
+};
+
 /* ===== Category colors from Habits ===== */
 const CATS_LS = "habit-tracker@categories";
 const PASTELS_FALLBACK = ["#ff99c8", "#ffac81", "#fcf6bd", "#d0f4de", "#a9def9", "#e4c1f9"];
@@ -65,7 +82,7 @@ const calcStreak = (habit) => {
 const usePeriod = (periodMode, cursor) =>
   useMemo(() => {
     if (periodMode === "week") {
-      const start = startOfWeek(cursor);
+      const start = startOfWeekMon(cursor);
       const end = addDays(start, 6);
       const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
       return { start, end, days };
@@ -261,11 +278,7 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
   const barWidth = periodMode === "week" ? 24 : 16;
   const spacing = periodMode === "week" ? 40 : 28;
 
-  const chartData = useMemo(() => {
-    if (periodMode !== "week") return data ?? [];
-    const toMonIdx = (d) => ((d?.dateObj?.getDay?.() ?? 0) + 6) % 7; // Mon=0..Sun=6
-    return [...(data ?? [])].sort((a, b) => toMonIdx(a) - toMonIdx(b));
-  }, [data, periodMode]);
+  const chartData = data ?? [];
 
   useEffect(() => {
     gsap.fromTo(
@@ -583,11 +596,13 @@ export default function Reports() {
   const period = usePeriod(periodMode, cursor);
 
   const dailyCompletion = useMemo(() => {
-    return period.days.map((d) => {
-      const done = habits.filter((h) => doneOnDay(h, d)).length;
-      return { key: fmtLocal(d), dateObj: d, done, total: habits.length, rate: pct(done, habits.length) };
+    if (!period?.days?.length) return [];
+    return period.days.map(d => {
+      const done = countDoneOnDay(habits, d);
+      const rate = pct(done, habits.length || 1);
+      return { dateObj: d, key: fmtLocal(d), done, rate };
     });
-  }, [habits, period]);
+  }, [period.days, habits]);
 
   const avgCompletion = useMemo(() => {
     const sum = dailyCompletion.reduce((a, b) => a + b.rate, 0);
@@ -1088,6 +1103,7 @@ export default function Reports() {
                   className={`rp-seg-btn ${periodMode === m ? "is-active" : ""}`}
                   onClick={() => {
                     setPeriodMode(m);
+                    if (m === "week") setCursor(c => startOfWeekMon(c));
                     gsap.fromTo('.rp-seg-btn.is-active', 
                       { scale: 0.95 }, 
                       { scale: 1.05, duration: 0.2, yoyo: true, repeat: 1 }
@@ -1099,16 +1115,24 @@ export default function Reports() {
               ))}
             </div>
             <div className="rp-pager">
-              <button onClick={() => setCursor(addDays(period.start, periodMode === "week" ? -7 : -30))}>
-                &lt;
+              <button onClick={() => {
+                        const base = periodMode === "week" ? startOfWeekMon(cursor) : cursor;
+                        setCursor(addDays(base, periodMode === "week" ? -7 : -30));
+                      }}
+                    >
+                      &lt;
               </button>
               <span>
                 {periodMode === "week"
                   ? `${period.start.toLocaleDateString("en-GB")} – ${period.end.toLocaleDateString("en-GB")}`
                   : period.start.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
               </span>
-              <button onClick={() => setCursor(addDays(period.end, periodMode === "week" ? 7 : 30))}>
-                &gt;
+              <button onClick={() => {
+                        const base = periodMode === "week" ? startOfWeekMon(cursor) : cursor;
+                        setCursor(addDays(base, periodMode === "week" ? 7 : 30));
+                      }}
+                    >
+                      &gt;
               </button>
             </div>
             <button onClick={downloadPDF} className="download-btn">
