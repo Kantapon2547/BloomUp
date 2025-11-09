@@ -1149,6 +1149,7 @@ body.profile-page-active {
   transform: rotate(30deg);
   z-index: -1;
   display: block;
+}
 
 
 .share-card-container.theme-forest .decorative-leaf::after {
@@ -1409,4 +1410,3 @@ body.profile-page-active {
   border-color: #34D399;
   box-shadow: 0 0 0 3px #34D399;
 }
-
