@@ -24,7 +24,7 @@
   overflow: hidden;
 }
 
-.tasks-container {
+.timer-tasks-container {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 30px;
   padding: 30px;
@@ -35,40 +35,27 @@
   overflow: hidden;
 }
 
-/* Theme Colors */
-html {
-  background: transparent;
-  min-height: 100vh;
-}
-
-body {
-  background: linear-gradient(135deg, #ffe0e0 0%, #ffd4d4 100%);
-  transition: background 0.3s ease;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-}
-
-body.short-break-mode {
+/* Theme Colors - Only apply when on Timer page */
+body.timer-short-break-mode {
   background: linear-gradient(135deg, #e8f5e9 0%, #ddf0db 100%);
 }
 
-body.long-break-mode {
+body.timer-long-break-mode {
   background: linear-gradient(135deg, #e3f2fd 0%, #d6ebf5 100%);
 }
 
-body.short-break-mode .timer-container,
-body.short-break-mode .tasks-container {
+body.timer-short-break-mode .timer-container,
+body.timer-short-break-mode .timer-tasks-container {
   box-shadow: 0 10px 40px rgba(76, 175, 80, 0.15);
 }
 
-body.long-break-mode .timer-container,
-body.long-break-mode .tasks-container {
+body.timer-long-break-mode .timer-container,
+body.timer-long-break-mode .timer-tasks-container {
   box-shadow: 0 10px 40px rgba(100, 181, 246, 0.15);
 }
 
 /* Header */
-.mode-selector {
+.timer-mode-selector {
   display: flex;
   gap: 8px;
   position: absolute;
@@ -77,7 +64,7 @@ body.long-break-mode .tasks-container {
   z-index: 10;
 }
 
-.mode-btn {
+.timer-mode-btn {
   padding: 8px 14px;
   border: none;
   background: #ffcccc;
@@ -91,40 +78,40 @@ body.long-break-mode .tasks-container {
   margin-top: 8px;
 }
 
-.mode-btn.active {
+.timer-mode-btn.active {
   background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
 }
 
-body.short-break-mode .mode-btn {
+body.timer-short-break-mode .timer-mode-btn {
   background: #c8e6c9;
   color: #2e7d32;
 }
 
-body.short-break-mode .mode-btn.active {
+body.timer-short-break-mode .timer-mode-btn.active {
   background: linear-gradient(135deg, #81c784 0%, #66bb6a 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(129, 199, 132, 0.3);
 }
 
-body.long-break-mode .mode-btn {
+body.timer-long-break-mode .timer-mode-btn {
   background: #bbdefb;
   color: #1565c0;
 }
 
-body.long-break-mode .mode-btn.active {
+body.timer-long-break-mode .timer-mode-btn.active {
   background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(100, 181, 246, 0.3);
 }
 
-.mode-btn:hover {
+.timer-mode-btn:hover {
   transform: translateY(-1px);
 }
 
 /* Pomodoro Tabs */
-.pomodoro-tabs {
+.timer-pomodoro-tabs {
   display: flex;
   justify-content: center;
   gap: 10px;
@@ -134,11 +121,13 @@ body.long-break-mode .mode-btn.active {
   flex-wrap: wrap;
 }
 
-.pomodoro-tabs.hidden {
+.timer-pomodoro-tabs.hidden {
   display: none;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
-.pomo-tab {
+.timer-pomo-tab {
   padding: 10px 16px;
   border: 2px solid #ffcccc;
   background: white;
@@ -151,35 +140,35 @@ body.long-break-mode .mode-btn.active {
   white-space: nowrap;
 }
 
-.pomo-tab.active {
+.timer-pomo-tab.active {
   background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
   color: white;
   border-color: #ff6b6b;
 }
 
-body.short-break-mode .pomo-tab {
+body.timer-short-break-mode .timer-pomo-tab {
   border-color: #c8e6c9;
   color: #2e7d32;
 }
 
-body.short-break-mode .pomo-tab.active {
+body.timer-short-break-mode .timer-pomo-tab.active {
   background: linear-gradient(135deg, #81c784 0%, #66bb6a 100%);
   color: white;
   border-color: #81c784;
 }
 
-body.long-break-mode .pomo-tab {
+body.timer-long-break-mode .timer-pomo-tab {
   border-color: #bbdefb;
   color: #1565c0;
 }
 
-body.long-break-mode .pomo-tab.active {
+body.timer-long-break-mode .timer-pomo-tab.active {
   background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
   color: white;
   border-color: #64b5f6;
 }
 
-.pomo-tab:hover {
+.timer-pomo-tab:hover {
   transform: translateY(-2px);
 }
 
@@ -199,15 +188,20 @@ body.long-break-mode .pomo-tab.active {
   align-items: center;
 }
 
-body.short-break-mode .timer-card {
+/* Regular mode */
+.timer-pomodoro-tabs.hidden + .timer-card {
+  margin-top: 80px;
+}
+
+body.timer-short-break-mode .timer-card {
   background: linear-gradient(135deg, #f1fdf0 0%, #e8f9e7 100%);
 }
 
-body.long-break-mode .timer-card {
+body.timer-long-break-mode .timer-card {
   background: linear-gradient(135deg, #f0f7ff 0%, #e8f3ff 100%);
 }
 
-.time {
+.timer-time {
   font-size: 85px;
   font-weight: 700;
   color: #c44545;
@@ -216,11 +210,11 @@ body.long-break-mode .timer-card {
   margin: 0;
 }
 
-body.short-break-mode .time {
+body.timer-short-break-mode .timer-time {
   color: #4caf50;
 }
 
-body.long-break-mode .time {
+body.timer-long-break-mode .timer-time {
   color: #2196f3;
 }
 
@@ -232,16 +226,16 @@ body.long-break-mode .time {
   height: 20px;
 }
 
-body.short-break-mode .timer-session-info {
+body.timer-short-break-mode .timer-session-info {
   color: #81c784;
 }
 
-body.long-break-mode .timer-session-info {
+body.timer-long-break-mode .timer-session-info {
   color: #64b5f6;
 }
 
 /* Controls */
-.controls {
+.timer-controls {
   display: flex;
   gap: 15px;
   margin-bottom: 0;
@@ -249,14 +243,14 @@ body.long-break-mode .timer-session-info {
   flex-wrap: wrap;
 }
 
-.button-group {
+.timer-button-group {
   display: flex;
   gap: 10px;
   flex: 1;
   min-width: 0;
 }
 
-.btn {
+.timer-btn {
   padding: 12px 24px;
   border: none;
   border-radius: 12px;
@@ -266,7 +260,7 @@ body.long-break-mode .timer-session-info {
   transition: all 0.3s ease;
 }
 
-.btn-primary {
+.timer-btn-primary {
   background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
   color: white;
   flex: 7;
@@ -274,64 +268,64 @@ body.long-break-mode .timer-session-info {
   box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
 }
 
-body.short-break-mode .btn-primary {
+body.timer-short-break-mode .timer-btn-primary {
   background: linear-gradient(135deg, #81c784 0%, #66bb6a 100%);
   box-shadow: 0 4px 15px rgba(129, 199, 132, 0.3);
 }
 
-body.long-break-mode .btn-primary {
+body.timer-long-break-mode .timer-btn-primary {
   background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
   box-shadow: 0 4px 15px rgba(100, 181, 246, 0.3);
 }
 
-.btn-primary:hover {
+.timer-btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
 }
 
-body.short-break-mode .btn-primary:hover {
+body.timer-short-break-mode .timer-btn-primary:hover {
   box-shadow: 0 6px 20px rgba(129, 199, 132, 0.4);
 }
 
-body.long-break-mode .btn-primary:hover {
+body.timer-long-break-mode .timer-btn-primary:hover {
   box-shadow: 0 6px 20px rgba(100, 181, 246, 0.4);
 }
 
-.btn-primary:active {
+.timer-btn-primary:active {
   transform: translateY(0);
 }
 
-.btn-secondary {
+.timer-btn-secondary {
   background: #ffcccc;
   color: #c44545;
   padding: 12px 20px;
   white-space: nowrap;
 }
 
-body.short-break-mode .btn-secondary {
+body.timer-short-break-mode .timer-btn-secondary {
   background: #c8e6c9;
   color: #2e7d32;
 }
 
-body.long-break-mode .btn-secondary {
+body.timer-long-break-mode .timer-btn-secondary {
   background: #bbdefb;
   color: #1565c0;
 }
 
-.btn-secondary:hover {
+.timer-btn-secondary:hover {
   background: #ffbbbb;
 }
 
-body.short-break-mode .btn-secondary:hover {
+body.timer-short-break-mode .timer-btn-secondary:hover {
   background: #a5d6a7;
 }
 
-body.long-break-mode .btn-secondary:hover {
+body.timer-long-break-mode .timer-btn-secondary:hover {
   background: #90caf9;
 }
 
 /* Tasks Section */
-.tasks-section {
+.timer-tasks-section {
   margin-top: 0;
   margin-bottom: 0;
   flex: 1;
@@ -341,7 +335,7 @@ body.long-break-mode .btn-secondary:hover {
   overflow: hidden;
 }
 
-.tasks-title {
+.timer-tasks-title {
   color: #c44545;
   font-size: 16px;
   font-weight: 600;
@@ -349,15 +343,15 @@ body.long-break-mode .btn-secondary:hover {
   flex-shrink: 0;
 }
 
-body.short-break-mode .tasks-title {
+body.timer-short-break-mode .timer-tasks-title {
   color: #2e7d32;
 }
 
-body.long-break-mode .tasks-title {
+body.timer-long-break-mode .timer-tasks-title {
   color: #1565c0;
 }
 
-.tasks-list {
+.timer-tasks-list {
   background: #fff5f5;
   max-height: 400px;
   border-radius: 20px;
@@ -367,15 +361,15 @@ body.long-break-mode .tasks-title {
   min-height: 0;
 }
 
-body.short-break-mode .tasks-list {
+body.timer-short-break-mode .timer-tasks-list {
   background: #f1fdf0;
 }
 
-body.long-break-mode .tasks-list {
+body.timer-long-break-mode .timer-tasks-list {
   background: #f0f7ff;
 }
 
-.task-item {
+.timer-task-item {
   display: flex;
   align-items: center;
   gap: 13px;
@@ -388,51 +382,51 @@ body.long-break-mode .tasks-list {
   user-select: none;
 }
 
-.task-item:last-child {
+.timer-task-item:last-child {
   margin-bottom: 0;
 }
 
-.task-item.dragging {
+.timer-task-item.dragging {
   opacity: 0.5;
 }
 
-.task-item.drag-over {
+.timer-task-item.drag-over {
   transform: scale(1.02);
   box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
 }
 
-.task-item.completed {
+.timer-task-item.completed {
   opacity: 0.6;
 }
 
-.task-item.completed .task-name {
+.timer-task-item.completed .timer-task-name {
   text-decoration: line-through;
   color: #d98888;
 }
 
-.task-item.active {
+.timer-task-item.active {
   background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
 }
 
-body.short-break-mode .task-item.active {
+body.timer-short-break-mode .timer-task-item.active {
   background: linear-gradient(135deg, #81c784 0%, #66bb6a 100%);
 }
 
-body.long-break-mode .task-item.active {
+body.timer-long-break-mode .timer-task-item.active {
   background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
 }
 
-.task-item.active .task-name,
-.task-item.active .task-info {
+.timer-task-item.active .timer-task-name,
+.timer-task-item.active .timer-task-info {
   color: white;
 }
 
-.task-item.active .task-time {
+.timer-task-item.active .timer-task-time {
   background: rgba(255, 255, 255, 0.3);
   color: white;
 }
 
-.task-checkbox {
+.timer-task-checkbox {
   width: 22px;
   height: 22px;
   font-size: 12px;
@@ -448,75 +442,75 @@ body.long-break-mode .task-item.active {
   font-weight: bold;
 }
 
-body.short-break-mode .task-checkbox {
+body.timer-short-break-mode .timer-task-checkbox {
   border-color: #c8e6c9;
 }
 
-body.long-break-mode .task-checkbox {
+body.timer-long-break-mode .timer-task-checkbox {
   border-color: #bbdefb;
 }
 
-.task-item.active .task-checkbox {
+.timer-task-item.active .timer-task-checkbox {
   border-color: white;
   background: rgba(255, 255, 255, 0.2);
 }
 
-.task-checkbox:hover {
+.timer-task-checkbox:hover {
   border-color: #ff6b6b;
 }
 
-body.short-break-mode .task-checkbox:hover {
+body.timer-short-break-mode .timer-task-checkbox:hover {
   border-color: #81c784;
 }
 
-body.long-break-mode .task-checkbox:hover {
+body.timer-long-break-mode .timer-task-checkbox:hover {
   border-color: #64b5f6;
 }
 
-.task-checkbox.checked {
+.timer-task-checkbox.checked {
   background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
   border-color: #ff6b6b;
   color: white;
 }
 
-body.short-break-mode .task-checkbox.checked {
+body.timer-short-break-mode .timer-task-checkbox.checked {
   background: linear-gradient(135deg, #81c784 0%, #66bb6a 100%);
   border-color: #81c784;
 }
 
-body.long-break-mode .task-checkbox.checked {
+body.timer-long-break-mode .timer-task-checkbox.checked {
   background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
   border-color: #64b5f6;
 }
 
-.task-info {
+.timer-task-info {
   flex: 1;
   color: #c44545;
   text-align: left;
   min-width: 0;
 }
 
-body.short-break-mode .task-info {
+body.timer-short-break-mode .timer-task-info {
   color: #2e7d32;
 }
 
-body.long-break-mode .task-info {
+body.timer-long-break-mode .timer-task-info {
   color: #1565c0;
 }
 
-.task-name {
+.timer-task-name {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 4px;
   word-break: break-word;
 }
 
-.task-status {
+.timer-task-status {
   font-size: 11px;
   color: #000000;
 }
 
-.task-time {
+.timer-task-time {
   color: #d98888;
   font-size: 12px;
   background: #ffcccc;
@@ -528,33 +522,33 @@ body.long-break-mode .task-info {
   white-space: nowrap;
 }
 
-body.short-break-mode .task-time {
+body.timer-short-break-mode .timer-task-time {
   color: #2e7d32;
   background: #c8e6c9;
 }
 
-body.long-break-mode .task-time {
+body.timer-long-break-mode .timer-task-time {
   color: #1565c0;
   background: #bbdefb;
 }
 
-.empty-state {
+.timer-empty-state {
   text-align: center;
   color: #d98888;
   padding: 20px;
   font-size: 14px;
 }
 
-body.short-break-mode .empty-state {
+body.timer-short-break-mode .timer-empty-state {
   color: #81c784;
 }
 
-body.long-break-mode .empty-state {
+body.timer-long-break-mode .timer-empty-state {
   color: #64b5f6;
 }
 
 /* Stats */
-.stats {
+.timer-stats {
   display: flex;
   gap: 15px;
   margin-top: 15px;
@@ -566,20 +560,20 @@ body.long-break-mode .empty-state {
   flex-wrap: wrap;
 }
 
-body.short-break-mode .stats {
+body.timer-short-break-mode .timer-stats {
   border-top-color: #c8e6c9;
 }
 
-body.long-break-mode .stats {
+body.timer-long-break-mode .timer-stats {
   border-top-color: #bbdefb;
 }
 
-.stat {
+.timer-stat {
   flex: 1;
   min-width: 120px;
 }
 
-.stat-label {
+.timer-stat-label {
   color: #d98888;
   font-size: 11px;
   margin-bottom: 5px;
@@ -588,25 +582,25 @@ body.long-break-mode .stats {
   letter-spacing: 0.5px;
 }
 
-body.short-break-mode .stat-label {
+body.timer-short-break-mode .timer-stat-label {
   color: #81c784;
 }
 
-body.long-break-mode .stat-label {
+body.timer-long-break-mode .timer-stat-label {
   color: #64b5f6;
 }
 
-.stat-value {
+.timer-stat-value {
   color: #c44545;
   font-size: 20px;
   font-weight: 700;
 }
 
-body.short-break-mode .stat-value {
+body.timer-short-break-mode .timer-stat-value {
   color: #2e7d32;
 }
 
-body.long-break-mode .stat-value {
+body.timer-long-break-mode .timer-stat-value {
   color: #1565c0;
 }
 
@@ -627,84 +621,84 @@ body.long-break-mode .stat-value {
   }
 
   .timer-container,
-  .tasks-container {
+  .timer-tasks-container {
     height: auto;
     padding: 25px 15px;
     padding-top: 50px;
   }
 
-  .time {
+  .timer-time {
     font-size: 56px;
   }
 
-  .pomo-tab {
+  .timer-pomo-tab {
     padding: 8px 12px;
     font-size: 11px;
   }
 
-  .mode-btn {
+  .timer-mode-btn {
     padding: 6px 10px;
     font-size: 11px;
   }
 
-  .mode-selector {
+  .timer-mode-selector {
     top: 15px;
     right: 15px;
   }
 
-  .tasks-list {
+  .timer-tasks-list {
     padding: 10px;
     max-height: 250px;
   }
 
-  .task-item {
+  .timer-task-item {
     padding: 10px;
     gap: 10px;
   }
 
-  .controls {
+  .timer-controls {
     gap: 10px;
   }
 
-  .btn {
+  .timer-btn {
     padding: 10px 16px;
     font-size: 12px;
   }
 
-  .stat {
+  .timer-stat {
     min-width: 100px;
   }
 }
 
 @media (max-width: 480px) {
   .timer-container,
-  .tasks-container {
+  .timer-tasks-container {
     padding: 20px 12px;
     padding-top: 50px;
   }
 
-  .mode-selector {
+  .timer-mode-selector {
     top: 12px;
     right: 12px;
     gap: 6px;
   }
 
-  .mode-btn {
+  .timer-mode-btn {
     padding: 6px 10px;
     font-size: 10px;
   }
 
-  .pomodoro-tabs {
+  .timer-pomodoro-tabs {
     gap: 8px;
     margin-bottom: 10px;
   }
 
-  .pomo-tab {
+  .timer-pomo-tab {
     padding: 8px 10px;
     font-size: 10px;
   }
 
-  .time {
+  .timer-time {
     font-size: 48px;
   }
 
@@ -717,62 +711,62 @@ body.long-break-mode .stat-value {
     margin-bottom: 12px;
   }
 
-  .controls {
+  .timer-controls {
     gap: 8px;
     flex-wrap: wrap;
   }
 
-  .button-group {
+  .timer-button-group {
     gap: 8px;
   }
 
-  .btn {
+  .timer-btn {
     padding: 10px 14px;
     font-size: 12px;
   }
 
-  .btn-secondary {
+  .timer-btn-secondary {
     padding: 10px 12px;
   }
 
-  .tasks-title {
+  .timer-tasks-title {
     font-size: 14px;
   }
 
-  .task-item {
+  .timer-task-item {
     padding: 8px;
     gap: 8px;
   }
 
-  .task-name {
+  .timer-task-name {
     font-size: 12px;
   }
 
-  .task-status {
+  .timer-task-status {
     font-size: 10px;
   }
 
-  .task-time {
+  .timer-task-time {
     font-size: 11px;
     min-width: 60px;
     padding: 3px 8px;
   }
 
-  .stats {
+  .timer-stats {
     gap: 10px;
     margin-top: 12px;
     padding-top: 12px;
   }
 
-  .stat {
+  .timer-stat {
     min-width: 80px;
   }
 
-  .stat-label {
+  .timer-stat-label {
     font-size: 9px;
   }
 
-  .stat-value {
+  .timer-stat-value {
     font-size: 16px;
   }
 }
