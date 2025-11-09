@@ -23,9 +23,9 @@
   --gray-400: #9ca3af;
   --gray-500: #6b7280;
   --gray-600: #4b5563;
-  --gray-700: #374151;
-  --gray-800: #2b3344;
-  --gray-900: #1a1f35;
+  --gray-700: #4e4f52;
+  --gray-800: #2a2c31;
+  --gray-900: #303139;
   
   /* Semantic Colors */
   --bg: #faf8ff;
@@ -1689,7 +1689,7 @@ select.input.select option {
 }
 
 .task-name-input {
-  width: 90%;
+  width: 100%;
   font-size: 16px;
   font-weight: var(--font-weight-medium);
   text-align: center;
@@ -1697,13 +1697,11 @@ select.input.select option {
   background: transparent;
   color: var(--purple-900);
   outline: none;
-  border-bottom: 2px solid;
-  border-bottom-color: rgba(226, 209, 255, 0.35);
+  border-bottom: 2px solid transparent;
   padding: var(--space-sm);
 }
 
 .task-name-input:focus {
-  border-bottom: 2px solid;
   border-bottom-color: rgba(124, 58, 237, 0.35);
 }
 
@@ -2120,7 +2118,7 @@ select.input.select option {
     flex-direction: column;
     gap: 10px;
   }
-} 
+}
 
 @media (max-width: 520px) {
   .grid-3 {
