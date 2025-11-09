@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import "./style/Timer.css";
 
 export default function Timer() {
-  // Using useRef would be better, but keeping as module variables for now
   let mode = "pomodoro";
   let pomodoroType = "work";
   let isRunning = false;
@@ -328,6 +327,9 @@ export default function Timer() {
       { name: "Reading", minutes: 60, requiredPomos: calculatePomodoros(60), completed: false },
       { name: "Cooking", minutes: 30, requiredPomos: calculatePomodoros(30), completed: false },
       { name: "Walking", minutes: 40, requiredPomos: calculatePomodoros(40), completed: false },
+      { name: "Reading", minutes: 60, requiredPomos: calculatePomodoros(60), completed: false },
+      { name: "Cooking", minutes: 30, requiredPomos: calculatePomodoros(30), completed: false },
+      { name: "Walking", minutes: 40, requiredPomos: calculatePomodoros(40), completed: false },
     ];
     currentTaskIndex = 0;
     workSessionsCompleted = 0;
@@ -335,7 +337,7 @@ export default function Timer() {
   }
 
   useEffect(() => {
-    // Initialize mode buttons
+    // mode buttons
     const modeButtons = document.querySelectorAll(".mode-btn");
     if (modeButtons.length > 0) {
       modeButtons.forEach((btn) => {
@@ -348,14 +350,14 @@ export default function Timer() {
       });
     }
 
-    // Initialize control buttons
+    // control buttons
     const startBtn = document.getElementById("startBtn");
     const resetBtn = document.getElementById("resetBtn");
     
     if (startBtn) startBtn.addEventListener("click", toggleTimer);
     if (resetBtn) resetBtn.addEventListener("click", resetTimer);
 
-    // Initialize app
+    // app
     setTimeout(() => {
       loadTasks();
       setupTabListeners();
@@ -367,7 +369,6 @@ export default function Timer() {
     return () => {
       if (timerInterval) clearInterval(timerInterval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
