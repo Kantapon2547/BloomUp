@@ -1,11 +1,19 @@
 # pylint: disable=missing-class-docstring
 from sqlalchemy import (
-    Column, Integer, String, Date, Boolean, Text, ForeignKey,
-    UniqueConstraint, DateTime
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import JSONB
+
 from .db import Base
 
 
@@ -13,12 +21,12 @@ class User(Base):
     __tablename__ = "users"
 
     user_id = Column(Integer, primary_key=True, index=True)
-    email   = Column(String, unique=True, nullable=False, index=True)
-    password_hash = Column(String, nullable=False) 
+    email = Column(String, unique=True, nullable=False, index=True)
+    password_hash = Column(String, nullable=False)
     bio = Column(Text, nullable=True)
-    name    = Column(String, nullable=True)
+    name = Column(String, nullable=True)
     profile_picture = Column(String, nullable=True)
-    
+
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
@@ -61,15 +69,19 @@ class User(Base):
 class Habit(Base):
     __tablename__ = "habits"
 
-    habit_id    = Column(Integer, primary_key=True, index=True)
-    user_id     = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"),
-                         nullable=False, index=True)
-    habit_name  = Column(String, nullable=False)
+    habit_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    habit_name = Column(String, nullable=False)
     category_id = Column(String)
-    start_date  = Column(Date, nullable=False)
-    end_date    = Column(Date)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date)
     best_streak = Column(Integer, default=0)
-    is_active   = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
 
     # Habit ↔ User
     owner = relationship(
@@ -89,12 +101,20 @@ class HabitCompletion(Base):
     __tablename__ = "habit_completions"
 
     completion_id = Column(Integer, primary_key=True, index=True)
-    habit_id      = Column(Integer, ForeignKey("habits.habit_id", ondelete="CASCADE"),
-                           nullable=False, index=True)
-    user_id       = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"),
-                           nullable=False, index=True)
-    completed_on  = Column(Date, nullable=False)
-    note          = Column(Text)
+    habit_id = Column(
+        Integer,
+        ForeignKey("habits.habit_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    completed_on = Column(Date, nullable=False)
+    note = Column(Text)
 
     # HabitCompletion ↔ Habit
     habit = relationship(
@@ -109,8 +129,9 @@ class HabitCompletion(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("habit_id", "user_id", "completed_on",
-                         name="uq_completion_per_day"),
+        UniqueConstraint(
+            "habit_id", "user_id", "completed_on", name="uq_completion_per_day"
+        ),
     )
 
 
@@ -144,7 +165,7 @@ class MoodLog(Base):
         Integer,
         ForeignKey("users.user_id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
     mood_score = Column(Integer, nullable=False)  # 1-10 scale
     logged_on = Column(Date, nullable=False, index=True)
@@ -156,13 +177,7 @@ class MoodLog(Base):
         back_populates="mood_logs",
     )
 
-    __table_args__ = (
-        UniqueConstraint(
-            "user_id", 
-            "logged_on",
-            name="uq_mood_per_day"
-        ),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "logged_on", name="uq_mood_per_day"),)
 
 
 class Achievement(Base):
@@ -175,19 +190,17 @@ class Achievement(Base):
     icon = Column(String(32))
     points = Column(Integer, default=0)
     meta = Column(JSONB, default={})
-    
+
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
-    
+
     requirements = relationship(
         "AchievementRequirement",
         back_populates="achievement",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
     user_achievements = relationship(
-        "UserAchievement",
-        back_populates="achievement",
-        cascade="all, delete-orphan"
+        "UserAchievement", back_populates="achievement", cascade="all, delete-orphan"
     )
 
 
@@ -198,13 +211,13 @@ class AchievementRequirement(Base):
     achievement_id = Column(
         Integer,
         ForeignKey("achievements.achievement_id", ondelete="CASCADE"),
-        nullable=False
+        nullable=False,
     )
     requirement_type = Column(String(50), nullable=False)
     target_value = Column(Integer)
     unit = Column(String(30))
     extra_meta = Column(JSONB, default={})
-    
+
     achievement = relationship("Achievement", back_populates="requirements")
 
 
@@ -216,25 +229,25 @@ class UserAchievement(Base):
         Integer,
         ForeignKey("users.user_id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
     achievement_id = Column(
         Integer,
         ForeignKey("achievements.achievement_id", ondelete="CASCADE"),
-        nullable=False
+        nullable=False,
     )
     progress = Column(Integer, default=0)
     progress_unit_value = Column(Integer, default=0)
     is_earned = Column(Boolean, default=False)
     earned_date = Column(DateTime, nullable=True)
     meta = Column(JSONB, default={})
-    
+
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
-    
+
     user = relationship("User", back_populates="user_achievements")
     achievement = relationship("Achievement", back_populates="user_achievements")
-    
+
     __table_args__ = (
         UniqueConstraint("user_id", "achievement_id", name="uq_user_achievement"),
     )

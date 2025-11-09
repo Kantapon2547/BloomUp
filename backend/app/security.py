@@ -1,12 +1,13 @@
-import jwt
-from jwt import ExpiredSignatureError, InvalidTokenError
-from datetime import datetime, timedelta
-from fastapi import HTTPException, Depends, status
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
-from passlib.context import CryptContext
-import os
 import logging
+import os
+from datetime import datetime, timedelta
+
+import jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jwt import ExpiredSignatureError, InvalidTokenError
+from passlib.context import CryptContext
+from sqlalchemy.orm import Session
 
 from . import models
 from .db import get_db
@@ -23,22 +24,29 @@ JWT_EXPIRE_MIN = 60 * 24
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
+
 def hash_password(plain_password) -> str:
     if not isinstance(plain_password, str):
         raise TypeError(f"Password must be a str, got {type(plain_password).__name__}")
 
     b = plain_password.encode("utf-8")
     if len(b) > BCRYPT_MAX_BYTES:
-        raise ValueError(f"Password too long ({len(b)} bytes). Max is {BCRYPT_MAX_BYTES} bytes in UTF-8.")
+        raise ValueError(
+            f"Password too long ({len(b)} bytes). Max is {BCRYPT_MAX_BYTES} bytes in UTF-8."
+        )
 
     return pwd_context.hash(plain_password)
+
 
 def verify_password(plain_password: str, password_hash: str) -> bool:
     if not isinstance(plain_password, str):
         raise TypeError(f"Password must be a str, got {type(plain_password).__name__}")
     if not isinstance(password_hash, str):
-        raise TypeError(f"password_hash must be a str, got {type(password_hash).__name__}")
+        raise TypeError(
+            f"password_hash must be a str, got {type(password_hash).__name__}"
+        )
     return pwd_context.verify(plain_password, password_hash)
+
 
 def create_access_token(subject: str) -> str:
     payload = {
@@ -48,6 +56,7 @@ def create_access_token(subject: str) -> str:
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
     logger.info(f"Created token for {subject}")
     return token
+
 
 def decode_token(token: str) -> str:
     try:
@@ -66,11 +75,13 @@ def decode_token(token: str) -> str:
         logger.error(f"Error decoding token: {e}", exc_info=True)
         raise HTTPException(status_code=401, detail="Could not validate credentials")
 
+
 def get_current_email(token: str = Depends(oauth2_scheme)) -> str:
     email = decode_token(token)
     if not email:
         raise HTTPException(status_code=401, detail="Could not validate credentials")
     return email
+
 
 def get_current_user(
     db: Session = Depends(get_db),
@@ -82,18 +93,18 @@ def get_current_user(
     try:
         logger.info("get_current_user called")
         logger.debug(f"Token received: {token[:30]}...")
-        
+
         # Decode token
         email = decode_token(token)
         logger.debug(f"Token decoded, email: {email}")
-        
+
         # Import here to avoid circular imports
         from . import crud
-        
+
         # Get user from database
         user = crud.get_user_by_email(db, email=email)
         logger.debug(f"User lookup result: {user}")
-        
+
         if user is None:
             logger.warning(f"User not found for email: {email}")
             raise HTTPException(
@@ -101,10 +112,10 @@ def get_current_user(
                 detail="User not found",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         logger.info(f"Authenticated user: {user.user_id} ({user.email})")
         return user
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -114,4 +125,3 @@ def get_current_user(
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    

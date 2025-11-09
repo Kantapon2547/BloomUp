@@ -27,11 +27,19 @@ const LEGEND = [
   ["😄", "Amazing"],
 ];
 
+const MOOD_COLORS = {
+  "😭": "#ef4444",
+  "😕": "#fbbf24",
+  "🙂": "#10b981",
+  "😊": "#6366f1",
+  "😄": "#f97316",
+};
+
 const API = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const authHeaders = () => {
   const token = localStorage.getItem("token");
-  console.log("📍 authHeaders called");
+  console.log("🔐 authHeaders called");
   console.log("   Token exists:", !!token);
   console.log("   Token prefix:", token ? token.substring(0, 20) + "..." : "none");
   
@@ -75,7 +83,7 @@ export default function Calendar() {
       setError(null);
       
       const token = localStorage.getItem("token");
-      console.log("Token in storage:", token ? "✓ Found" : "✗ Missing");
+      console.log("Token in storage:", token ? "✔ Found" : "✘ Missing");
       console.log("Auth headers:", authHeaders());
       console.log("Fetching moods from:", `${API}/mood/?limit=365`);
       
@@ -169,13 +177,33 @@ export default function Calendar() {
     .reduce((acc, [, c]) => acc + c, 0);
   const positivePct = totalTracked ? Math.round((positiveCount / totalTracked) * 100) : 0;
 
+  // Sort legend by percentage (descending)
+  const sortedLegend = useMemo(() => {
+    return [...LEGEND].sort((a, b) => {
+      const countA = moodCounts[a[0]] || 0;
+      const countB = moodCounts[b[0]] || 0;
+      const pctA = totalTracked ? (countA / totalTracked) * 100 : 0;
+      const pctB = totalTracked ? (countB / totalTracked) * 100 : 0;
+      return pctB - pctA;
+    });
+  }, [moodCounts, totalTracked]);
+
   const onPrev = () => setDate(({ year, month }) =>
     month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 }
   );
   
-  const onNext = () => setDate(({ year, month }) =>
-    month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 }
-  );
+  const onNext = () => {
+    const nextMonth = date.month === 11 ? { year: date.year + 1, month: 0 } : { year: date.year, month: date.month + 1 };
+    // Don't allow navigation to future months
+    if (nextMonth.year < today.getFullYear() || (nextMonth.year === today.getFullYear() && nextMonth.month <= today.getMonth())) {
+      setDate(nextMonth);
+    }
+  };
+  
+  const isNextDisabled = () => {
+    const nextMonth = date.month === 11 ? { year: date.year + 1, month: 0 } : { year: date.year, month: date.month + 1 };
+    return nextMonth.year > today.getFullYear() || (nextMonth.year === today.getFullYear() && nextMonth.month > today.getMonth());
+  };
 
   if (loading) {
     return (
@@ -223,7 +251,7 @@ export default function Calendar() {
           <div className="card-head" ref={monthRef}>
             <button className="icon-btn" onClick={onPrev}>‹</button>
             <h2 className="card-title">{monthLabel(date.year, date.month)}</h2>
-            <button className="icon-btn" onClick={onNext}>›</button>
+            <button className="icon-btn" onClick={onNext} disabled={isNextDisabled()}>›</button>
           </div>
 
           <div className="card-body">
@@ -245,6 +273,7 @@ export default function Calendar() {
                   <div
                     key={`d-${idx}`}
                     className={`day-cell ${isToday ? "day-today" : ""}`}
+                    style={emo ? { "--mood-color": MOOD_COLORS[emo] } : {}}
                     onMouseEnter={e => gsap.to(e.currentTarget, { scale: 1.05, duration: 0.2 })}
                     onMouseLeave={e => gsap.to(e.currentTarget, { scale: 1, duration: 0.2 })}
                   >
@@ -261,19 +290,31 @@ export default function Calendar() {
           <div className="card summary-card" ref={el => (cardRefs.current[1] = el)}>
             <div className="card-head-only"><h3 className="card-title">Mood Summary</h3></div>
             <div className="card-body">
-              {LEGEND.map(([emoji, label]) => {
+              {sortedLegend.map(([emoji, label]) => {
                 const count = moodCounts[emoji] || 0;
                 const pct = totalTracked ? Math.round((count / totalTracked) * 100) : 0;
+                const dayLabel = count <= 1 ? 'day' : 'days';
                 return (
                   <div key={emoji} className="summary-row">
                     <div className="summary-left">
                       <span className="summary-emoji">{emoji}</span>
                       <div className="summary-text">
-                        <div className="summary-label">{label}</div>
-                        <div className="summary-sub">{count} days{totalTracked ? ` (${pct}%)` : ""}</div>
+                        <span className="summary-label">{label}</span>
+                        <span className="summary-count">{count} {dayLabel}</span>
                       </div>
                     </div>
-                    <div className={`stat ${label.toLowerCase()}`} />
+                    <div className="progress-row">
+                      <div className="progress-bar-container">
+                        <div 
+                          className="progress-bar"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: MOOD_COLORS[emoji]
+                          }}
+                        />
+                      </div>
+                      <div className="progress-percentage">{pct}%</div>
+                    </div>
                   </div>
                 );
               })}
@@ -294,9 +335,13 @@ export default function Calendar() {
                 </span>
               </div>
               <div className="kv">
-                <span className="kv-key">Days tracked:</span>
-                <span className="kv-val">{totalTracked} / {daysInMonth}</span>
-              </div>
+              <span className="kv-key">
+                {totalTracked <= 1 ? 'Day tracked:' : 'Days tracked:'}
+              </span>
+              <span className="kv-val">
+                {totalTracked} / {daysInMonth}
+              </span>
+            </div>
             </div>
           </div>
         </section>

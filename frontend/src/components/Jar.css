@@ -145,8 +145,8 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 120px;
-  height: 150px;
+  width: 200px;
+  height: 250px;
   z-index: 5;
 }
 
@@ -177,6 +177,7 @@
   background: none;
   border: none;
   padding: 0;
+
   transform: translate(calc(-50% + var(--position-x)), calc(-50% + var(--position-y))) rotate(var(--rotation));
 }
 
@@ -208,9 +209,8 @@
 
 /* STAR ICON */
 .star-icon {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
+  width: 40px;
+  height: 40px;
   margin-bottom: 5px;
 }
 

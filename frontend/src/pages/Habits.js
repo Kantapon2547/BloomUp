@@ -1,14 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {Plus, Pencil, Trash2, ChevronDown, Filter, Trophy, CheckCircle2, Sun, DownloadCloud} 
+import {Plus, Pencil, Trash2, ChevronDown, Filter, Trophy, CheckCircle2, Sun} 
   from "lucide-react";
 import "./style/Habits.css";
+import EmojiPicker from "emoji-picker-react";
 
 const USE_API_DEFAULT = true;
 const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 const AUTH_TOKEN = import.meta?.env?.VITE_API_TOKEN || "";
 const LS_KEY = "habit-tracker@hybrid";
-const CATEGORIES = ["General", "Study", "Health", "Mind"];
-const DURATIONS = ["15 mins", "30 mins", "45 mins", "1 hour", "1.5 hours", "2 hours", "3 hours"];
+const CATS_LS = "habit-tracker@categories";
+const PASTELS = [
+  "#ff99c8",
+  "#ffac81",
+  "#fcf6bd",
+  "#d0f4de",
+  "#a9def9",
+  "#e4c1f9",
+];
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -31,11 +39,12 @@ const normalizeHabit = (h) => ({
   name: h.name ?? "",
   category: h.category ?? "General",
   icon: h.icon ?? "📚",
-  duration: h.duration ?? "30 mins",
+  duration: h.duration ?? 30,
+  color: h.color ?? "#ede9ff",
   history: h.history ?? {},
 });
 
-function createStorage() {
+export function createStorage() {
   let useApi = USE_API_DEFAULT;
 
   async function safeApi(fn, fallback) {
@@ -126,20 +135,28 @@ function createStorage() {
 
 const storage = createStorage();
 
+function formatLocalDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 const weekOf = (date) => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
+  const day = d.getDay(); 
+  const diff = (day === 0 ? -6 : 1) - day; 
   const start = new Date(d);
-  start.setDate(d.getDate() - d.getDay());
-  start.setHours(0, 0, 0, 0);
+  start.setDate(d.getDate() + diff);
   return [...Array(7)].map((_, i) => {
     const x = new Date(start);
     x.setDate(start.getDate() + i);
-    return x.toISOString().slice(0, 10);
+    return formatLocalDate(x); 
   });
 };
 
-const todayKey = () => new Date().toISOString().slice(0, 10);
+const todayKey = () => formatLocalDate(new Date());
 const thisWeek = () => weekOf(new Date());
 const pct = (n) => Math.round(n * 100);
 const plural = (n, w) => `${n} ${w}${n > 1 ? "s" : ""}`;
@@ -182,6 +199,53 @@ function useClickOutside(ref, onClose) {
   }, [onClose, ref]);
 }
 
+function durationToMins(raw) {
+  if (typeof raw === "number") return raw;
+
+  if (typeof raw === "string") {
+    const lower = raw.toLowerCase().trim();
+
+    const mMatch = lower.match(/(\d+)\s*m/);
+    if (mMatch) {
+      return parseInt(mMatch[1], 10);
+    }
+
+    const hMatch = lower.match(/(\d+)\s*h/);
+    const mmMatch = lower.match(/(\d+)\s*m/);
+
+    if (hMatch && mmMatch) {
+      const h = parseInt(hMatch[1], 10);
+      const m = parseInt(mmMatch[1], 10);
+      return h * 60 + m;
+    }
+
+    if (hMatch && !mmMatch) {
+      const h = parseInt(hMatch[1], 10);
+      return h * 60;
+    }
+  }
+
+  return NaN;
+}
+
+function formatDuration(mins) {
+  if (typeof mins !== "number" || isNaN(mins)) return "";
+
+  if (mins < 60) {
+    return `${mins} mins`;
+  }
+
+  if (mins % 60 === 0) {
+    const hrs = mins / 60;
+    return `${hrs} hour${hrs === 1 ? "" : "s"}`;
+  }
+
+  const hrs = Math.floor(mins / 60);
+  const rem = mins % 60;
+  return `${hrs}h ${rem}m`;
+}
+
+
 function Dropdown({ value, items, onChange, label }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -223,168 +287,120 @@ function Dropdown({ value, items, onChange, label }) {
   );
 }
 
-async function generatePDFReport(habits, totals, week) {
-  // Load jsPDF from CDN if not already loaded
-  if (!window.jspdf) {
-    const script1 = document.createElement('script');
-    script1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    document.head.appendChild(script1);
-    
-    await new Promise((resolve) => {
-      script1.onload = resolve;
-    });
-    
-    const script2 = document.createElement('script');
-    script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js';
-    document.head.appendChild(script2);
-    
-    await new Promise((resolve) => {
-      script2.onload = resolve;
-    });
-  }
-  
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  
-  const today = new Date().toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
+function DurationPickerModal({
+  current,
+  onSelect,
+  onClose,
+}) {
 
-  // Header
-  doc.setFontSize(22);
-  doc.setTextColor(124, 58, 237);
-  doc.text("Habit Tracker Progress Report", 20, 20);
-  
-  doc.setFontSize(10);
-  doc.setTextColor(107, 114, 128);
-  doc.text(`Generated on ${today}`, 20, 28);
+  const initHours = Math.floor(current / 60);
+  const initMins = current % 60;
 
-  // Summary Section
-  doc.setFontSize(16);
-  doc.setTextColor(17, 19, 37);
-  doc.text("Summary", 20, 45);
+  const [hours, setHours] = useState(initHours);
+  const [mins, setMins] = useState(initMins);
 
-  doc.setFontSize(11);
-  doc.setTextColor(43, 51, 68);
-  doc.text(`Total Habits: ${totals.total}`, 20, 55);
-  doc.text(`Completed Today: ${totals.doneToday}`, 20, 62);
-  doc.text(`Weekly Completion Rate: ${totals.completion}%`, 20, 69);
-  doc.text(`Best Streak: ${totals.best} day${totals.best !== 1 ? 's' : ''}`, 20, 76);
+  const safeNum = (val) => {
+    const n = parseInt(val, 10);
+    return isNaN(n) || n < 0 ? 0 : n;
+  };
 
-  // Habits Table
-  doc.setFontSize(16);
-  doc.text("Habits Details", 20, 92);
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div
+        className="floating-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="floating-head">
+          <div className="floating-title">Set Duration</div>
+          <div className="floating-actions">
+          </div>
+        </div>
 
-  const tableData = habits.map(h => {
-    const rate = weekRate(h);
-    const streak = bestStreak(h.history || {});
-    const completedThisWeek = week.filter(d => h.history?.[d]).length;
-    
-    return [
-      h.name,
-      h.category,
-      h.duration,
-      `${streak} day${streak !== 1 ? 's' : ''}`,
-      `${completedThisWeek}/7`,
-      `${rate}%`
-    ];
-  });
+        <div className="duration-form">
+          <div className="duration-field">
+            <label className="duration-label">Hours</label>
+            <input
+              className="duration-input"
+              type="number"
+              min="0"
+              value={hours}
+              onChange={(e) => setHours(safeNum(e.target.value))}
+            />
+          </div>
 
-  doc.autoTable({
-    startY: 98,
-    head: [['Habit Name', 'Category', 'Duration', 'Best Streak', 'This Week', 'Rate']],
-    body: tableData,
-    theme: 'striped',
-    headStyles: {
-      fillColor: [124, 58, 237],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      fontSize: 10
-    },
-    bodyStyles: {
-      fontSize: 9,
-      textColor: [43, 51, 68]
-    },
-    alternateRowStyles: {
-      fillColor: [250, 248, 255]
-    },
-    margin: { left: 20, right: 20 }
-  });
+          <div className="duration-field">
+            <label className="duration-label">Minutes</label>
+            <input
+              className="duration-input"
+              type="number"
+              min="0"
+              max="59"
+              value={mins}
+              onChange={(e) => {
+                const v = safeNum(e.target.value);
+                setMins(v > 59 ? 59 : v);
+              }}
+            />
+          </div>
+        </div>
 
-  // Category Breakdown
-  const categoryStats = {};
-  habits.forEach(h => {
-    const cat = h.category || 'General';
-    if (!categoryStats[cat]) {
-      categoryStats[cat] = { count: 0, totalRate: 0 };
-    }
-    categoryStats[cat].count++;
-    categoryStats[cat].totalRate += weekRate(h);
-  });
+        <div className="newcat-actions">
+          <button
+            className="newcat-cancel-btn"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
 
-  const finalY = doc.lastAutoTable.finalY + 15;
-  doc.setFontSize(16);
-  doc.text("Category Breakdown", 20, finalY);
-
-  const categoryData = Object.entries(categoryStats).map(([cat, stats]) => [
-    cat,
-    stats.count,
-    `${Math.round(stats.totalRate / stats.count)}%`
-  ]);
-
-  doc.autoTable({
-    startY: finalY + 6,
-    head: [['Category', 'Habits Count', 'Avg Completion']],
-    body: categoryData,
-    theme: 'striped',
-    headStyles: {
-      fillColor: [124, 58, 237],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      fontSize: 10
-    },
-    bodyStyles: {
-      fontSize: 9,
-      textColor: [43, 51, 68]
-    },
-    alternateRowStyles: {
-      fillColor: [250, 248, 255]
-    },
-    margin: { left: 20, right: 20 }
-  });
-
-  // Footer
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(107, 114, 128);
-    doc.text(
-      `Page ${i} of ${pageCount}`,
-      doc.internal.pageSize.getWidth() / 2,
-      doc.internal.pageSize.getHeight() - 10,
-      { align: 'center' }
-    );
-  }
-
-  // Save the PDF
-  doc.save(`habit-tracker-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+          <button
+            className="newcat-add-btn"
+            onClick={() => {
+              const totalMins = hours * 60 + mins;
+              const finalVal = totalMins === 0 ? 1 : totalMins;
+              onSelect(finalVal);
+              onClose();
+            }}
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function HabitModal({ open, onClose, onSubmit, initial }) {
+function HabitModal({
+  open,
+  onClose,
+  onSubmit,
+  initial,
+  categories,
+  onCreateCategory,
+  onApplyCategoryColor,
+  onDeleteCategory,
+}) {
   const [name, setName] = useState(initial?.name || "");
   const [category, setCategory] = useState(initial?.category || "General");
-  const [icon, setIcon] = useState(initial?.icon || "📚");
-  const [duration, setDuration] = useState(initial?.duration || "30 mins");
-
+  const [emoji, setEmoji] = useState(initial?.icon || "📚"); 
+  const [duration, setDuration] = useState(
+  typeof initial?.duration === "number" ? initial.duration : 30);
+  const [error, setError] = useState("");
+  const [color, setColor] = useState(initial?.color || PASTELS[0]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showDurationPicker, setShowDurationPicker] = useState(false);
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  
   useEffect(() => {
     if (open) {
       setName(initial?.name || "");
       setCategory(initial?.category || "General");
-      setIcon(initial?.icon || "📚");
-      setDuration(initial?.duration || "30 mins");
+      setEmoji(initial?.icon || "📚");
+      setDuration(typeof initial?.duration === "number" ? initial.duration : 30);
+      setColor(initial?.color || PASTELS[0]);
+      setError("");
+      setShowEmojiPicker(false);
+      setShowCategoryPicker(false);
     }
   }, [initial, open]);
 
@@ -392,55 +408,464 @@ function HabitModal({ open, onClose, onSubmit, initial }) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-body">
-          <h3>Habit Name</h3>
+      <div
+        className="modal modal-task"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="task-header">
+          <button
+            className="task-emoji-btn"
+            onClick={() => setShowEmojiPicker(true)}
+          >
+            <span className="task-emoji">{emoji}</span>
+          </button>
+
+          <div className="task-emoji-hint">Tap to change icon</div>
+
           <input
-            className="input"
-            placeholder="e.g., Study for 2 hours"
+            className={`task-name-input ${error ? "is-invalid" : ""}`}
+            placeholder="Enter habit name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              setError("");
+            }}
           />
-          <div className="row-two">
-            <div className="field">
-              <h3>Category</h3>
-              <Dropdown value={category} items={CATEGORIES} onChange={setCategory} />
+          {error && <div className="field-error">{error}</div>}
+        </div>
+
+        <div className="task-fields">
+          <button
+            className="task-row-btn"
+            onClick={() => setShowCategoryPicker(true)}
+            type="button"
+          >
+            <div className="task-row-left">
+              <div className="task-row-label">CATEGORY</div>
+              <div className="task-row-value">{category}</div>
             </div>
-            <div className="field">
-              <h3>Duration</h3>
-              <Dropdown value={duration} items={DURATIONS} onChange={setDuration} />
+            <div className="task-row-chevron">›</div>
+          </button>
+
+          <button 
+            className="task-row-btn"
+            onClick={() => setShowDurationPicker(true)}
+            type="button"
+          >
+            <div className="task-row-left">
+              <div className="task-row-label">DURATION</div>
+              <div className="task-row-value">
+                {formatDuration(duration)}
+              </div>
             </div>
+            <div className="task-row-chevron">›</div>
+          </button>
+        </div>
+
+        <div className="habit-footer">
+          <button className="footer-btn cancel" onClick={onClose}>
+            Cancel
+          </button>
+
+          <button
+            className="footer-btn confirm"
+            onClick={() => {
+              if (!name.trim()) {
+                setError("Please enter a habit name.");
+                return;
+              }
+
+              onApplyCategoryColor(category, color);
+
+              onSubmit({
+                name: name.trim(),
+                category,
+                icon: emoji,
+                duration,
+                color,
+              });
+            }}
+          >
+            Add Habit
+          </button>
+        </div>
+      </div>
+
+        {showEmojiPicker && (
+          <EmojiPickerModal
+            onClose={() => setShowEmojiPicker(false)}
+            onSelect={(em) => {
+              setEmoji(em);
+              setShowEmojiPicker(false);
+            }}
+          />
+        )}
+
+        {showCategoryPicker && (
+          <CategoryPickerModal
+            categories={categories}
+            current={category}
+            onSelect={(catName) => {
+              setCategory(catName);
+
+              const picked = categories.find(c => c.name === catName);
+              if (picked?.color) {
+              setColor(picked.color);
+              }
+              setShowCategoryPicker(false);
+            }}
+
+            onClose={() => setShowCategoryPicker(false)}
+            onAddNewRequest={() => {
+              setShowCategoryPicker(false);
+              setShowAddCategory(true);  
+            }}
+
+            onDeleteCategory={(catNameToDelete) => {
+              onDeleteCategory(catNameToDelete);
+              if (category === catNameToDelete) {
+                setCategory("General");
+                const fallback = categories.find(c => c.name === "General");
+                setColor(fallback?.color || PASTELS[0]);
+            }
+          }}
+            onApplyColor={(catName, pastel) => {
+              onApplyCategoryColor(catName, pastel);
+              if (catName === category) {
+                setColor(pastel);
+              }
+            }}
+          />
+        )}
+            
+        {showAddCategory && (
+          <NewCategoryModal
+            onClose={() => setShowAddCategory(false)}
+            onAdd={(newName, pickedColor) => {
+              onCreateCategory(newName, pickedColor); 
+              setCategory(newName);
+              setColor(pickedColor);
+              setShowAddCategory(false);
+            }}
+          />
+        )}
+
+        {showDurationPicker && (
+          <DurationPickerModal
+            current={duration}
+            onSelect={(val) => setDuration(val)}
+            onClose={() => setShowDurationPicker(false)}
+          />
+        )}
+      </div>
+  );
+}
+function NewCategoryModal({
+  onClose,
+  onAdd,
+}) {
+  const [draft, setDraft] = useState("");
+  const [pickedColor, setPickedColor] = useState(PASTELS[0]);
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+
+
+      <div
+        className="floating-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="floating-head">
+          <div className="floating-title">Add Category</div>
+          <div className="floating-actions">
+          </div>
+        </div>
+
+        <div className="color-row-main color-row-cat">
+          {PASTELS.map((c) => (
+            <button
+              key={c}
+              className={
+                "color-dot-main" +
+                (c === pickedColor ? " is-selected" : "")
+              }
+              style={{ backgroundColor: c }}
+              onClick={() => setPickedColor(c)}
+            />
+          ))}
+        </div>
+
+        <input
+          className="newcat-input"
+          placeholder="Category name"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+        />
+
+        <div className="newcat-actions">
+          <button
+            className="newcat-cancel-btn"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+
+          <button
+            className="newcat-add-btn"
+            onClick={() => {
+              const name = draft.trim();
+              if (!name) return;
+              onAdd(name, pickedColor);
+              onClose();
+            }}
+          >
+            Add Category
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+function EmojiPickerModal({ onClose, onSelect }) {
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div
+        className="sheet-panel emoji-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sheet-head">
+          <div className="sheet-title">Choose Emoji</div>
+          <button className="sheet-close-btn" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="emoji-picker-wrap">
+          <EmojiPicker
+            theme="light"
+            searchDisabled={false}
+            skinTonesDisabled={false}
+            onEmojiClick={(emojiData /* {emoji:'💧', ...} */) => {
+              onSelect(emojiData.emoji);
+            }}
+            suggestedEmojisMode="recent"
+            lazyLoadEmojis={true}
+            previewConfig={{ showPreview: false }}
+            width="100%"
+            height={320}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CategoryPickerModal({
+  categories,
+  current,
+  onSelect,
+  onClose,
+  onAddNewRequest,
+  onDeleteCategory,
+  onApplyColor, 
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempCategories, setTempCategories] = useState(categories);
+  const [selectedColor, setSelectedColor] = useState(PASTELS[0]);
+  const [deletingCategory, setDeletingCategory] = useState(null);
+  const [selectingCategory, setSelectingCategory] = useState(null);
+
+  useEffect(() => {
+    setTempCategories(categories);
+  }, [categories]);
+
+  const activeCat = tempCategories.find(c => c.name === current);
+  const activeColor = activeCat?.color || PASTELS[0];
+
+  const handleColorChange = (categoryName, newColor) => {
+    setTempCategories(prev => 
+      prev.map(cat => 
+        cat.name === categoryName ? { ...cat, color: newColor } : cat
+      )
+    );
+  };
+
+  const handleSaveChanges = () => {
+    tempCategories.forEach(cat => {
+      const originalCat = categories.find(c => c.name === cat.name);
+      if (originalCat && originalCat.color !== cat.color) {
+        onApplyColor(cat.name, cat.color);
+      }
+    });
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setTempCategories(categories);
+    setIsEditing(false);
+  };
+
+  const handleSelectCategory = (categoryName) => {
+    setSelectingCategory(categoryName);
+    
+    setTimeout(() => {
+      onSelect(categoryName);
+      setSelectingCategory(null);
+      onClose();
+    }, 600);
+  };
+
+  const handleDeleteCategory = (categoryName) => {
+    setDeletingCategory(categoryName);
+    
+    setTimeout(() => {
+      onDeleteCategory(categoryName);
+      setDeletingCategory(null);
+    }, 400);
+  };
+
+  const isLightColor = (color) => {
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.6;
+  };
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      {/* Close button with different positions based on mode */}
+      <button
+        className={`sheet-close-external ${isEditing ? 'edit-mode' : 'select-mode'}`}
+        onClick={onClose}
+      >
+        ✕
+      </button>
+
+      <div
+        className={`floating-panel ${isEditing ? 'is-editing' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="floating-head">
+          <div className="habit-floating-title">
+            {isEditing ? "Edit Category Colors" : "Select Category"}
           </div>
 
-          <h3>Choose Icon</h3>
-          <div className="icon-grid pretty">
-            {["📚", "✏️", "📖", "🎓", "💻", "💪", "🧠", "🧘", "🥗", "🚰", "💖", "🛏️"].map(
-              (i) => (
-                <div
-                  key={i}
-                  className={`icon-tile ${icon === i ? "active" : ""}`}
-                  onClick={() => setIcon(i)}
+          <div className="floating-actions">
+            {isEditing ? (
+              <>
+                <button
+                  className="floating-edit-btn"
+                  onClick={handleCancelEdit}
                 >
-                  <span className="icon-emoji">{i}</span>
-                </div>
-              )
+                  Cancel
+                </button>
+                <button
+                  className="floating-edit-btn"
+                  onClick={handleSaveChanges}
+                  style={{ color: 'var(--purple-600)', fontWeight: 'var(--font-weight-semibold)' }}
+                >
+                  Done
+                </button>
+              </>
+            ) : (
+              <button
+                className="floating-edit-btn"
+                onClick={() => setIsEditing(true)}
+              >
+                Edit
+              </button>
             )}
           </div>
         </div>
-        <div className="modal-footer">
-          <button className="btn cancel" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            className="btn confirm"
-            onClick={() => {
-              if (!name.trim()) return;
-              onSubmit({ name: name.trim(), category, icon, duration });
-            }}
-          >
-            {initial ? "Save Changes" : "Add Habit"}
-          </button>
+
+        {/* Color selection - shows when editing */}
+        {isEditing && (
+          <div className="color-row-main color-row-cat">
+            {PASTELS.map((c) => (
+              <button
+                key={c}
+                className={`color-dot-main ${c === selectedColor ? " is-selected" : ""}`}
+                style={{ backgroundColor: c }}
+                onClick={() => setSelectedColor(c)}
+              />
+            ))}
+          </div>
+        )}
+        
+        <div className="floating-scroll">
+          <div className="option-grid">
+            {tempCategories.map((cat) => {
+              const selected = cat.name === current;
+              const isProtected = cat.name === "General";
+              const isDeleting = deletingCategory === cat.name;
+              const isSelecting = selectingCategory === cat.name;
+
+              return (
+                <div
+                  key={cat.name}
+                  className={
+                    `option-tile ${selected ? "is-active" : ""} ${isEditing ? "is-editing" : ""} ${isDeleting ? "is-deleting" : ""} ${isSelecting ? "is-selecting" : ""}`
+                  }
+                  style={{
+                    borderColor: cat.color,
+                    borderWidth: selected ? '2.5px' : '1.8px',
+                    backgroundColor: selected ? cat.color : 'var(--surface)',
+                    color: selected ? (isLightColor(cat.color) ? 'var(--text-primary)' : 'white') : 'var(--text-primary)'
+                  }}
+                  onClick={() => {
+                    if (isEditing) {
+                      handleColorChange(cat.name, selectedColor);
+                    } else if (!isDeleting) {
+                      handleSelectCategory(cat.name);
+                    }
+                  }}
+                >
+                  <div className="option-tile-label">{cat.name}</div>
+
+                  {isEditing && !isProtected && !isDeleting && (
+                    <button
+                      className="option-tile-delete"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteCategory(cat.name);
+                      }}
+                      title="Delete category"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+
+                  {isDeleting && (
+                    <div className="option-tile-deleting">
+                      <div className="deleting-spinner"></div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <button
+              className="option-tile add-tile"
+              onClick={onAddNewRequest}
+            >
+              <div className="add-tile-plus">＋</div>
+              <div className="option-tile-label">Add Category</div>
+            </button>
+          </div>
         </div>
+
+        {isEditing && (
+          <div style={{ 
+            padding: 'var(--space-md) var(--space-xl)', 
+            textAlign: 'center',
+            fontSize: '13px',
+            color: 'var(--purple-500)',
+            borderTop: '1px solid var(--border)'
+          }}>
+            Select a color above, then tap any category to apply it
+          </div>
+        )}
       </div>
     </div>
   );
@@ -455,6 +880,81 @@ export default function HabitsPage() {
   const [durationFilter, setDurationFilter] = useState("All Durations");
   const [openModal, setOpenModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [deletingHabit, setDeletingHabit] = useState(null);
+
+  
+
+  const [rowFx, setRowFx] = useState({});
+  function fireRowFx(habitId) {
+    setRowFx((s) => ({ ...s, [habitId]: true }));
+    setTimeout(() => {
+      setRowFx((s) => ({ ...s, [habitId]: false }));
+    }, 900);
+  }
+  
+  const DEFAULT_CATEGORIES = [
+    { name: "General", color: "#ede9ff" },
+    { name: "Study", color: "#fff4cc" },
+    { name: "Health", color: "#e9fcef" },
+    { name: "Mind", color: "#fbefff" },
+  ];
+
+  const [categories, setCategories] = useState(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(CATS_LS));
+      if (Array.isArray(raw)) {
+        if (typeof raw[0] === "string") {
+          return raw.map((n) => ({ name: n, color: "#ede9ff" }));
+        }
+        return raw;
+      }
+      return DEFAULT_CATEGORIES;
+    } catch {
+      return DEFAULT_CATEGORIES;
+    }
+  });
+
+  const addCategoryGlobal = (name, color) => {
+    if (!categories.some((c) => c.name === name)) {
+      const next = [...categories, { name, color }];
+      setCategories(next);
+      localStorage.setItem(CATS_LS, JSON.stringify(next));
+    }
+  };
+
+  const applyCategoryColor = (catName, pastel) => {
+    setCategories(prev => {
+      const exists = prev.find(c => c.name === catName);
+
+      if (!exists) {
+        const next = [...prev, { name: catName, color: pastel }];
+        localStorage.setItem(CATS_LS, JSON.stringify(next));
+        return next;
+      }
+
+      const next = prev.map(c =>
+        c.name === catName ? { ...c, color: pastel } : c
+      );
+      localStorage.setItem(CATS_LS, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const deleteCategoryGlobal = (catName) => {
+    setCategories(prev => {
+      const next = prev.filter(c => c.name !== catName);
+      localStorage.setItem(CATS_LS, JSON.stringify(next));
+      return next;
+    });
+
+    setHabits(prev =>
+      prev.map(h =>
+        h.category === catName
+          ? { ...h, category: "General" }
+          : h
+      )
+    );
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -474,6 +974,8 @@ export default function HabitsPage() {
     const total = habits.length || 0;
     const doneToday = habits.filter((h) => h.history?.[today]).length;
     
+    const todayPct = total > 0 ? Math.round((doneToday / total) * 100) : 0;
+
     let avgCompletion = 0;
     if (total > 0) {
       const totalRate = habits.reduce((sum, h) => sum + weekRate(h), 0);
@@ -481,7 +983,7 @@ export default function HabitsPage() {
     }
     
     const best = Math.max(...habits.map((h) => bestStreak(h.history || {})), 0);
-    return { total, doneToday, completion: avgCompletion, best };
+    return { total, doneToday,todayPct, completion: avgCompletion, best };
   }, [habits, today]);
 
   const filtered = useMemo(() => {
@@ -502,8 +1004,22 @@ export default function HabitsPage() {
         if (streakFilter === "4–7 days" && !(s >= 4 && s <= 7)) return false;
         if (streakFilter === "8+ days" && !(s >= 8)) return false;
       }
-      if (durationFilter !== "All Durations" && h.duration !== durationFilter) {
-        return false;
+      if (durationFilter !== "All Durations") {
+        const durMins = durationToMins(h.duration); 
+
+        if (isNaN(durMins)) return false;
+
+        if (durationFilter === "1–30 mins") {
+          if (!(durMins >= 1 && durMins <= 30)) return false;
+        } else if (durationFilter === "30 mins–1 hr") {
+   
+          if (!(durMins > 30 && durMins <= 60)) return false;
+        } else if (durationFilter === "1–2 hrs") {
+    
+          if (!(durMins > 60 && durMins <= 120)) return false;
+        } else if (durationFilter === "2+ hrs") {
+          if (!(durMins > 120)) return false;
+        }
       }
       return true;
     });
@@ -532,123 +1048,87 @@ export default function HabitsPage() {
   };
 
   const removeHabit = async (id) => {
-    await storage.remove(id);
-    setHabits((x) => x.filter((h) => h.id !== id));
+    setDeletingHabit(id);
+    
+    setTimeout(async () => {
+      await storage.remove(id);
+      setHabits((x) => x.filter((h) => h.id !== id));
+      setDeletingHabit(null);
+    }, 400);
   };
-
 
   const toggle = async (id, date, newDone) => {
     await storage.toggleHistory(id, date, newDone);
     setHabits((list) =>
-      list.map((h) =>
-        h.id !== id
-          ? h
-          : {
-              ...h,
-              history: {
-                ...(h.history || {}),
-                ...(newDone ? { [date]: true } : (() => { delete h.history[date]; return h.history; })()),
-              },
-            }
-      )
+      list.map((h) =>{
+        if (h.id !== id) return h;
+        const nextHistory = { ...(h.history || {}) };
+
+        if (newDone) {
+          nextHistory[date] = true;
+        } else {
+          delete nextHistory[date];
+        }
+
+        return {
+          ...h,
+          history: nextHistory,
+        };
+      })
     );
   };
 
   return (
     <div className="habits-container">
-      <div className="page-head">
-        <div className="head-left">
-          {/* <h1 className="brand-title">My Habits</h1>
-          <p className="brand-sub">
-            Build consistent routines for academic and personal growth
-          </p> */}
-        </div>
-
       <div className="head-actions">
         <button
           type="button"
-          className="btn-solid"
+          className="fab-add"
           onClick={() => setOpenModal(true)}>
-          <Plus size={18} />
-          <span>Add Habit</span>
-        </button>
-          
-        <button
-          type="button"
-          className="btn-outline"
-          onClick={() => generatePDFReport(habits, totals, week)}>
-          <DownloadCloud size={18} />
-          <span>Export</span>
+          <Plus size={22} />
         </button>
       </div>
-    </div>
-
-      {/* <div className="top-row">
-        <h1 className="brand-title">My Habits</h1>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button 
-            className="add-top-btn report-btn" 
-            onClick={() => generatePDFReport(habits, totals, week)}
-            disabled={habits.length === 0}
-          >
-            <span className="add-top-btn__icon">
-              <Download size={16} />
-            </span>
-            Download Report
-          </button>
-          <button className="add-top-btn" onClick={() => setOpenModal(true)}>
-            <span className="add-top-btn__icon">
-              <Plus size={16} />
-            </span>
-            Add Habit
-          </button>
-        </div> */}
-      
-
-      {/* // <p className="brand-sub">
-      //   Build consistent routines for academic and personal growth
-      // </p> */}
-
+  
       <section className="summary-section">
-        <div className="summary-title">Today's Progress</div>
+        <div className="habit-summary-title">Today's Progress</div>
         <div className="progress-wrap" style={{ marginBottom: 16 }}>
-          <span className="progress__pct">{totals.completion}%</span>
+          <span className="progress__pct">{totals.todayPct}%</span>
           <div className="progress">
             <div
               className="progress__bar"
-              style={{ width: `${totals.completion}%` }}
+              style={{ width: `${totals.todayPct}%` }}
             />
           </div>
         </div>
         <div className="summary-stats grid-3">
           <div className="stat-card stack">
-            <div className="stat-title">
+            <div className="habit-stat-title">
               <Sun size={18} style={{ marginRight: 8 }} />
               TODAY
             </div>
             <div className="stat-big">{totals.doneToday}</div>
-            <div className="stat-sub">completed</div>
+            <div className="habit-stat-sub">completed</div>
           </div>
           <div className="stat-card stack">
-            <div className="stat-title">
+            <div className="habit-stat-title">
               <CheckCircle2 size={18} style={{ marginRight: 8 }} />
               COMPLETION
             </div>
             <div className="stat-big">{totals.completion}%</div>
-            <div className="stat-sub">avg this week</div>
+            <div className="habit-stat-sub">avg this week</div>
           </div>
           <div className="stat-card stack">
-            <div className="stat-title">
+            <div className="habit-stat-title">
               <Trophy size={18} style={{ marginRight: 8 }} />
               BEST STREAK
             </div>
             <div className="stat-big">{plural(totals.best, "day")}</div>
-            <div className="stat-sub">longest running</div>
+            <div className="habit-stat-sub">longest running</div>
           </div>
         </div>
       </section>
 
-      <section className="card filters-row">
+      <section className="card-filters-row">
         <div className="filters-icon">
           <Filter size={18} />
           Filters
@@ -656,7 +1136,7 @@ export default function HabitsPage() {
         <div className="filter-dropdowns">
           <Dropdown
             value={catFilter}
-            items={["All Categories", ...CATEGORIES]}
+            items={["All Categories", ...categories.map(c => c.name)]}
             onChange={setCatFilter}
           />
           <Dropdown
@@ -671,7 +1151,13 @@ export default function HabitsPage() {
           />
           <Dropdown
             value={durationFilter}
-            items={["All Durations", ...DURATIONS]}
+            items={[
+              "All Durations",
+              "1–30 mins",
+              "30 mins–1 hr",
+              "1–2 hrs",
+              "2+ hrs",
+            ]}
             onChange={setDurationFilter}
           />
         </div>
@@ -684,23 +1170,33 @@ export default function HabitsPage() {
       ) : (
         grouped.map(([cat, list]) => (
           <section key={cat} className="group-section">
-            <div className="group-head">
-              <div className="group-title">{cat}</div>
-              <div className="group-count">
-                {list.length} {list.length === 1 ? "habit" : "habits"}
-              </div>
-            </div>
             {list.map((h) => {
               const rate = weekRate(h);
               const streak = bestStreak(h.history || {});
+              const catData = categories.find(c => c.name === h.category);
+              const bg = catData?.color || "#eef1ff";
+              const isDeleting = deletingHabit === h.id;
+              
               return (
-                <div key={h.id} className="card habit-card habit-card--row">
+                <div 
+                  key={h.id} 
+                  className={`card-habit-card habit-card--row ${isDeleting ? 'is-deleting' : ''}`}
+                >
                   <div className="hl-left">
                     <input
                       className="checkbox"
                       type="checkbox"
                       checked={!!h.history?.[today]}
-                      onChange={(e) => toggle(h.id, today, e.target.checked)}
+                      onChange={(e) => {
+                        const wasChecked = !!h.history?.[today];
+                        const nowChecked = e.target.checked;
+     
+                        toggle(h.id, today, nowChecked);
+                        if (!wasChecked && nowChecked) {
+                          fireRowFx(h.id);
+                    
+                        }
+                      }}
                     />
                     <div className="hl-avatar">
                       <span className="hl-emoji">{h.icon || "📚"}</span>
@@ -710,8 +1206,14 @@ export default function HabitsPage() {
                         {h.name}
                       </div>
                       <div className="habit-tags">
-                        <span className={`chip ${h.category.toLowerCase()}`}>{h.category}</span>
-                        <span className="chip chip-daily">{h.duration}</span>
+                        <span className="chip" 
+                              style={{ 
+                                background: bg, 
+                                borderColor: bg, 
+                                color: "#1a1f35",}}
+                              >{h.category}
+                        </span>
+                        <span className="chip chip-daily">{formatDuration(h.duration)}</span>
                       </div>
                     </div>
                   </div>
@@ -719,8 +1221,8 @@ export default function HabitsPage() {
                     <div className="week-chips">
                       {week.map((d, i) => {
                         const done = !!h.history?.[d];
-                        const big = "SSMTWTF"[i];
-                        const small = new Date(d).toLocaleDateString(undefined, {
+                        const small = "SSMTWTF"[i];
+                        const big = new Date(d).toLocaleDateString(undefined, {
                           weekday: "short",
                         });
                         return (
@@ -734,16 +1236,23 @@ export default function HabitsPage() {
                             })}
                             style={{ cursor: 'default' }}
                           >
-                            <span className="wk-big">{big}</span>
-                            <span className="wk-small">{small}</span>
+                            <span className="wk-big">{new Date(d).getDate()}</span>
+                            <span className="wk-small">{new Date(d).toLocaleDateString(undefined, { weekday: "short" })}</span>
+                            
                           </div>
                         );
                       })}
                     </div>
                   </div>
                   <div className="hl-right">
-                    <div className="hl-stats">
-                      <span className="hl-fire">🔥</span>
+                    <div className={`hl-stats ${rowFx[h.id] ? "is-pop" : ""}`}>
+                      <span
+                        className={`hl-fire ${
+                          h.history?.[today] ? "is-on" : "is-off"
+                        } ${rowFx[h.id] ? "is-ignite" : ""}`}
+                      >
+                        🔥
+                      </span>
                       <div className="hl-streak">
                         <div className="hl-days">{plural(streak, "day")}</div>
                         <div className="hl-percent">{rate}% this week</div>
@@ -751,18 +1260,23 @@ export default function HabitsPage() {
                     </div>
                     <div className="hl-actions">
                       <button
-                        className="icon-btn soft"
+                        className="habit-icon-btn soft"
                         onClick={() => setEditing(h)}
                         aria-label="Edit habit"
                       >
                         <Pencil size={18} />
                       </button>
                       <button
-                        className="icon-btn soft"
+                        className="habit-icon-btn soft delete-btn"
                         onClick={() => removeHabit(h.id)}
                         aria-label="Delete habit"
+                        disabled={isDeleting}
                       >
-                        <Trash2 size={18} />
+                        {isDeleting ? (
+                          <div className="delete-spinner"></div>
+                        ) : (
+                          <Trash2 size={18} />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -777,15 +1291,21 @@ export default function HabitsPage() {
         open={openModal}
         onClose={() => setOpenModal(false)}
         onSubmit={addHabit}
+        categories={categories} 
+        onCreateCategory={addCategoryGlobal}
+        onApplyCategoryColor={applyCategoryColor}
+        onDeleteCategory={deleteCategoryGlobal}
       />
       <HabitModal
         open={!!editing}
         onClose={() => setEditing(null)}
         initial={editing || undefined}
         onSubmit={(payload) => editHabit(editing.id, payload)}
+        categories={categories}
+        onCreateCategory={addCategoryGlobal}
+        onApplyCategoryColor={applyCategoryColor}
+        onDeleteCategory={deleteCategoryGlobal}
       />
     </div>
   );
 }
-
-export { createStorage };

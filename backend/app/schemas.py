@@ -169,4 +169,3 @@ class UserAchievementSummary(BaseModel):
 
     class Config:
         from_attributes = True
-        
