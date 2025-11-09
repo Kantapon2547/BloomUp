@@ -112,6 +112,7 @@ const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClos
           {/* --- FIXED: Display only the single, current card --- */}
           <div ref={cardRef} className={`share-card-container ${selectedTheme}`}>
             <div className="share-card-fg">
+              <div class="decorative-leaf"></div>
               <span className="card-type-indicator-internal">{currentCard.label}</span>
               {currentCard.content}
             </div>
@@ -229,8 +230,8 @@ const OverallStreakShareCard = ({ overallStreak }) => (
 
 const TemplateSelector = ({ selectedTheme, onSelectTheme }) => {
   const themes = [
-    { id: 'default', name: 'Pastel Bloom', color: '#FEF7F8' },
-    { id: 'theme-lavender', name: 'Pastel Dream', color: '#E6E0F0' },
+    { id: 'default', name: 'Pastel Bloom', color: '#FFF1F2' },
+    { id: 'theme-lavender', name: 'Pastel Lavender', color: '#E6E0F0' },
     { id: 'theme-sky', name: 'Soft Sky', color: '#B3E5FC' },
     { id: 'theme-minty', name: 'Minty', color: '#E0F2F1' },
     { id: 'theme-forest', name: 'Serene Forest', color: '#D8E4D8' },
