@@ -22,17 +22,17 @@
   --gray-400: #9ca3af;
   --gray-500: #6b7280;
   --gray-600: #4b5563;
-  --gray-700: #374151;
-  --gray-800: #2b3344;
-  --gray-900: #1a1f35;
+  --gray-700: #4e4f52;
+  --gray-800: #2a2c31;
+  --gray-900: #303139;
   
   /* Semantic Colors */
   --bg: #faf8ff;
   --surface: #ffffff;
   --border: #e6e8fb;
   --border-light: rgba(124, 58, 237, 0.08);
-  --text-primary: #1a1f35;
-  --text-secondary: #6b7280;
+  --text-primary: #09090b;
+  --text-secondary: #33333e;
   --text-muted: #9ca3af;
   --error: #ef4444;
   
@@ -1041,7 +1041,6 @@ select.input.select option {
   display: flex;
   flex-direction: column;
   color: #1a1f35;
-  padding: 20px;
 }
 
 .task-header {
@@ -1098,7 +1097,7 @@ select.input.select option {
 }
 
 .task-name-input {
-  width: 90%;
+  width: 100%;
   font-size: 16px;
   font-weight: var(--font-weight-medium);
   text-align: center;
@@ -1106,13 +1105,11 @@ select.input.select option {
   background: transparent;
   color: var(--text-primary);
   outline: none;
-  border-bottom: 2px solid;
-  border-bottom-color: rgba(226, 209, 255, 0.35);
+  border-bottom: 2px solid transparent;
   padding: var(--space-sm);
 }
 
 .task-name-input:focus {
-  border-bottom: 2px solid;
   border-bottom-color: rgba(124, 58, 237, 0.35);
 }
 
@@ -1124,7 +1121,7 @@ select.input.select option {
 }
 
 .task-fields {
-  /* background: var(--purple-50); */
+  background: var(--purple-50);
   border-top: 1px solid rgba(0, 0, 0, 0.04);
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
   padding: var(--space-sm) 0;
@@ -1359,7 +1356,7 @@ select.input.select option {
     flex-direction: column;
     gap: 10px;
   }
-} 
+}
 
 @media (max-width: 520px) {
   .grid-3 {
@@ -1435,7 +1432,7 @@ select.input.select option {
 }
 
 .task-emoji-hint {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-muted);
   margin-top: 8px;
   margin-bottom: 16px;
@@ -1464,6 +1461,7 @@ select.input.select option {
   justify-content: space-between;
   padding: 16px 20px 12px;
   border-bottom: 1px solid rgba(0,0,0,0.06);
+
 }
 .floating-title {
   font-size: 18px;
