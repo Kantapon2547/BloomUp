@@ -45,6 +45,35 @@ const countDoneOnDay = (habitsArr, date) => {
   return count;
 };
 
+const allDoneKeys = (habit) => {
+  const h = habit?.history || {};
+  const keys = new Set();
+  for (const k of Object.keys(h)) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k)) keys.add(k);     
+    else {
+      const d = new Date(k);
+      if (!isNaN(d)) keys.add(fmtLocal(d));             
+    }
+  }
+  return Array.from(keys).sort(); 
+};
+
+const longestStreakForHabit = (habit) => {
+  const keys = allDoneKeys(habit);
+  if (!keys.length) return 0;
+  const toDate = (s) => new Date(s + "T00:00:00");
+  let best = 1, cur = 1;
+  for (let i = 1; i < keys.length; i++) {
+    const prev = toDate(keys[i - 1]);
+    const curr = toDate(keys[i]);
+    const delta = (curr - prev) / (1000 * 60 * 60 * 24);
+    if (delta === 1) cur += 1;
+    else if (delta > 1) cur = 1;             
+    best = Math.max(best, cur);
+  }
+  return best;
+};
+
 /* ===== Category colors from Habits ===== */
 const CATS_LS = "habit-tracker@categories";
 const PASTELS_FALLBACK = ["#ff99c8", "#ffac81", "#fcf6bd", "#d0f4de", "#a9def9", "#e4c1f9"];
@@ -103,56 +132,19 @@ const fadeIn = (targets, opts = {}) => {
   );
 };
 
-
-const celebrate = (element) => {
-  const colors = ['#a8d5ba', '#ffd4a3', '#c9b7eb', '#ffb3c1'];
-  const particleCount = 30;
-  
-  for (let i = 0; i < particleCount; i++) {
-    const particle = document.createElement('div');
-    particle.style.position = 'absolute';
-    particle.style.width = '10px';
-    particle.style.height = '10px';
-    particle.style.borderRadius = '50%';
-    particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-    particle.style.left = '50%';
-    particle.style.top = '50%';
-    particle.style.pointerEvents = 'none';
-    element.appendChild(particle);
-    
-    gsap.to(particle, {
-      x: (Math.random() - 0.5) * 200,
-      y: (Math.random() - 0.5) * 200,
-      opacity: 0,
-      duration: 1 + Math.random(),
-      ease: "power2.out",
-      onComplete: () => particle.remove()
-    });
-  }
-};
-
-const ReportsAnimatedCard = React.memo(({ children, dataHigh }) => {
+const ReportsAnimatedCard = React.memo(({ children}) => {
   const ref = useRef(null);
-  
-  useEffect(() => {
+  useEffect(() => {                      
     gsap.from(ref.current, { 
-      y: 30, 
-      opacity: 0, 
-      duration: 0.6, 
-      ease: "power3.out",
-      scale: 0.95
-    });
-
-    if (dataHigh && ref.current) {
-      setTimeout(() => celebrate(ref.current), 300);
-    }
-  }, [dataHigh]);
+      y: 30, opacity: 0, 
+      duration: 0.6, ease: "power3.out", 
+      scale: 0.95 });
+  }, []);
 
   return (
     <div
       ref={ref}
       className="rp-kcard"
-      data-high={dataHigh}
       onMouseEnter={() =>
         gsap.to(ref.current, { 
           y: -8, 
@@ -610,7 +602,7 @@ export default function Reports() {
   }, [dailyCompletion]);
 
   const longestStreak = useMemo(
-    () => habits.reduce((m, h) => Math.max(m, calcStreak(h)), 0),
+    () => habits.reduce((m, h) => Math.max(m, longestStreakForHabit(h)), 0),
     [habits]
   );
 
@@ -1230,45 +1222,50 @@ export default function Reports() {
 
             {topHabits.length ? (
               <div className="rp-top5">
-                <div className="rp-top5-head">
-                  <span>Habit</span><span>Category</span><span>Rate</span>
-                </div>
-
-                {topHabits.slice(0,5).map((h,i)=>(
-                  <div key={`${h.name}-${i}`} className="rp-top5-row">
-                    <div className="rp-name">
-                      <span className="rp-medal">{i===0?'🥇':i===1?'🥈':i===2?'🥉':'🏅'}</span>
-                      <span className="rp-name__title">{h.name}</span>
+                    <div className="rp-top5-head">
+                      <span>Habit</span>
+                      <span>Category</span>
+                      <span>Rate</span>
                     </div>
-                    <div className="rp-cat">{h.category}</div>
-                    <div className="rp-badge">{h.rate}%</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="rp-empty-state"><span style={{fontSize:48}}>📈</span> Track habits to see leaders here.</p>
-            )}
-          </div>
+                  {topHabits.slice(0, 5).map((h, i) => (
+                    <div key={`${h.name}-${i}`} className="rp-top5-row">
+                      <div className="rp-name">
+                        <span className="rp-medal">
+                          {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🏅'}
+                        </span>
+                        <span className="rp-name__title">{h.name}</span>
+                      </div>
+                      <div className="rp-cat">{h.category}</div>
+                      <div className="rp-badge">{h.rate}%</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="rp-empty-state">
+                  <span style={{ fontSize: 48 }}>📈</span> Track habits to see leaders here.
+                </p>
+              )}
+            </div>
 
           <div className="rp-card">
             <div className="rp-card-head"><h3>📊 Category Breakdown</h3></div>
-              <div className="rp-catlist">
-                {categoryPct.map((c) => (
-                  <div key={c.label} className="rp-cat-row">
-                    <div className="rp-cat-name">{c.label}</div>
-                    <div className="rp-catbar">
-                      <div
-                        className="rp-catbar__fill"
-                        style={{ 
-                          width: c.rate === 0 ? '0%' : `${Math.max(c.rate * 3, 25)}%`, 
-                          background: c.color || "#a8d5ba" 
-                        }}
-                      />
-                    </div>
-                    <div className="rp-cat-pct">{c.rate}%</div>
+            <div className="rp-catlist">
+              {categoryPct.map((c) => (
+                <div key={c.label} className="rp-cat-row">
+                  <div className="rp-cat-name">{c.label}</div>
+                  <div className="rp-catbar">
+                    <div
+                      className="rp-catbar__fill"
+                      style={{
+                        width: c.rate === 0 ? '0%' : `${Math.max(c.rate * 3, 25)}%`,
+                        background: c.color || "#a8d5ba"
+                      }}
+                    />
                   </div>
-                ))}
-              </div>
+                  <div className="rp-cat-pct">{c.rate}%</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
