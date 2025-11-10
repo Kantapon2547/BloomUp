@@ -1123,6 +1123,36 @@ export default function Reports() {
                         const base = periodMode === "week" ? startOfWeekMon(cursor) : cursor;
                         setCursor(addDays(base, periodMode === "week" ? 7 : 30));
                       }}
+                      disabled={
+                        (() => {
+                          const today = atMidnight(new Date());
+                          const nextPeriodStart =
+                            periodMode === "week"
+                              ? addDays(startOfWeekMon(cursor), 7)
+                              : new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+                          return nextPeriodStart > today; 
+                        })()
+                      }
+                      style={{
+                        opacity:
+                          (() => {
+                            const today = atMidnight(new Date());
+                            const nextPeriodStart =
+                              periodMode === "week"
+                                ? addDays(startOfWeekMon(cursor), 7)
+                                : new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+                            return nextPeriodStart > today ? 0.4 : 1;
+                          })(),
+                        pointerEvents:
+                          (() => {
+                            const today = atMidnight(new Date());
+                            const nextPeriodStart =
+                              periodMode === "week"
+                                ? addDays(startOfWeekMon(cursor), 7)
+                                : new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+                            return nextPeriodStart > today ? "none" : "auto";
+                          })(),
+                      }}                      
                     >
                       &gt;
               </button>
