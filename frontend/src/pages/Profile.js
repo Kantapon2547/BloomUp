@@ -26,20 +26,6 @@ const handleLogout = () => {
 };
 
 // =================================================================
-// CROWN ICON COMPONENT - Reused for Share Modals
-// =================================================================
-const CrownIcon = ({ bgColorClass, isActive }) => (
-  <div className={`crown-icon ${bgColorClass} ${isActive ? 'active' : ''}`}>
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M4 14L3 6L8 9L12 4L16 9L21 6L20 14H4Z" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M4 14V20H20V14" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      {isActive && <circle cx="12" cy="11.5" r="2" fill="#34D399" />}
-    </svg>
-  </div>
-);
-
-
-// =================================================================
 // PAGE INDICATOR COMPONENT
 // =================================================================
 const PageIndicator = ({ count, activeIndex }) => (
@@ -54,17 +40,18 @@ const PageIndicator = ({ count, activeIndex }) => (
   );
 
 // =================================================================
-// START: SHARE MODAL CONTAINER - REFACTORED AND FIXED
+// START: SHARE MODAL CONTAINER - UPDATED AND CLEANED
 // =================================================================
 const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClose, goToNextCard, goToPreviousCard }) => {
-  const cardRef = useRef(null); // Ref to the single visible card for capturing
+  const cardRef = useRef(null);
   const currentCard = shareCards[currentCardIndex];
-
-  const [selectedTheme, setSelectedTheme] = useState('default');
 
   const handleVisualShare = async () => {
     const cardToCapture = cardRef.current;
     if (!cardToCapture) return;
+
+    const decorator = cardToCapture.querySelector('.share-card-decorator');
+    if (decorator) decorator.style.display = 'none';
 
     const shareFooter = cardToCapture.querySelector('.share-card-footer-action');
 
@@ -96,6 +83,7 @@ const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClos
       }
     } finally {
       if (shareFooter) shareFooter.style.display = '';
+      if (decorator) decorator.style.display = '';
       cardToCapture.style.boxShadow = '';
     }
   };
@@ -109,10 +97,9 @@ const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClos
             <span className="material-symbols-outlined">chevron_left</span>
           </button>
 
-          {/* --- FIXED: Display only the single, current card --- */}
-          <div ref={cardRef} className={`share-card-container ${selectedTheme}`}>
+          {/* This now dynamically applies the theme class from the card's configuration */}
+          <div ref={cardRef} className={`share-card-container ${currentCard.theme || 'default-theme'}`}>
             <div className="share-card-fg">
-              <div class="decorative-leaf"></div>
               <span className="card-type-indicator-internal">{currentCard.label}</span>
               {currentCard.content}
             </div>
@@ -128,14 +115,9 @@ const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClos
             <span className="material-symbols-outlined">chevron_right</span>
           </button>
         </div>
-
         <PageIndicator
           count={shareCards.length}
           activeIndex={currentCardIndex}
-        />
-        <TemplateSelector
-          selectedTheme={selectedTheme}
-          onSelectTheme={setSelectedTheme}
         />
       </div>
     </div>
@@ -148,18 +130,6 @@ const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClos
 // =================================================================
 // START: INDIVIDUAL SHARE CARD COMPONENTS
 // =================================================================
-
-const GratitudeShareCard = ({ gratitudeCount }) => (
-  <>
-    <div className="crown-progress-bar">
-      <CrownIcon bgColorClass="c-blue" isActive={gratitudeCount >= 1} />
-      <CrownIcon bgColorClass="c-purple" isActive={gratitudeCount >= 5} />
-      <CrownIcon bgColorClass="c-grey" isActive={gratitudeCount >= 10} />
-    </div>
-    <div className="label-display">{gratitudeCount}</div>
-    <div className="label-2-display">Gratitude Entries Logged</div>
-  </>
-);
 
 const AchievementShareCard = ({ earnedCount, totalCount, latestAchievement }) => (
   <>
@@ -176,7 +146,7 @@ const AchievementShareCard = ({ earnedCount, totalCount, latestAchievement }) =>
 
 const MoodShareCard = ({ moodData }) => (
   <>
-    <div className="share-icon-large"></div>
+    <div className="share-icon-large">😊</div>
     <div className="label-display">{moodData?.averageMood || "N/A"}</div>
     <div className="label-2-display">Average Mood This Week</div>
     <div className="share-detail-text">Feeling: {moodData?.moodDescription || "Good!"}</div>
@@ -206,7 +176,7 @@ const NewHabitStatShareCard = ({ newHabitStat }) => (
     <div className="share-icon-large">🚀</div>
     <div className="label-display">{newHabitStat?.newHabitCount || 0}</div>
     <div className="label-2-display">New Habits Started</div>
-    <div className="share-detail-text">Excited to grow!</div>
+    <div className="share-detail-text">Excited to grow !</div>
   </>
 );
 
@@ -215,7 +185,7 @@ const HighestProgressHabitShareCard = ({ highestProgressHabit }) => (
     <div className="share-icon-large">📈</div>
     <div className="label-display">{highestProgressHabit?.habitName || "Top Habit"}</div>
     <div className="label-2-display">Highest Progress ({highestProgressHabit?.progressPercentage || 0}%)</div>
-    <div className="share-detail-text">Keep it up!</div>
+    <div className="share-detail-text">Keep it up !</div>
   </>
 );
 
@@ -224,43 +194,16 @@ const OverallStreakShareCard = ({ overallStreak }) => (
     <div className="share-icon-large">🔥</div>
     <div className="label-display">{overallStreak?.longestOverallStreak || 0}</div>
     <div className="label-2-display">Longest Overall Streak</div>
-    <div className="share-detail-text">Across all habits!</div>
+    <div className="share-detail-text">Across all habits !</div>
   </>
 );
 
-const TemplateSelector = ({ selectedTheme, onSelectTheme }) => {
-  const themes = [
-    { id: 'default', name: 'Pastel Bloom', color: '#FFF1F2' },
-    { id: 'theme-lavender', name: 'Pastel Lavender', color: '#E6E0F0' },
-    { id: 'theme-sky', name: 'Soft Sky', color: '#B3E5FC' },
-    { id: 'theme-minty', name: 'Minty', color: '#E0F2F1' },
-    { id: 'theme-forest', name: 'Serene Forest', color: '#D8E4D8' },
-    { id: 'theme-sunlight', name: 'Cosmic Sunlight', color: '#FDF3CF' },
-  ];
-
-  return (
-    <div className="template-selector">
-      <p className="template-selector-title">Choose a Style</p>
-      <div className="template-options">
-        {themes.map(theme => (
-          <button
-            key={theme.id}
-            className={`template-option ${selectedTheme === theme.id ? 'active' : ''}`}
-            style={{ backgroundColor: theme.color }}
-            onClick={() => onSelectTheme(theme.id)}
-            title={theme.name}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
 // =================================================================
 // END: INDIVIDUAL SHARE CARD COMPONENTS
 // =================================================================
 
 
-// --- Original Profile Header Component (Unchanged) ---
+// --- Original Profile Header Component ---
 const ProfileHeader = ({ profileData, onEditProfileClick, onShareClick, formatMemberSinceDate }) => (
   <div className="profile-card profile-header-card">
     <div className="profile-header-content">
@@ -418,7 +361,6 @@ const EditProfileModal = ({ temporaryProfileData, fileInputReference, onCloseMod
   </div>
 );
 
-
 // --- Main Page Component ---
 export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState(null);
@@ -511,11 +453,6 @@ export default function ProfilePage() {
   // --- Dynamic Share Card Configuration ---
   const shareCardsConfig = [
     {
-      type: "gratitude",
-      label: "Gratitude Entries",
-      content: <GratitudeShareCard gratitudeCount={userStatistics?.gratitudeEntries || 0} />,
-    },
-    {
       type: "achievement",
       label: "Achievements",
       content: <AchievementShareCard
@@ -523,39 +460,45 @@ export default function ProfilePage() {
         totalCount={allAchievementsList.length}
         latestAchievement={earnedAchievementsList.length > 0 ? earnedAchievementsList[earnedAchievementsList.length - 1] : null}
       />,
+      theme: 'theme-achievement',
     },
     {
       type: "mood",
       label: "Weekly Mood",
       content: <MoodShareCard moodData={{ averageMood: "😄", moodDescription: "Joyful" }} />, // Placeholder data
+      theme: 'theme-mood',
     },
     {
       type: "habit",
       label: "Habit Progress",
       content: <HabitShareCard habitData={{ habitName: "Morning Routine", completedCount: 25, currentStreak: 7 }} />, // Placeholder data
+      theme: 'theme-habit',
     },
     {
       type: "new_habit_stat",
       label: "New Habits Started",
       content: <NewHabitStatShareCard newHabitStat={{ newHabitCount: 3 }} />, // Placeholder data
+      theme: 'theme-new-habit',
     },
     {
       type: "weekly_review",
       label: "Weekly Review",
       content: <WeeklyReviewShareCard reviewData={{ habitsCompleted: 15, progressPercentage: 80 }} />, // Placeholder data
+      theme: 'theme-review',
     },
     {
       type: "highest_progress_habit",
       label: "Highest Progress Habit",
       content: <HighestProgressHabitShareCard highestProgressHabit={{ habitName: "Reading", progressPercentage: 92 }} />, // Placeholder data
+      theme: 'theme-progress',
     },
     {
       type: "overall_streak",
       label: "Overall Streak",
       content: <OverallStreakShareCard overallStreak={{ longestOverallStreak: 30 }} />, // Placeholder data
+      theme: 'theme-streak',
     },
   ];
-
 
   return (
     <div className="profile-page">

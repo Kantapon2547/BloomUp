@@ -849,6 +849,10 @@ body.profile-page-active {
   }
 }
 
+/* ==========================================================================
+   SHARE MODAL STYLES
+   ========================================================================== */
+
 .share-modal-overlay {
   position: fixed;
   top: 0;
@@ -893,308 +897,108 @@ body.profile-page-active {
   justify-content: center;
 }
 
+/* ==========================================================================
+   SHARE CARD & THEMES
+   ========================================================================== */
+
+/* --- Base container for all share cards --- */
 .share-card-container {
   width: 340px;
-  background-color: #ffffff;
+  height: 500px;
   border-radius: 24px;
   position: relative;
   box-shadow: 0 10px 30px rgba(100, 80, 120, 0.2);
   box-sizing: border-box;
   overflow: hidden;
-  padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.5);
   flex-shrink: 0;
+
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+
+  background-color: #ffffff;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
+/* --- Individual Card Themes (Update paths as needed) --- */
+.theme-achievement {
+  background-image: url('../../assets/theme1.png');
+}
+
+.theme-mood {
+  background-image: url('../../assets/theme2.png');
+}
+
+.theme-habit {
+  background-image: url('../../assets/theme3.png');
+}
+
+.theme-new-habit {
+  background-image: url('../../assets/theme4.png');
+}
+
+.theme-review {
+  background-image: url('../../assets/theme5.png');
+}
+
+.theme-progress {
+  background-image: url('../../assets/theme6.png');
+}
+
+.theme-streak {
+  background-image: url('../../assets/theme7.png');
+}
+
+/* --- Foreground Content (Text, Stats, etc.) --- */
 .share-card-fg {
   width: 100%;
-  height: 350px;
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   text-align: center;
-  padding: 1.5rem 2rem;
   box-sizing: border-box;
-  z-index: 2;
-  gap: 1rem;
+  gap: 1.25rem;
+
+  padding: 2.5rem 1.5rem 1.5rem 1.5rem;
+  flex-grow: 1;
+
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
 }
 
-/* --- DEFAULT THEME: New soft pink diagonal background --- */
-.share-card-fg::before {
-  content: '';
+/* --- Optional Decorator --- */
+.share-card-decorator {
   position: absolute;
-  top: -50%;
-  left: -25%;
-  width: 150%;
-  height: 150%;
-  background: linear-gradient(150deg, #FEF7F8 55%, #FFF1F2 55.1%);
-  transform: rotate(-15deg);
-  z-index: -1;
+  bottom: 60px;
+  right: 15px;
+  width: 80px;
+  height: auto;
+  pointer-events: none;
+  transform-origin: bottom center;
+  animation: gentle-wave 2.5s infinite ease-in-out;
 }
 
-/* --- Default: Add decorative white circles to the background --- */
-.share-card-fg::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image:
-    /* Top-left circle */
-    radial-gradient(circle at 10% 20%, white 70px, transparent 71px),
-    /* Bottom-right circle */
-    radial-gradient(circle at 100% 95%, white 60px, transparent 61px);
-  z-index: -1;
+@keyframes gentle-wave {
+  0%, 100% {
+    transform: rotate(0deg) translateY(0px);
+  }
+  50% {
+    transform: rotate(5deg) translateY(-3px);
+  }
 }
 
-/* --- Internal card type indicator --- */
+/* --- Text styles inside the card --- */
 .card-type-indicator-internal {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: bold;
   color: #5C374C;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 0.5rem;
+  letter-spacing: 1.5px;
 }
-
-/* ======================================================= */
-/* --- THEME 2: "Lavender"  --- */
-/* ======================================================= */
-.share-card-container.theme-lavender {
-  background-color: #F5F3F9;
-  color: #6C5B7B;
-}
-
-.share-card-container.theme-lavender .card-type-indicator-internal,
-.share-card-container.theme-lavender .label-2-display {
-  color: #8D7A9B;
-}
-
-.share-card-container.theme-lavender .label-display {
-  color: #6C5B7B;
-}
-
-.share-card-container.theme-lavender .share-card-fg::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 65%;
-  background-color: #FEFEFA;
-  z-index: -1;
-  clip-path: polygon(
-    0 0, 100% 0, 100% 85%, 90% 95%, 80% 88%, 70% 98%, 60% 90%, 50% 100%, 40% 92%, 30% 99%, 20% 90%, 10% 96%, 0 88%
-  );
-}
-
-.share-card-container.theme-lavender .share-card-fg::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(160deg, #E6E0F0, #D8BFD8);
-  z-index: -2;
-  display: block;
-}
-
-/* ======================================================= */
-/* --- THEME 3: "Soft Sky" (Warm Gradient Theme) --- */
-/* ======================================================= */
-.share-card-container.theme-sky {
-  background-color: #E4F1F6;
-  color: #34495E;
-}
-
-.share-card-container.theme-sky .label-display {
-  color: #2C3E50;
-}
-
-.share-card-container.theme-sky .card-type-indicator-internal,
-.share-card-container.theme-sky .label-2-display {
-  color: #34495E;
-}
-
-/* Large decorative blob in the bottom-left corner */
-.share-card-container.theme-sky .share-card-fg::before {
-  content: '';
-  position: absolute;
-  bottom: -60px;
-  left: -50px;
-  width: 220px;
-  height: 200px;
-  background: #A9D6E5;
-  border-radius: 45% 55% 60% 40% / 55% 45% 55% 45%;
-  transform: rotate(-15deg);
-  z-index: -2;
-  opacity: 0.9;
-}
-
-.share-card-container.theme-sky .share-card-fg::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image:
-
-    radial-gradient(ellipse at 120% -10%, #BDE0FE 120px, transparent 121px),
-
-    radial-gradient(circle at 15% 25%, rgba(255, 255, 255, 0.8) 20px, transparent 21px),
-    radial-gradient(circle at 10% 23%, rgba(255, 255, 255, 0.8) 15px, transparent 16px),
-    radial-gradient(circle at 20% 24%, rgba(255, 255, 255, 0.8) 18px, transparent 19px),
-
-    radial-gradient(circle at 80% 85%, rgba(255, 255, 255, 0.7) 25px, transparent 26px),
-    radial-gradient(circle at 75% 84%, rgba(255, 255, 255, 0.7) 18px, transparent 19px),
-    radial-gradient(circle at 85% 86%, rgba(255, 255, 255, 0.7) 20px, transparent 21px);
-  z-index: -1;
-  display: block;
-}
-
-/* ======================================================= */
-/* --- THEME 4: "Minty" (Pastel Theme) --- */
-/* ======================================================= */
-.share-card-container.theme-minty {
-  background-color: #F0FDF4;
-}
-
-.share-card-container.theme-minty .share-card-fg {
-  clip-path: none;
-}
-
-.share-card-container.theme-minty .share-card-fg::before {
-  content: '';
-  position: absolute;
-  bottom: -20px;
-  right: -30px;
-  width: 120px;
-  height: 100px;
-  background: linear-gradient(135deg, rgba(224, 242, 241, 0.9), rgba(178, 223, 219, 0.9));
-  border-radius: 60% 40% 30% 70% / 70% 50% 50% 30%;
-  transform: rotate(15deg);
-  z-index: -1;
-  display: block;
-}
-
-.share-card-container.theme-minty .share-card-fg::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image:
-    /* Medium circle */
-    radial-gradient(circle at -20px 60px, rgba(178, 223, 219, 0.8) 80px, transparent 81px),
-    /* Small circle */
-    radial-gradient(circle at 60px -10px, rgba(178, 223, 219, 0.5) 50px, transparent 51px);
-  z-index: -1;
-  display: block;
-}
-
-.share-card-container.theme-minty .card-type-indicator-internal,
-.share-card-container.theme-minty .label-display,
-.share-card-container.theme-minty .label-2-display {
-  color: #004D40;
-}
-
-/* ======================================================= */
-/* --- THEME 5: "Serene Forest" (Green & Earthy Tones) --- */
-/* ======================================================= */
-.share-card-container.theme-forest {
-  background-color: #F4F6F2;
-  color: #3A4F41;
-  padding: 0;
-  overflow: hidden;
-}
-
-.share-card-container.theme-forest .share-card-fg {
-  position: relative;
-  z-index: 1;
-  border-radius: 0;
-}
-
-.share-card-container.theme-forest .label-display {
-  color: #2A3F34;
-}
-
-.share-card-container.theme-forest .share-card-fg::before {
-  content: '';
-  position: absolute;
-  top: -60px;
-  left: -80px;
-  width: 220px;
-  height: 200px;
-  background: #A3B8A3;
-  border-radius: 30% 70% 23% 77% / 51% 61% 39% 49%;
-  transform: rotate(-45deg);
-  z-index: -2;
-}
-
-.share-card-container.theme-forest .share-card-fg::after {
-  content: '';
-  position: absolute;
-  bottom: -40px;
-  right: -50px;
-  width: 180px;
-  height: 160px;
-  background: rgba(216, 228, 216, 0.7);
-  border-radius: 61% 39% 52% 48% / 40% 51% 49% 60%;
-  transform: rotate(30deg);
-  z-index: -1;
-  display: block;
-}
-
-
-.share-card-container.theme-forest .decorative-leaf::after {
-  content: '';
-  position: absolute;
-  bottom: -55px;
-  right: -25px;
-  width: 120px;
-  height: 110px;
-  background: rgba(189, 201, 189, 0.75);
-  border-radius: 45% 55% 62% 38% / 55% 43% 57% 45%;
-  transform: rotate(50deg);
-  z-index: -2;
-}
-
-
-/* ==================================== */
-/* --- THEME 6: "Warm Sunlight"  --- */
-/* ===================================== */
-.share-card-container.theme-sunlight {
-  background-color: #FBF7E9;
-  color: #7A6A53;
-}
-
-.share-card-container.theme-sunlight .label-display {
-  color: #5D4A36;
-}
-
-.share-card-container.theme-sunlight .share-card-fg::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 300px; /* Size of the circle */
-  height: 300px; /* Size of the circle */
-  background: radial-gradient(ellipse at center, #ffffff, #FDF3CF 75%);
-  transform: translate(-50%, -50%); /* Center the circle */
-  border-radius: 50%;
-  z-index: -1;
-}
-
-.share-card-container.theme-sunlight .share-card-fg::after {
-  display: none;
-}
-
 
 .nav-arrow-btn {
   color: #f7f8f8;
@@ -1216,54 +1020,20 @@ body.profile-page-active {
   opacity: 0.7;
 }
 
-.crown-progress-bar {
-  display: flex;
-  gap: 6px;
-  padding: 6px;
-  background-color: rgba(255, 255, 255, 0.5);
-  border-radius: 12px;
-  border: 1px solid #FFE4E6;
-  margin-bottom: 1rem;
-}
-
-.crown-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
+/* --- MODIFIED: Footer and button to match --- */
+.share-card-footer-action {
   display: flex;
   justify-content: center;
   align-items: center;
-  position: relative;
-}
+  flex-shrink: 0;
+  box-sizing: border-box;
+  background-color: rgba(255, 255, 255, 0.9);
 
+  padding: 1.25rem;
+  width: 100%;
 
-.crown-icon.c-blue {
-  background-color: #FCE4EC;
-}
-
-.crown-icon.c-purple {
-  background-color: #F3E5F5;
-}
-
-.crown-icon.c-grey {
-  background-color: #F1F5F9;
-}
-
-.crown-icon svg path {
-  stroke-width: 1.5;
-  stroke: #880E4F;
-}
-
-.crown-icon.active svg circle {
-    display: block;
-    fill: #22c55e;
-}
-
-/* --- MODIFIED: Footer and button to match --- */
-.share-card-footer-action {
-  background-color: #ffffff;
-  padding: 1rem;
-  text-align: center;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
 }
 
 .share-action-btn-visual {
@@ -1369,44 +1139,4 @@ body.profile-page-active {
   font-size: 4rem;
   margin-bottom: 1rem;
   line-height: 1;
-}
-
-// Add corresponding CSS for the selector
-
-.template-selector {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.template-selector-title {
-  font-size: 0.9rem;
-  color: white;
-  font-weight: 600;
-}
-
-.template-options {
-  display: flex;
-  gap: 1rem;
-}
-
-.template-option {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.template-option:hover {
-  transform: scale(1.1);
-}
-
-.template-option.active {
-  border-color: #34D399;
-  box-shadow: 0 0 0 3px #34D399;
 }
