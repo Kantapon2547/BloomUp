@@ -396,8 +396,35 @@ const ReportsCategoryPieChart = ({ data }) => {
   if (total === 0) {
     return (
       <div className="rp-empty-state">
-        <p style={{ fontSize: '48px', margin: '20px 0' }}>📊</p>
+        <p style={{ fontSize: '48px', margin: '20px 0' }}></p>
         <p>Track habits to see your progress breakdown!</p>
+      </div>
+    );
+  }
+
+  if (normalizedData.length === 1) {
+    const item = normalizedData[0];
+    const color = item.color;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <svg ref={svgRef} viewBox={`0 0 ${svgSize} ${svgSize}`} width={svgSize} height={svgSize}>
+          <defs>
+            <linearGradient id="pieFull" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={color} />
+              <stop offset="100%" stopColor={color} stopOpacity="0.7" />
+            </linearGradient>
+          </defs>
+          <circle cx={center} cy={center} r={radius} fill="url(#pieFull)" />
+        </svg>
+
+        <div style={{ display:"flex", gap:16, flexWrap:"wrap", justifyContent:"center", marginTop:20, padding:"0 20px" }}>
+          <div style={{ display:"flex", alignItems:"center", padding:"8px 12px", borderRadius:12, background:"#f0f7f3" }}>
+            <span style={{ width:14, height:14, borderRadius:"50%", background: color, marginRight:8, boxShadow:"0 2px 4px rgba(0,0,0,.1)" }} />
+            <span style={{ fontSize:14, color:"#2d5f3f", fontWeight:600 }}>
+              {item.label}: <strong>100%</strong>
+            </span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1271,7 +1298,8 @@ export default function Reports() {
                 </div>
               ) : (
                 <p className="rp-empty-state">
-                  <span style={{ fontSize: 48 }}>📈</span> Track habits to see leaders here.
+                  <span style={{ fontSize: 48 }}>
+                    </span> Track habits to see leaders here.
                 </p>
               )}
             </div>
