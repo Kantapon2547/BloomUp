@@ -923,3 +923,35 @@
 }
 
 
+.rp-kcard { position: relative; }
+
+.rp-help-corner {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rp-tooltip {
+  position: absolute;
+  z-index: 9999;       
+  max-width: min(90vw, 300px);
+  white-space: normal; 
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 640px) {
+  .rp-tooltip {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+}
+
+.rp-kcard {
+  position: relative;
+  overflow: visible !important; 
+}
+

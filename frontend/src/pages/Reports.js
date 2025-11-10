@@ -19,7 +19,6 @@ const fmtUTCKey = (d) =>
     .slice(0, 10);
 
 const addDays = (d, n) => atMidnight(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
-const startOfWeek = (d) => addDays(atMidnight(d), -atMidnight(d).getDay());
 const startOfMonth = (d) => atMidnight(new Date(d.getFullYear(), d.getMonth(), 1));
 const doneOnDay = (habit, date) => {
   const kLocal = fmtLocal(date);
@@ -97,16 +96,6 @@ function pickPastelFor(name = "") {
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) % 0xfffffff;
   return PASTELS_FALLBACK[hash % PASTELS_FALLBACK.length];
 }
-
-const calcStreak = (habit) => {
-  let s = 0;
-  for (let i = 0; ; i++) {
-    const day = addDays(new Date(), -i);
-    if (doneOnDay(habit, day)) s++;
-    else break;
-  }
-  return s;
-};
 
 const usePeriod = (periodMode, cursor) =>
   useMemo(() => {
@@ -1169,6 +1158,10 @@ export default function Reports() {
         {/* KPI Cards */}
         <div className="rp-kpi">
           <ReportsAnimatedCard dataHigh={avgCompletion > 70}>
+            <div className="rp-help-corner">
+              <HelpIcon text="Average habit completion rate for this period" />
+            </div>
+
             <div className="rp-kcap">Average Completion</div>
             <div className="rp-kbody">
               <ReportsDonut value={avgCompletion} />
@@ -1181,6 +1174,9 @@ export default function Reports() {
           </ReportsAnimatedCard>
 
           <ReportsAnimatedCard>
+            <div className="rp-help-corner">
+              <HelpIcon text="Total habits you're tracking this period" />
+            </div>
             <div className="rp-kcap">Habits Tracked</div>
             <div className="rp-kbig">{habits.length}</div>
             <div className="rp-kfoot">
@@ -1191,6 +1187,9 @@ export default function Reports() {
           </ReportsAnimatedCard>
 
           <ReportsAnimatedCard dataHigh={longestStreak >= 7}>
+            <div className="rp-help-corner">
+              <HelpIcon text="The best streak of all times" />
+            </div>
             <div className="rp-kcap">Longest Streak</div>
             <div className="rp-kbig">{longestStreak}</div>
             <div className="rp-kfoot">{getStreakMessage()}</div>
