@@ -158,7 +158,7 @@ const ReportsAnimatedCard = React.memo(({ children}) => {
   );
 });
 
-const ReportsDonut = React.memo(({ value }) => {
+const ReportsDonut = React.memo(({ value = 0 }) => {
   const circleRef = useRef(null);
   const textRef = useRef(null);
   const containerRef = useRef(null);
@@ -166,43 +166,41 @@ const ReportsDonut = React.memo(({ value }) => {
   useEffect(() => {
     const r = 38;
     const c = 2 * Math.PI * r;
-    const off = c * (1 - value / 100);
+    const off = c * (1 - (value / 100));
 
-    gsap.fromTo(
-      circleRef.current,
-      { strokeDashoffset: c },
-      { 
-        strokeDashoffset: off, 
-        duration: 1.5, 
-        ease: "power2.out" 
-      }
-    );
+    if (circleRef.current) {
+      gsap.fromTo(
+        circleRef.current,
+        { strokeDashoffset: c },
+        { strokeDashoffset: off, duration: 1.5, ease: "power2.out" }
+      );
+    }
 
-    gsap.fromTo(
-      textRef.current,
-      { textContent: 0 },
-      {
-        textContent: value,
-        duration: 1.5,
-        ease: "power2.out",
-        snap: { textContent: 1 },
-        onUpdate: function() {
-          textRef.current.textContent = Math.round(this.targets()[0].textContent) + '%';
+    const counter = { n: 0 };
+    const textTween = gsap.to(counter, {
+      n: value,
+      duration: 1.5,
+      ease: "power2.out",
+      onUpdate: () => {
+        if (textRef.current) {
+          textRef.current.textContent = Math.round(counter.n) + "%";
         }
       }
-    );
+    });
 
-    gsap.fromTo(
-      containerRef.current,
-      { scale: 0, rotate: -180 },
-      { 
-        scale: 1, 
-        rotate: 0,
-        duration: 0.8, 
-        delay: 0.2,
-        ease: "back.out(1.7)" 
-      }
-    );
+    const popTween = containerRef.current
+      ? gsap.fromTo(
+          containerRef.current,
+          { scale: 0, rotate: -180, opacity: 0 },
+          { scale: 1, rotate: 0, opacity: 1, duration: 0.8, delay: 0.2, ease: "back.out(1.7)" }
+        )
+      : null;
+
+    return () => {
+      textTween?.kill();
+      popTween?.kill();
+      if (circleRef.current) gsap.killTweensOf(circleRef.current);
+    };
   }, [value]);
 
   const r = 38;
@@ -210,14 +208,7 @@ const ReportsDonut = React.memo(({ value }) => {
 
   return (
     <svg ref={containerRef} width="120" height="120" viewBox="0 0 100 100">
-      <circle 
-        cx="50" 
-        cy="50" 
-        r={r} 
-        stroke="#e8f3ec" 
-        strokeWidth="10" 
-        fill="none" 
-      />
+      <circle cx="50" cy="50" r={r} stroke="#e8f3ec" strokeWidth="10" fill="none" />
       <circle
         ref={circleRef}
         cx="50"
@@ -250,6 +241,7 @@ const ReportsDonut = React.memo(({ value }) => {
     </svg>
   );
 });
+
 
 const ReportsBarChart = React.memo(({ data, periodMode }) => {
   const barsRef = useRef([]);
@@ -1247,7 +1239,7 @@ export default function Reports() {
                 text={
                   chartType === "bar"
                     ? "The bar chart show completion rate per day (0–100%)."
-                    : "The pie chart shows the proportion of completions across the categories, revealing which areas you focus on most."
+                    : "The pie chart shows the proportion of completions across the categories"
                 }
               />
             </div>
@@ -1314,7 +1306,7 @@ export default function Reports() {
                     <div
                       className="rp-catbar__fill"
                       style={{
-                        width: c.rate === 0 ? '0%' : `${Math.max(c.rate * 3, 25)}%`,
+                        width: `${c.rate}%`,
                         background: c.color || "#a8d5ba"
                       }}
                     />
