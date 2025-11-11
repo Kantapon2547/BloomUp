@@ -4,11 +4,6 @@ import './MotivationCard.css';
 
 const LS_KEY = "habit-tracker@hybrid";
 
-const getTodayString = () => {
-  const bangkokTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" });
-  return new Date(bangkokTime).toISOString().slice(0, 10);
-};
-
 // feedback templates
 const FEEDBACK_TEMPLATES = {
   0: {
@@ -25,7 +20,7 @@ const FEEDBACK_TEMPLATES = {
       "Every journey starts with a single step! You've officially begun.",
       "Great start! Keep that streak going!",
       "Keep going! The hardest part is starting, and you've already done that. 25% complete!",
-      "Good progress! you’re already a quarter of the way there!"
+      "Good progress! you're already a quarter of the way there!"
     ],
   },
   50: {
@@ -39,21 +34,21 @@ const FEEDBACK_TEMPLATES = {
     baseMessages: [
       "Almost there! You're unstoppable! ",
       "75% complete! One more push!",
-      "You’ve come so far. just a little more effort to go!"
+      "You've come so far. just a little more effort to go!"
     ],
   },
   100: {
     baseMessages: [
       "Perfect day! You're a champion!!",
       "100% complete! Crushed your goals!",
-      "Amazing finish! Keep the streak going — tomorrow’s a new opportunity.",
+      "Amazing finish! Keep the streak going — tomorrow's a new opportunity.",
       "Congratulations! You did it!"
     ],
   },
 };
 
-// progress tier
-const getProgressTier = (percentage) => {
+// progress tier function
+const getProgressTierValue = (percentage) => {
   if (percentage === 100) return 100;
   if (percentage >= 75) return 75;
   if (percentage >= 50) return 50;
@@ -62,10 +57,7 @@ const getProgressTier = (percentage) => {
 };
 
 export default function DailyMotivationCard({ completedHabits, totalHabits }) {
-  const todayStr = getTodayString();
   const [quote, setQuote] = useState("");
-  const [progressTier, setProgressTier] = useState(0);
-  const [progressBadge, setProgressBadge] = useState("Progress");
   const [weeklyProgress, setWeeklyProgress] = useState(0);
   const [improvement, setImprovement] = useState(0);
 
@@ -113,12 +105,11 @@ export default function DailyMotivationCard({ completedHabits, totalHabits }) {
     } catch (error) {
       console.error("Failed to calculate progress:", error);
     }
-  }, [totalHabits, completedHabits, todayStr]);
+  }, [totalHabits, completedHabits]);
 
   // Update motivation based on progress
   useEffect(() => {
-    const tier = getProgressTier(progressPercentage);
-    setProgressTier(tier);
+    const tier = getProgressTierValue(progressPercentage);
 
     const templates = FEEDBACK_TEMPLATES[tier];
     if (!templates || !templates.baseMessages || templates.baseMessages.length === 0) return;
