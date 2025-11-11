@@ -4,8 +4,9 @@ import { getMyProfile, updateProfile, uploadAvatar } from "../services/userServi
 import { getProfileStats } from "../services/statsService";
 import { getUserAchievements, getEarnedAchievements } from "../services/achievementService";
 import "./style/Profile.css";
+
 import { getShareableStats } from "../services/reportService";
-import "./style/Profile.css";
+import { getWeeklyMoodSummary } from "../services/moodService";
 
 // Constants
 const STATS_CONFIGURATION = [
@@ -25,6 +26,16 @@ const RECENT_ACTIVITIES_DATA = [
 const handleLogout = () => {
   localStorage.removeItem("access_token");
   window.location.href = "/login";
+};
+
+const scoreToMoodDisplay = (score) => {
+  if (score === 0) return { emoji: "🤔", description: "Not tracked" };
+  if (score <= 2) return { emoji: "😭", description: "Tough Week" };
+  if (score <= 4) return { emoji: "😕", description: "Okay Week" };
+  if (score <= 6) return { emoji: "🙂", description: "Good Week" };
+  if (score <= 8) return { emoji: "😊", description: "Great Week" };
+  if (score <= 10) return { emoji: "😄", description: "Amazing Week" };
+  return { emoji: "🤔", description: "Not tracked" };
 };
 
 // =================================================================
@@ -148,7 +159,7 @@ const AchievementShareCard = ({ earnedCount, totalCount, latestAchievement }) =>
 
 const MoodShareCard = ({ moodData }) => (
   <>
-    <div className="share-icon-large">😊</div>
+    <div className="share-icon-large"></div>
     <div className="label-display">{moodData?.averageMood || "N/A"}</div>
     <div className="label-2-display">Average Mood This Week</div>
     <div className="share-detail-text">Feeling: {moodData?.moodDescription || "Good!"}</div>
@@ -378,8 +389,8 @@ export default function ProfilePage() {
   const [currentShareCardIndex, setCurrentShareCardIndex] = useState(0);
   const fileInputReference = useRef(null);
 
-  // +++ 2. เพิ่ม State สำหรับเก็บข้อมูลจาก Report
   const [reportStats, setReportStats] = useState(null);
+  const [moodSummary, setMoodSummary] = useState(null);
 
   useEffect(() => {
     document.body.classList.add('profile-page-active');
@@ -403,9 +414,11 @@ export default function ProfilePage() {
       const earnedAch = await getEarnedAchievements();
       setEarnedAchievementsList(earnedAch);
 
-      // +++ 3. เรียกใช้ Service เพื่อดึงข้อมูลสถิติ
       const shareableData = await getShareableStats();
       setReportStats(shareableData);
+
+      const weeklyMood = await getWeeklyMoodSummary();
+      setMoodSummary(weeklyMood);
 
     } catch (error) {
       console.error("Failed to load profile data:", error);
@@ -457,7 +470,7 @@ export default function ProfilePage() {
     setCurrentShareCardIndex(prevIndex => (prevIndex - 1 + (shareCardsConfig.length || 1)) % (shareCardsConfig.length || 1));
   };
 
-  if (isLoading || !reportStats) return <p className="loading">Loading...</p>
+  if (isLoading || !reportStats || !moodSummary) return <p className="loading">Loading...</p>
   if (!userProfile) return <div className="error-message">{errorMessage || "Failed to load profile"}</div>;
 
   // --- Dynamic Share Card Configuration ---
@@ -475,11 +488,10 @@ export default function ProfilePage() {
     {
         type: "mood",
         label: "Weekly Mood",
-        // หมายเหตุ: เราไม่มีข้อมูล "Mood" โดยตรง จึงใช้ค่าเฉลี่ยความสำเร็จมาแสดงแทน
         content: <MoodShareCard
-          moodData={{
-            averageMood: reportStats.weeklyAverage >= 80 ? "😄" : reportStats.weeklyAverage >= 50 ? "😊" : "🙂",
-            moodDescription: `${reportStats.weeklyAverage}% Completion`
+        moodData={{
+          averageMood: scoreToMoodDisplay(moodSummary.average_mood).emoji,
+          moodDescription: scoreToMoodDisplay(moodSummary.average_mood).description,
           }}
         />,
         theme: 'theme-mood',
@@ -493,7 +505,7 @@ export default function ProfilePage() {
     {
       type: "new_habit_stat",
       label: "New Habits Started",
-      content: <NewHabitStatShareCard newHabitStat={{ newHabitCount: 3 }} />, // Placeholder data
+      content: <NewHabitStatShareCard newHabitStat={{ newHabitCount: reportStats.newHabitsCount }} />,
       theme: 'theme-new-habit',
     },
     {

@@ -1,5 +1,3 @@
-// src/services/habitStorage.js
-
 // --- Constants and Configuration ---
 const USE_API_DEFAULT = true;
 const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
@@ -24,15 +22,15 @@ async function apiFetch(path, options = {}) {
 const uid = () =>
   Math.random().toString(36).slice(2, 7) + Date.now().toString(36).slice(-3);
 
-// ✅ เพิ่ม 'export' ที่บรรทัดนี้
 export const normalizeHabit = (h) => ({
   id: h.id ?? uid(),
   name: h.name ?? "",
   category: h.category ?? "General",
   icon: h.icon ?? "📚",
-  duration: h.duration ?? "30 mins",
+  duration: h.duration ?? 30,
   color: h.color ?? "#ede9ff",
   history: h.history ?? {},
+  createdAt: h.createdAt ?? new Date().toISOString(),
 });
 
 // --- Main Storage Logic (Named Export) ---

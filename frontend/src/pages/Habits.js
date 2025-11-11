@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {Plus, Pencil, Trash2, ChevronDown, Filter, Trophy, CheckCircle2, Sun, DownloadCloud} 
-  from "lucide-react";
+import {Plus, Pencil, Trash2, ChevronDown, Filter, Trophy, CheckCircle2, Sun} from "lucide-react";
 import "./style/Habits.css";
 import EmojiPicker from "emoji-picker-react";
-import { createStorage, normalizeHabit } from "../services/habitStorage"; // แก้ไขบรรทัดนี้
+import confetti from "canvas-confetti";
+import { createStorage, normalizeHabit } from "../services/habitStorage";
 
-const DURATIONS = ["15 mins", "30 mins", "45 mins", "1 hour", "1.5 hours", "2 hours", "3 hours"];
 const CATS_LS = "habit-tracker@categories";
-const DEFAULT_CATEGORIES = ["General", "Study", "Health", "Mind"];
+const PASTELS = [ "#ff99c8", "#ffac81", "#fcf6bd", "#d0f4de", "#a9def9", "#e4c1f9" ];
+const DURATIONS = ["1–30 mins", "30 mins–1 hr", "1–2 hrs", "2+ hrs"];
 
 const storage = createStorage();
 
@@ -21,14 +21,14 @@ function formatLocalDate(date) {
 const weekOf = (date) => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
-  const day = d.getDay(); 
-  const diff = (day === 0 ? -6 : 1) - day; 
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
   const start = new Date(d);
   start.setDate(d.getDate() + diff);
   return [...Array(7)].map((_, i) => {
     const x = new Date(start);
     x.setDate(start.getDate() + i);
-    return formatLocalDate(x); 
+    return formatLocalDate(x);
   });
 };
 
@@ -37,6 +37,17 @@ const thisWeek = () => weekOf(new Date());
 const pct = (n) => Math.round(n * 100);
 const plural = (n, w) => `${n} ${w}${n > 1 ? "s" : ""}`;
 
+function formatDuration(mins) {
+    if (typeof mins !== "number" || isNaN(mins)) return "";
+    if (mins < 60) return `${mins} mins`;
+    if (mins % 60 === 0) {
+        const hrs = mins / 60;
+        return `${hrs} hour${hrs === 1 ? "" : "s"}`;
+    }
+    const hrs = Math.floor(mins / 60);
+    const rem = mins % 60;
+    return `${hrs}h ${rem}m`;
+}
 
 function bestStreak(history = {}) {
   const days = Object.keys(history).sort();
