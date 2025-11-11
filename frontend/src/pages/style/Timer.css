@@ -570,7 +570,7 @@ body.timer-long-break-mode .timer-stats {
 .timer-stat-label {
   color: #d98888;
   font-size: 11px;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
   text-transform: uppercase;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -596,6 +596,175 @@ body.timer-short-break-mode .timer-stat-value {
 
 body.timer-long-break-mode .timer-stat-value {
   color: #1565c0;
+}
+
+/* Detail button*/
+.timer-details-icon {
+  font-size: 18px;
+  font-weight: 400;
+  color: #c44545;
+  line-height: 1;
+}
+.timer-details-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: white;
+  color: #c44545;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+  padding: 0;
+  box-shadow: none;
+}
+
+.timer-details-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(196, 69, 69, 0.2);
+}
+
+.timer-details-btn:active {
+  transform: scale(0.95);
+}
+
+/* Details Modal */
+.timer-details-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.timer-details-modal {
+  background: white;
+  border-radius: 25px;
+  padding: 30px;
+  max-width: 500px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
+  position: relative;
+  animation: slideUp 0.3s ease;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.timer-details-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #c44545;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+}
+
+.timer-details-close:hover {
+  transform: rotate(90deg);
+  background: #ffcccc;
+}
+
+.timer-details-section {
+  margin-bottom: 25px;
+}
+
+.timer-details-section:last-child {
+  margin-bottom: 0;
+}
+
+.timer-details-section h3 {
+  color: #ff6b6b;
+  margin-bottom: 10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.timer-details-section:last-child h3 {
+  color: #2196f3;
+}
+
+.timer-details-section p {
+  margin: 8px 0;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.timer-details-section ul {
+  margin: 12px 0;
+  padding-left: 20px;
+  color: #555;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.timer-details-section ul li {
+  margin-bottom: 6px;
+}
+
+.timer-details-section em {
+  color: #888;
+  font-size: 13px;
+  display: block;
+  margin-top: 10px;
+}
+
+/* Break mode colors for details button */
+body.timer-short-break-mode .timer-details-icon {
+  color: #2e7d32;
+}
+
+body.timer-short-break-mode .timer-details-btn:hover {
+  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+}
+
+body.timer-long-break-mode .timer-details-icon {
+  color: #1565c0;
+}
+
+body.timer-long-break-mode .timer-details-btn:hover {
+  box-shadow: 0 2px 8px rgba(21, 101, 192, 0.2);
 }
 
 /* Responsive Design */
@@ -762,5 +931,76 @@ body.timer-long-break-mode .timer-stat-value {
 
   .timer-stat-value {
     font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .timer-details-btn {
+    width: 26px;
+    height: 26px;
+    top: 15px;
+    left: 15px;
+  }
+
+  .timer-details-modal {
+    max-width: 90%;
+    padding: 25px;
+  }
+
+  .timer-details-section h3 {
+    font-size: 15px;
+  }
+
+  .timer-details-section p {
+    font-size: 13px;
+  }
+
+  .timer-details-section ul {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .timer-details-btn {
+    width: 24px;
+    height: 24px;
+    top: 12px;
+    left: 12px;
+  }
+
+  .timer-details-modal {
+    max-width: 95%;
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .timer-details-section {
+    margin-bottom: 15px;
+  }
+
+  .timer-details-section h3 {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .timer-details-section p {
+    font-size: 12px;
+    margin: 6px 0;
+  }
+
+  .timer-details-section ul {
+    font-size: 12px;
+    margin: 8px 0;
+    padding-left: 16px;
+    line-height: 1.6;
+  }
+
+  .timer-details-section ul li {
+    margin-bottom: 4px;
+  }
+
+  .timer-details-section em {
+    font-size: 11px;
+    margin-top: 8px;
   }
 }

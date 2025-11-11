@@ -10,17 +10,17 @@ function formatLocalDate(date) {
 }
 
 function formatTotalTime(minutes) {
-  if (minutes === 0) return "0 mins";
+  if (minutes === 0) return "0min";
   
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
   
   if (hours === 0) {
-    return `${mins}m`;
+    return `${mins}mins`;
   } else if (mins === 0) {
-    return `${hours}h`;
+    return `${hours}hr`;
   } else {
-    return `${hours}h ${mins}m`;
+    return `${hours}hr ${mins}mins`;
   }
 }
 
@@ -36,6 +36,7 @@ export default function Timer() {
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [workSessionsCompleted, setWorkSessionsCompleted] = useState(0);
   const [draggedItem, setDraggedItem] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
   
   const timerIntervalRef = useRef(null);
 
@@ -45,7 +46,7 @@ export default function Timer() {
     long: 15 * 60,
   };
 
-  // Helper to convert duration to minutes
+  // convert duration to minutes
   const durationToMins = (raw) => {
     if (typeof raw === "number") return raw;
     if (typeof raw === "string") {
@@ -104,7 +105,7 @@ export default function Timer() {
     };
   }, [isRunning]);
 
-  // Handle timer completion - using ref to avoid dependency issues
+  // timer completion - using ref to avoid dependency issues
   useEffect(() => {
     if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
@@ -128,7 +129,7 @@ export default function Timer() {
                 setPomodoroType("short");
                 setTimeLeft(5 * 60);
               } else {
-                alert("🎉 All tasks completed!");
+                alert("All tasks completed!");
                 setIsRunning(false);
                 setTimeLeft(25 * 60);
                 setPomodoroType("work");
@@ -163,7 +164,7 @@ export default function Timer() {
     }
   }, [timeLeft, isRunning, mode, pomodoroType, currentTaskIndex, tasks, workSessionsCompleted]);
 
-  // Display time formatting
+  // Display time
   const displayTime = () => {
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
@@ -185,11 +186,11 @@ export default function Timer() {
     setWorkSessionsCompleted(0);
     
     if (newMode === "pomodoro") {
-      // Always start with work pomodoro (25 min)
+      // start with work pomodoro
       setPomodoroType("work");
       setTimeLeft(POMODORO_TIMES["work"]);
     } else {
-      // Regular mode - use current task's duration
+      // Regular mode
       if (currentTaskIndex < tasks.length) {
         setTimeLeft(tasks[currentTaskIndex].minutes * 60);
       } else {
@@ -223,23 +224,19 @@ export default function Timer() {
     }
   };
 
-
-
   const selectTask = (index) => {
     if (isRunning) return;
     setCurrentTaskIndex(index);
     setWorkSessionsCompleted(0);
     
-    // Only change time in regular mode, not in pomodoro breaks
+    // only change time in regular mode, not in pomodoro breaks
     if (mode === "regular") {
-      // Regular mode - use selected task's duration
       if (index < tasks.length) {
         setTimeLeft(tasks[index].minutes * 60);
       } else {
         setTimeLeft(25 * 60);
       }
     }
-    // In pomodoro mode, don't change the time when selecting tasks
   };
 
   const handleDragStart = (index) => {
@@ -273,15 +270,14 @@ export default function Timer() {
     setDraggedItem(null);
   };
 
-  // Calculate stats
+  // calculate stats
   const completedCount = tasks.filter(t => t.completed).length;
   const totalMinutes = tasks.filter(t => t.completed).reduce((sum, t) => sum + t.minutes, 0);
 
-  // Handle break mode theme changes (only for Pomodoro mode)
+  // break mode theme changes (Pomodoro mode)
   useEffect(() => {
     document.body.classList.remove("timer-short-break-mode", "timer-long-break-mode");
     
-    // Only apply break mode colors if in Pomodoro mode
     if (mode === "pomodoro") {
       if (pomodoroType === "short") {
         document.body.classList.add("timer-short-break-mode");
@@ -298,6 +294,14 @@ export default function Timer() {
   return (
     <div className="timer-layout">
       <div className="timer-container">
+        <button 
+          className="timer-details-btn"
+          onClick={() => setShowDetails(!showDetails)}
+          title="Learn about timer modes"
+        >
+          <span className="material-symbols-outlined timer-details-icon">help</span>
+        </button>
+
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0px" }}>
           <div className="timer-mode-selector">
             <button 
@@ -315,24 +319,54 @@ export default function Timer() {
           </div>
         </div>
 
+        {showDetails && (
+          <div className="timer-details-overlay" onClick={() => setShowDetails(false)}>
+            <div className="timer-details-modal" onClick={(e) => e.stopPropagation()}>
+              <button className="timer-details-close" onClick={() => setShowDetails(false)}>✕</button>
+              
+              <div className="timer-details-section">
+                <h3>🍅 Pomodoro Timer</h3>
+                <p>The Pomodoro Technique breaks your work into focused intervals:</p>
+                <ul>
+                  <li>Work for 25 minutes (one Pomodoro)</li>
+                  <li>Take a 5-minute short break</li>
+                  <li>Take a 15-minute long break after multiple sessions</li>
+                </ul>
+                <p><em>Perfect for maintaining focus and preventing burnout through structured intervals.</em></p>
+              </div>
+
+              <div className="timer-details-section">
+                <h3>⏱️ Regular Timer</h3>
+                <p>Work through tasks at your own pace with custom durations:</p>
+                <ul>
+                  <li>Set custom time for each task</li>
+                  <li>Work continuously through your task list</li>
+                  <li>No breaks between tasks</li>
+                </ul>
+                <p><em>Great for tasks requiring extended focus or flexible time management.</em></p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className={`timer-pomodoro-tabs ${mode === "regular" ? "hidden" : ""}`}>
           <button 
             className={`timer-pomo-tab ${pomodoroType === "work" ? "active" : ""}`}
             onClick={() => switchPomodoroType("work")}
           >
-            Pomodoro (25m)
+            Pomodoro
           </button>
           <button 
             className={`timer-pomo-tab ${pomodoroType === "short" ? "active" : ""}`}
             onClick={() => switchPomodoroType("short")}
           >
-            Short Break (5m)
+            Short Break
           </button>
           <button 
             className={`timer-pomo-tab ${pomodoroType === "long" ? "active" : ""}`}
             onClick={() => switchPomodoroType("long")}
           >
-            Long Break (15m)
+            Long Break
           </button>
         </div>
 
@@ -359,10 +393,12 @@ export default function Timer() {
 
       <div className="timer-tasks-container">
         <div className="timer-tasks-section">
-          <h3 className="timer-tasks-title">Tasks</h3>
+          <h3 className="timer-tasks-title">
+            {tasks.length <= 1 ? 'Task' : 'Tasks'}
+          </h3>
           <div className="timer-tasks-list">
             {tasks.length === 0 ? (
-              <div className="timer-empty-state">No tasks yet</div>
+              <div className="timer-empty-state">No task yet</div>
             ) : (
               tasks.map((task, idx) => {
                 const isActive = idx === currentTaskIndex;
@@ -405,7 +441,9 @@ export default function Timer() {
 
         <div className="timer-stats">
           <div className="timer-stat">
-            <div className="timer-stat-label">Tasks Completed</div>
+            <div className="timer-stat-label">
+              {tasks.length <= 1 ? 'Task Completed' : 'Tasks Completed'}
+            </div>
             <div className="timer-stat-value">{completedCount}</div>
           </div>
           <div className="timer-stat">
