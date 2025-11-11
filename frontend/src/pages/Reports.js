@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import gsap from "gsap";
 import "./style/Reports.css";
-import { createStorage } from "./Habits";
+import { createStorage } from "../services/habitStorage"; // ใช้ ../ และชี้ไปที่ service ใหม่
 
 /* ===== Utility Functions ===== */
 const storage = createStorage();

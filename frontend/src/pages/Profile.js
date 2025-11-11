@@ -4,6 +4,8 @@ import { getMyProfile, updateProfile, uploadAvatar } from "../services/userServi
 import { getProfileStats } from "../services/statsService";
 import { getUserAchievements, getEarnedAchievements } from "../services/achievementService";
 import "./style/Profile.css";
+import { getShareableStats } from "../services/reportService";
+import "./style/Profile.css";
 
 // Constants
 const STATS_CONFIGURATION = [
@@ -376,6 +378,9 @@ export default function ProfilePage() {
   const [currentShareCardIndex, setCurrentShareCardIndex] = useState(0);
   const fileInputReference = useRef(null);
 
+  // +++ 2. เพิ่ม State สำหรับเก็บข้อมูลจาก Report
+  const [reportStats, setReportStats] = useState(null);
+
   useEffect(() => {
     document.body.classList.add('profile-page-active');
     return () => document.body.classList.remove('profile-page-active');
@@ -397,6 +402,11 @@ export default function ProfilePage() {
       setAllAchievementsList(allAch);
       const earnedAch = await getEarnedAchievements();
       setEarnedAchievementsList(earnedAch);
+
+      // +++ 3. เรียกใช้ Service เพื่อดึงข้อมูลสถิติ
+      const shareableData = await getShareableStats();
+      setReportStats(shareableData);
+
     } catch (error) {
       console.error("Failed to load profile data:", error);
       setErrorMessage(error.message || "Failed to load data.");
@@ -444,10 +454,10 @@ export default function ProfilePage() {
   };
 
   const goToPreviousShareCard = () => {
-    setCurrentShareCardIndex(prevIndex => (prevIndex - 1 + shareCardsConfig.length) % shareCardsConfig.length);
+    setCurrentShareCardIndex(prevIndex => (prevIndex - 1 + (shareCardsConfig.length || 1)) % (shareCardsConfig.length || 1));
   };
 
-  if (isLoading) return <p className="loading">Loading...</p>;
+  if (isLoading || !reportStats) return <p className="loading">Loading...</p>
   if (!userProfile) return <div className="error-message">{errorMessage || "Failed to load profile"}</div>;
 
   // --- Dynamic Share Card Configuration ---
@@ -463,10 +473,16 @@ export default function ProfilePage() {
       theme: 'theme-achievement',
     },
     {
-      type: "mood",
-      label: "Weekly Mood",
-      content: <MoodShareCard moodData={{ averageMood: "😄", moodDescription: "Joyful" }} />, // Placeholder data
-      theme: 'theme-mood',
+        type: "mood",
+        label: "Weekly Mood",
+        // หมายเหตุ: เราไม่มีข้อมูล "Mood" โดยตรง จึงใช้ค่าเฉลี่ยความสำเร็จมาแสดงแทน
+        content: <MoodShareCard
+          moodData={{
+            averageMood: reportStats.weeklyAverage >= 80 ? "😄" : reportStats.weeklyAverage >= 50 ? "😊" : "🙂",
+            moodDescription: `${reportStats.weeklyAverage}% Completion`
+          }}
+        />,
+        theme: 'theme-mood',
     },
     {
       type: "habit",
@@ -483,19 +499,33 @@ export default function ProfilePage() {
     {
       type: "weekly_review",
       label: "Weekly Review",
-      content: <WeeklyReviewShareCard reviewData={{ habitsCompleted: 15, progressPercentage: 80 }} />, // Placeholder data
+      content: <WeeklyReviewShareCard
+        reviewData={{
+          habitsCompleted: reportStats.habitsCompletedThisWeek,
+          progressPercentage: reportStats.weeklyAverage
+        }}
+      />,
       theme: 'theme-review',
     },
     {
       type: "highest_progress_habit",
       label: "Highest Progress Habit",
-      content: <HighestProgressHabitShareCard highestProgressHabit={{ habitName: "Reading", progressPercentage: 92 }} />, // Placeholder data
+      content: <HighestProgressHabitShareCard
+        highestProgressHabit={{
+          habitName: reportStats.highestProgressHabit?.habitName || "N/A",
+          progressPercentage: reportStats.highestProgressHabit?.progressPercentage || 0
+        }}
+      />,
       theme: 'theme-progress',
     },
     {
       type: "overall_streak",
       label: "Overall Streak",
-      content: <OverallStreakShareCard overallStreak={{ longestOverallStreak: 30 }} />, // Placeholder data
+      content: <OverallStreakShareCard
+        overallStreak={{
+          longestOverallStreak: reportStats.longestOverallStreak
+        }}
+      />,
       theme: 'theme-streak',
     },
   ];
