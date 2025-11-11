@@ -34,9 +34,6 @@ const Navbar = ({ onLogout }) => {
           ))}
         </div>
 
-        <button className="logout-btn" onClick={onLogout}>
-          <FiLogOut size={20} />
-        </button>
       </div>
     </nav>
   );

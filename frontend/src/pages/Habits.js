@@ -2,13 +2,17 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {Plus, Pencil, Trash2, ChevronDown, Filter, Trophy, CheckCircle2, Sun, DownloadCloud} 
   from "lucide-react";
 import "./style/Habits.css";
+import EmojiPicker from "emoji-picker-react";
+
 
 const USE_API_DEFAULT = true;
 const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 const AUTH_TOKEN = import.meta?.env?.VITE_API_TOKEN || "";
 const LS_KEY = "habit-tracker@hybrid";
-const CATEGORIES = ["General", "Study", "Health", "Mind"];
 const DURATIONS = ["15 mins", "30 mins", "45 mins", "1 hour", "1.5 hours", "2 hours", "3 hours"];
+
+const CATS_LS = "habit-tracker@categories";
+const DEFAULT_CATEGORIES = ["General", "Study", "Health", "Mind"];
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -32,10 +36,11 @@ const normalizeHabit = (h) => ({
   category: h.category ?? "General",
   icon: h.icon ?? "📚",
   duration: h.duration ?? "30 mins",
+  color: h.color ?? "#ede9ff",
   history: h.history ?? {},
 });
 
-function createStorage() {
+export function createStorage() {
   let useApi = USE_API_DEFAULT;
 
   async function safeApi(fn, fallback) {
@@ -126,20 +131,28 @@ function createStorage() {
 
 const storage = createStorage();
 
+function formatLocalDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 const weekOf = (date) => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
+  const day = d.getDay(); 
+  const diff = (day === 0 ? -6 : 1) - day; 
   const start = new Date(d);
-  start.setDate(d.getDate() - d.getDay());
-  start.setHours(0, 0, 0, 0);
+  start.setDate(d.getDate() + diff);
   return [...Array(7)].map((_, i) => {
     const x = new Date(start);
     x.setDate(start.getDate() + i);
-    return x.toISOString().slice(0, 10);
+    return formatLocalDate(x); 
   });
 };
 
-const todayKey = () => new Date().toISOString().slice(0, 10);
+const todayKey = () => formatLocalDate(new Date());
 const thisWeek = () => weekOf(new Date());
 const pct = (n) => Math.round(n * 100);
 const plural = (n, w) => `${n} ${w}${n > 1 ? "s" : ""}`;
@@ -223,168 +236,197 @@ function Dropdown({ value, items, onChange, label }) {
   );
 }
 
-async function generatePDFReport(habits, totals, week) {
-  // Load jsPDF from CDN if not already loaded
-  if (!window.jspdf) {
-    const script1 = document.createElement('script');
-    script1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    document.head.appendChild(script1);
-    
-    await new Promise((resolve) => {
-      script1.onload = resolve;
-    });
-    
-    const script2 = document.createElement('script');
-    script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js';
-    document.head.appendChild(script2);
-    
-    await new Promise((resolve) => {
-      script2.onload = resolve;
-    });
-  }
+function CategorySelector({ value, onChange, categories, onCreate }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [showInput, setShowInput] = useState(false);
+  const ref = useRef(null);
   
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  
-  const today = new Date().toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  useClickOutside(ref, () => {
+    setIsOpen(false);
+    setShowInput(false);
+    setDraft("");
   });
 
-  // Header
-  doc.setFontSize(22);
-  doc.setTextColor(124, 58, 237);
-  doc.text("Habit Tracker Progress Report", 20, 20);
-  
-  doc.setFontSize(10);
-  doc.setTextColor(107, 114, 128);
-  doc.text(`Generated on ${today}`, 20, 28);
+  const handleSelect = (cat) => {
+    onChange(cat);
+    setIsOpen(false);
+  };
 
-  // Summary Section
-  doc.setFontSize(16);
-  doc.setTextColor(17, 19, 37);
-  doc.text("Summary", 20, 45);
+  const handleAddNew = () => {
+    const name = draft.trim();
+    if (!name) return;
+    onCreate(name);
+    onChange(name);
+    setDraft("");
+    setShowInput(false);
+    setIsOpen(false);
+  };
 
-  doc.setFontSize(11);
-  doc.setTextColor(43, 51, 68);
-  doc.text(`Total Habits: ${totals.total}`, 20, 55);
-  doc.text(`Completed Today: ${totals.doneToday}`, 20, 62);
-  doc.text(`Weekly Completion Rate: ${totals.completion}%`, 20, 69);
-  doc.text(`Best Streak: ${totals.best} day${totals.best !== 1 ? 's' : ''}`, 20, 76);
-
-  // Habits Table
-  doc.setFontSize(16);
-  doc.text("Habits Details", 20, 92);
-
-  const tableData = habits.map(h => {
-    const rate = weekRate(h);
-    const streak = bestStreak(h.history || {});
-    const completedThisWeek = week.filter(d => h.history?.[d]).length;
-    
-    return [
-      h.name,
-      h.category,
-      h.duration,
-      `${streak} day${streak !== 1 ? 's' : ''}`,
-      `${completedThisWeek}/7`,
-      `${rate}%`
-    ];
-  });
-
-  doc.autoTable({
-    startY: 98,
-    head: [['Habit Name', 'Category', 'Duration', 'Best Streak', 'This Week', 'Rate']],
-    body: tableData,
-    theme: 'striped',
-    headStyles: {
-      fillColor: [124, 58, 237],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      fontSize: 10
-    },
-    bodyStyles: {
-      fontSize: 9,
-      textColor: [43, 51, 68]
-    },
-    alternateRowStyles: {
-      fillColor: [250, 248, 255]
-    },
-    margin: { left: 20, right: 20 }
-  });
-
-  // Category Breakdown
-  const categoryStats = {};
-  habits.forEach(h => {
-    const cat = h.category || 'General';
-    if (!categoryStats[cat]) {
-      categoryStats[cat] = { count: 0, totalRate: 0 };
-    }
-    categoryStats[cat].count++;
-    categoryStats[cat].totalRate += weekRate(h);
-  });
-
-  const finalY = doc.lastAutoTable.finalY + 15;
-  doc.setFontSize(16);
-  doc.text("Category Breakdown", 20, finalY);
-
-  const categoryData = Object.entries(categoryStats).map(([cat, stats]) => [
-    cat,
-    stats.count,
-    `${Math.round(stats.totalRate / stats.count)}%`
-  ]);
-
-  doc.autoTable({
-    startY: finalY + 6,
-    head: [['Category', 'Habits Count', 'Avg Completion']],
-    body: categoryData,
-    theme: 'striped',
-    headStyles: {
-      fillColor: [124, 58, 237],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      fontSize: 10
-    },
-    bodyStyles: {
-      fontSize: 9,
-      textColor: [43, 51, 68]
-    },
-    alternateRowStyles: {
-      fillColor: [250, 248, 255]
-    },
-    margin: { left: 20, right: 20 }
-  });
-
-  // Footer
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(107, 114, 128);
-    doc.text(
-      `Page ${i} of ${pageCount}`,
-      doc.internal.pageSize.getWidth() / 2,
-      doc.internal.pageSize.getHeight() - 10,
-      { align: 'center' }
-    );
-  }
-
-  // Save the PDF
-  doc.save(`habit-tracker-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+  return (
+    <div className="dd category-selector" ref={ref}>
+      <button
+        className="dd-trigger"
+        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+      >
+        <span>{value}</span>
+        <ChevronDown size={16} />
+      </button>
+      
+      {isOpen && (
+        <div className="dd-pop">
+          {!showInput ? (
+            <>
+              {categories.map((cat) => (
+                <div
+                  key={cat}
+                  className={`dd-item ${cat === value ? "is-active" : ""}`}
+                  onClick={() => handleSelect(cat)}
+                >
+                  {cat}
+                </div>
+              ))}
+              <div className="dd-divider" />
+              <div
+                className="dd-item dd-item--add"
+                onClick={() => setShowInput(true)}
+              >
+                <Plus size={16} />
+                <span>Add new category</span>
+              </div>
+            </>
+          ) : (
+            <div className="dd-add-form">
+              <input
+                className="input"
+                placeholder="e.g., Fitness, Work"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddNew();
+                  if (e.key === "Escape") { setShowInput(false); setDraft(""); }
+                }}
+                autoFocus
+              />
+              <div className="dd-add-actions">
+                <button
+                  type="button"
+                  className="btn btn-sm cancel"
+                  onClick={() => { setShowInput(false); setDraft(""); }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm confirm"
+                  onClick={handleAddNew}
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
-function HabitModal({ open, onClose, onSubmit, initial }) {
+function DurationPickerModal({
+  current,
+  onSelect,
+  onClose,
+}) {
+  const OPTIONS = [
+    "15 mins",
+    "30 mins",
+    "45 mins",
+    "1 hour",
+    "1.5 hours",
+    "2 hours",
+    "3 hours",
+  ];
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div
+        className="floating-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="floating-head">
+          <div className="floating-title">Select Duration</div>
+          <div className="floating-actions">
+            <button className="floating-back" onClick={onClose}>
+              Back
+            </button>
+          </div>
+        </div>
+
+        <div className="option-grid">
+          {OPTIONS.map((opt) => (
+            <button
+              key={opt}
+              className={
+                "option-tile" +
+                (opt === current ? " is-active" : "")
+              }
+              onClick={() => {
+                onSelect(opt);
+                onClose();
+              }}
+            >
+              <div className="option-tile-label">{opt}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HabitModal({
+  open,
+  onClose,
+  onSubmit,
+  initial,
+  categories,
+  onCreateCategory,
+  onApplyCategoryColor,
+  onDeleteCategory,
+}) {
   const [name, setName] = useState(initial?.name || "");
   const [category, setCategory] = useState(initial?.category || "General");
-  const [icon, setIcon] = useState(initial?.icon || "📚");
+  const [emoji, setEmoji] = useState(initial?.icon || "📚"); 
   const [duration, setDuration] = useState(initial?.duration || "30 mins");
+  const [error, setError] = useState("");
+  const PASTELS = [
+    "#ff99c8", 
+    "#ffac81", 
+    "#fcf6bd", 
+    "#d0f4de", 
+    "#a9def9", 
+    "#e4c1f9", 
+  ];
 
+  const [color, setColor] = useState(initial?.color || PASTELS[0]);
+
+  
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showDurationPicker, setShowDurationPicker] = useState(false);
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  
   useEffect(() => {
     if (open) {
       setName(initial?.name || "");
       setCategory(initial?.category || "General");
-      setIcon(initial?.icon || "📚");
+      setEmoji(initial?.icon || "📚");
       setDuration(initial?.duration || "30 mins");
+      setColor(initial?.color || PASTELS[0]);
+      setError("");
+      setShowEmojiPicker(false);
+      setShowCategoryPicker(false);
     }
   }, [initial, open]);
 
@@ -392,53 +434,312 @@ function HabitModal({ open, onClose, onSubmit, initial }) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-body">
-          <h3>Habit Name</h3>
-          <input
-            className="input"
-            placeholder="e.g., Study for 2 hours"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <div className="row-two">
-            <div className="field">
-              <h3>Category</h3>
-              <Dropdown value={category} items={CATEGORIES} onChange={setCategory} />
-            </div>
-            <div className="field">
-              <h3>Duration</h3>
-              <Dropdown value={duration} items={DURATIONS} onChange={setDuration} />
-            </div>
-          </div>
+      <div
+        className="modal modal-task"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="task-header">
+          <button
+            className="task-emoji-btn"
+            onClick={() => setShowEmojiPicker(true)}
+          >
+            <span className="task-emoji">{emoji}</span>
+          </button>
 
-          <h3>Choose Icon</h3>
-          <div className="icon-grid pretty">
-            {["📚", "✏️", "📖", "🎓", "💻", "💪", "🧠", "🧘", "🥗", "🚰", "💖", "🛏️"].map(
-              (i) => (
-                <div
-                  key={i}
-                  className={`icon-tile ${icon === i ? "active" : ""}`}
-                  onClick={() => setIcon(i)}
-                >
-                  <span className="icon-emoji">{i}</span>
-                </div>
-              )
-            )}
-          </div>
+          <div className="task-emoji-hint">Tap to change icon</div>
+
+          <input
+            className={`task-name-input ${error ? "is-invalid" : ""}`}
+            placeholder="Enter habit name"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setError("");
+            }}
+          />
+          {error && <div className="field-error">{error}</div>}
+          <div className="color-row-main">
+            {PASTELS.map((c) => (
+              <button
+                key={c}
+                className={`color-dot-main ${color === c ? "is-selected" : ""}`}
+                style={{ backgroundColor: c }}
+                onClick={() => setColor(c)}
+                />
+                ))}
+              </div>
         </div>
-        <div className="modal-footer">
-          <button className="btn cancel" onClick={onClose}>
+
+        <div className="task-fields">
+          <button
+            className="task-row-btn"
+            onClick={() => setShowCategoryPicker(true)}
+            type="button"
+          >
+            <div className="task-row-left">
+              <div className="task-row-label">CATEGORY</div>
+              <div className="task-row-value">{category}</div>
+            </div>
+            <div className="task-row-chevron">›</div>
+          </button>
+
+          <button 
+            className="task-row-btn"
+            onClick={() => setShowDurationPicker(true)}
+            type="button"
+          >
+            <div className="task-row-left">
+              <div className="task-row-label">DURATION</div>
+              <div className="task-row-value">{duration}</div>
+            </div>
+            <div className="task-row-chevron">›</div>
+          </button>
+        </div>
+
+        <div className="habit-footer">
+          <button className="footer-btn cancel" onClick={onClose}>
             Cancel
           </button>
+
           <button
-            className="btn confirm"
+            className="footer-btn confirm"
             onClick={() => {
-              if (!name.trim()) return;
-              onSubmit({ name: name.trim(), category, icon, duration });
+              if (!name.trim()) {
+                setError("Please enter a habit name.");
+                return;
+              }
+
+              onApplyCategoryColor(category, color);
+
+              onSubmit({
+                name: name.trim(),
+                category,
+                icon: emoji,
+                duration,
+                color,
+              });
             }}
           >
-            {initial ? "Save Changes" : "Add Habit"}
+            Add Habit
+          </button>
+        </div>
+      </div>
+
+        {showEmojiPicker && (
+          <EmojiPickerModal
+            onClose={() => setShowEmojiPicker(false)}
+            onSelect={(em) => {
+              setEmoji(em);
+              setShowEmojiPicker(false);
+            }}
+          />
+        )}
+
+        {showCategoryPicker && (
+          <CategoryPickerModal
+            categories={categories}
+            current={category}
+            onSelect={(catName) => {
+              setCategory(catName);
+              setShowCategoryPicker(false);
+            }}
+            onClose={() => setShowCategoryPicker(false)}
+            onAddNewRequest={() => {
+              setShowCategoryPicker(false);
+              setShowAddCategory(true);  
+            }}
+
+            onDeleteCategory={(catNameToDelete) => {
+              onDeleteCategory(catNameToDelete);
+              if (category === catNameToDelete) {
+                setCategory("General");
+            }}}
+          />
+        )}
+            
+        {showAddCategory && (
+          <NewCategoryModal
+            onClose={() => setShowAddCategory(false)}
+            onAdd={(newName) => {
+              onCreateCategory(newName, color); 
+              setCategory(newName);
+            }}
+          />
+        )}
+
+        {showDurationPicker && (
+          <DurationPickerModal
+            current={duration}
+            onSelect={(val) => setDuration(val)}
+            onClose={() => setShowDurationPicker(false)}
+          />
+        )}
+      </div>
+  );
+}
+
+function NewCategoryModal({
+  onClose,
+  onAdd,
+}) {
+  const [draft, setDraft] = useState("");
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div
+        className="floating-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="floating-head">
+          <div className="floating-title">Select Category</div>
+          <button className="floating-back" onClick={onClose}>
+            Back
+          </button>
+        </div>
+
+        <input
+          className="newcat-input"
+          placeholder="Category name"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+        />
+
+        <div className="newcat-actions">
+          <button
+            className="newcat-cancel-btn"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+
+          <button
+            className="newcat-add-btn"
+            onClick={() => {
+              const name = draft.trim();
+              if (!name) return;
+              onAdd(name);
+              onClose();
+            }}
+          >
+            Add Category
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function EmojiPickerModal({ onClose, onSelect }) {
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div
+        className="sheet-panel emoji-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sheet-head">
+          <div className="sheet-title">Choose Emoji</div>
+          <button className="sheet-close-btn" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="emoji-picker-wrap">
+          <EmojiPicker
+            theme="light"
+            searchDisabled={false}
+            skinTonesDisabled={false}
+            onEmojiClick={(emojiData /* {emoji:'💧', ...} */) => {
+              onSelect(emojiData.emoji);
+            }}
+            suggestedEmojisMode="recent"
+            lazyLoadEmojis={true}
+            previewConfig={{ showPreview: false }}
+            width="100%"
+            height={320}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CategoryPickerModal({
+  categories,
+  current,
+  onSelect,
+  onClose,
+  onAddNewRequest,
+  onDeleteCategory,
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div
+        className="floating-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="floating-head">
+          <div className="floating-title">Select Category</div>
+
+          <div className="floating-actions">
+            <button
+              className="floating-edit-btn"
+              onClick={() => setIsEditing((prev) => !prev)}
+            >
+              {isEditing ? "Done" : "Edit"}
+            </button>
+
+            <button
+              className="floating-back"
+              onClick={onClose}
+            >
+              Back
+            </button>
+          </div>
+        </div>
+
+        <div className="option-grid">
+          {categories.map((cat) => {
+            const selected = cat.name === current;
+            const isProtected = cat.name === "General";
+
+            return (
+              <div
+                key={cat.name}
+                className={
+                  "option-tile" +
+                  (selected ? " is-active" : "") +
+                  (isEditing ? " is-editing" : "")
+                }
+                onClick={() => {
+                  if (isEditing) return;
+                  onSelect(cat.name);
+                  onClose();
+                }}
+              >
+                <div className="option-tile-label">{cat.name}</div>
+                {isEditing && !isProtected && (
+                  <button
+                    className="option-tile-delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteCategory(cat.name);
+                    }}
+                    title="Delete category"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
+          <button
+            className="option-tile add-tile"
+            onClick={onAddNewRequest}
+          >
+            <div className="add-tile-plus">＋</div>
+            <div className="option-tile-label">Add Category</div>
           </button>
         </div>
       </div>
@@ -455,6 +756,70 @@ export default function HabitsPage() {
   const [durationFilter, setDurationFilter] = useState("All Durations");
   const [openModal, setOpenModal] = useState(false);
   const [editing, setEditing] = useState(null);
+
+  const DEFAULT_CATEGORIES = [
+  { name: "General", color: "#ede9ff" },
+  { name: "Study", color: "#fff4cc" },
+  { name: "Health", color: "#e9fcef" },
+  { name: "Mind", color: "#fbefff" },
+];
+
+const [categories, setCategories] = useState(() => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(CATS_LS));
+    if (Array.isArray(raw)) {
+      if (typeof raw[0] === "string") {
+        return raw.map((n) => ({ name: n, color: "#ede9ff" }));
+      }
+      return raw;
+    }
+    return DEFAULT_CATEGORIES;
+  } catch {
+    return DEFAULT_CATEGORIES;
+  }
+});
+
+  const addCategoryGlobal = (name, color) => {
+    if (!categories.some((c) => c.name === name)) {
+      const next = [...categories, { name, color }];
+      setCategories(next);
+      localStorage.setItem(CATS_LS, JSON.stringify(next));
+    }
+  };
+
+  const applyCategoryColor = (catName, pastel) => {
+    setCategories(prev => {
+      const exists = prev.find(c => c.name === catName);
+
+      if (!exists) {
+        const next = [...prev, { name: catName, color: pastel }];
+        localStorage.setItem(CATS_LS, JSON.stringify(next));
+        return next;
+      }
+
+      const next = prev.map(c =>
+        c.name === catName ? { ...c, color: pastel } : c
+      );
+      localStorage.setItem(CATS_LS, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const deleteCategoryGlobal = (catName) => {
+    setCategories(prev => {
+      const next = prev.filter(c => c.name !== catName);
+      localStorage.setItem(CATS_LS, JSON.stringify(next));
+      return next;
+    });
+
+    setHabits(prev =>
+      prev.map(h =>
+        h.category === catName
+          ? { ...h, category: "General" }
+          : h
+      )
+    );
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -474,6 +839,8 @@ export default function HabitsPage() {
     const total = habits.length || 0;
     const doneToday = habits.filter((h) => h.history?.[today]).length;
     
+    const todayPct = total > 0 ? Math.round((doneToday / total) * 100) : 0;
+
     let avgCompletion = 0;
     if (total > 0) {
       const totalRate = habits.reduce((sum, h) => sum + weekRate(h), 0);
@@ -481,7 +848,7 @@ export default function HabitsPage() {
     }
     
     const best = Math.max(...habits.map((h) => bestStreak(h.history || {})), 0);
-    return { total, doneToday, completion: avgCompletion, best };
+    return { total, doneToday,todayPct, completion: avgCompletion, best };
   }, [habits, today]);
 
   const filtered = useMemo(() => {
@@ -540,83 +907,43 @@ export default function HabitsPage() {
   const toggle = async (id, date, newDone) => {
     await storage.toggleHistory(id, date, newDone);
     setHabits((list) =>
-      list.map((h) =>
-        h.id !== id
-          ? h
-          : {
-              ...h,
-              history: {
-                ...(h.history || {}),
-                ...(newDone ? { [date]: true } : (() => { delete h.history[date]; return h.history; })()),
-              },
-            }
-      )
+      list.map((h) =>{
+        if (h.id !== id) return h;
+        const nextHistory = { ...(h.history || {}) };
+
+        if (newDone) {
+          nextHistory[date] = true;
+        } else {
+          delete nextHistory[date];
+        }
+
+        return {
+          ...h,
+          history: nextHistory,
+        };
+      })
     );
   };
 
   return (
     <div className="habits-container">
-      <div className="page-head">
-        <div className="head-left">
-          {/* <h1 className="brand-title">My Habits</h1>
-          <p className="brand-sub">
-            Build consistent routines for academic and personal growth
-          </p> */}
-        </div>
-
       <div className="head-actions">
         <button
           type="button"
-          className="btn-solid"
+          className="fab-add"
           onClick={() => setOpenModal(true)}>
-          <Plus size={18} />
-          <span>Add Habit</span>
-        </button>
-          
-        <button
-          type="button"
-          className="btn-outline"
-          onClick={() => generatePDFReport(habits, totals, week)}>
-          <DownloadCloud size={18} />
-          <span>Export</span>
+          <Plus size={22} />
         </button>
       </div>
-    </div>
-
-      {/* <div className="top-row">
-        <h1 className="brand-title">My Habits</h1>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button 
-            className="add-top-btn report-btn" 
-            onClick={() => generatePDFReport(habits, totals, week)}
-            disabled={habits.length === 0}
-          >
-            <span className="add-top-btn__icon">
-              <Download size={16} />
-            </span>
-            Download Report
-          </button>
-          <button className="add-top-btn" onClick={() => setOpenModal(true)}>
-            <span className="add-top-btn__icon">
-              <Plus size={16} />
-            </span>
-            Add Habit
-          </button>
-        </div> */}
-      
-
-      {/* // <p className="brand-sub">
-      //   Build consistent routines for academic and personal growth
-      // </p> */}
-
+  
       <section className="summary-section">
         <div className="summary-title">Today's Progress</div>
         <div className="progress-wrap" style={{ marginBottom: 16 }}>
-          <span className="progress__pct">{totals.completion}%</span>
+          <span className="progress__pct">{totals.todayPct}%</span>
           <div className="progress">
             <div
               className="progress__bar"
-              style={{ width: `${totals.completion}%` }}
+              style={{ width: `${totals.todayPct}%` }}
             />
           </div>
         </div>
@@ -656,7 +983,7 @@ export default function HabitsPage() {
         <div className="filter-dropdowns">
           <Dropdown
             value={catFilter}
-            items={["All Categories", ...CATEGORIES]}
+            items={["All Categories", ...categories.map(c => c.name)]}
             onChange={setCatFilter}
           />
           <Dropdown
@@ -684,15 +1011,12 @@ export default function HabitsPage() {
       ) : (
         grouped.map(([cat, list]) => (
           <section key={cat} className="group-section">
-            <div className="group-head">
-              <div className="group-title">{cat}</div>
-              <div className="group-count">
-                {list.length} {list.length === 1 ? "habit" : "habits"}
-              </div>
-            </div>
             {list.map((h) => {
               const rate = weekRate(h);
               const streak = bestStreak(h.history || {});
+              const catData = categories.find(c => c.name === h.category);
+              const bg = catData?.color || "#eef1ff";
+              
               return (
                 <div key={h.id} className="card habit-card habit-card--row">
                   <div className="hl-left">
@@ -710,7 +1034,13 @@ export default function HabitsPage() {
                         {h.name}
                       </div>
                       <div className="habit-tags">
-                        <span className={`chip ${h.category.toLowerCase()}`}>{h.category}</span>
+                        <span className="chip" 
+                              style={{ 
+                                background: bg, 
+                                borderColor: bg, 
+                                color: "#1a1f35",}}
+                              >{h.category}
+                        </span>
                         <span className="chip chip-daily">{h.duration}</span>
                       </div>
                     </div>
@@ -719,8 +1049,8 @@ export default function HabitsPage() {
                     <div className="week-chips">
                       {week.map((d, i) => {
                         const done = !!h.history?.[d];
-                        const big = "SSMTWTF"[i];
-                        const small = new Date(d).toLocaleDateString(undefined, {
+                        const small = "SSMTWTF"[i];
+                        const big = new Date(d).toLocaleDateString(undefined, {
                           weekday: "short",
                         });
                         return (
@@ -734,8 +1064,9 @@ export default function HabitsPage() {
                             })}
                             style={{ cursor: 'default' }}
                           >
-                            <span className="wk-big">{big}</span>
-                            <span className="wk-small">{small}</span>
+                            <span className="wk-big">{new Date(d).getDate()}</span>
+                            <span className="wk-small">{new Date(d).toLocaleDateString(undefined, { weekday: "short" })}</span>
+                            
                           </div>
                         );
                       })}
@@ -777,15 +1108,21 @@ export default function HabitsPage() {
         open={openModal}
         onClose={() => setOpenModal(false)}
         onSubmit={addHabit}
+        categories={categories} 
+        onCreateCategory={addCategoryGlobal}
+        onApplyCategoryColor={applyCategoryColor}
+        onDeleteCategory={deleteCategoryGlobal}
       />
       <HabitModal
         open={!!editing}
         onClose={() => setEditing(null)}
         initial={editing || undefined}
         onSubmit={(payload) => editHabit(editing.id, payload)}
+        categories={categories}
+        onCreateCategory={addCategoryGlobal}
+        onApplyCategoryColor={applyCategoryColor}
+        onDeleteCategory={deleteCategoryGlobal}
       />
     </div>
   );
 }
-
-export { createStorage };

@@ -1,76 +1,254 @@
 import React, { useState, useEffect, useRef } from "react";
+import html2canvas from 'html2canvas';
 import { getMyProfile, updateProfile, uploadAvatar } from "../services/userService";
 import { getProfileStats } from "../services/statsService";
 import { getUserAchievements, getEarnedAchievements } from "../services/achievementService";
 import "./style/Profile.css";
 
 // Constants
-const STATS_CONFIG = [
-  { key: "activeHabits", icon: "target", label: "ACTIVE HABITS" },
+const STATS_CONFIGURATION = [
+  { key: "activeHabits", icon: "ads_click", label: "ACTIVE HABITS" },
   { key: "longestStreak", icon: "local_fire_department", label: "LONGEST STREAK" },
-  { key: "gratitudeEntries", icon: "favorite", label: "GRATITUDE ENTRIES" },
+  { key: "gratitudeEntries", icon: "favorite_border", label: "GRATITUDE ENTRIES" },
   { key: "daysTracked", icon: "calendar_month", label: "DAYS TRACKED" }
 ];
 
-const RECENT_ACTIVITIES = [
+const RECENT_ACTIVITIES_DATA = [
   { icon: "✅", text: "Completed Morning Meditation", time: "2 hours ago" },
   { icon: "📝", text: "Logged Daily Gratitude", time: "5 hours ago" },
   { icon: "💧", text: "Drank 8 glasses of water", time: "Yesterday" },
   { icon: "🏃‍♂️", text: "Completed evening run", time: "Yesterday" }
 ];
 
-const ProfileHeader = ({ profile, onEditClick, onSettingsClick, getMemberSinceText }) => (
+const handleLogout = () => {
+  localStorage.removeItem("access_token");
+  window.location.href = "/login";
+};
+
+// =================================================================
+// PAGE INDICATOR COMPONENT
+// =================================================================
+const PageIndicator = ({ count, activeIndex }) => (
+    <div className="page-indicator">
+      {Array.from({ length: count }).map((_, index) => (
+        <span
+          key={index}
+          className={`dot ${index === activeIndex ? 'active' : ''}`}
+        />
+      ))}
+    </div>
+  );
+
+// =================================================================
+// START: SHARE MODAL CONTAINER - UPDATED AND CLEANED
+// =================================================================
+const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClose, goToNextCard, goToPreviousCard }) => {
+  const cardRef = useRef(null);
+  const currentCard = shareCards[currentCardIndex];
+
+  const handleVisualShare = async () => {
+    const cardToCapture = cardRef.current;
+    if (!cardToCapture) return;
+
+    const decorator = cardToCapture.querySelector('.share-card-decorator');
+    if (decorator) decorator.style.display = 'none';
+
+    const shareFooter = cardToCapture.querySelector('.share-card-footer-action');
+
+    try {
+      if (shareFooter) shareFooter.style.display = 'none';
+      cardToCapture.style.boxShadow = 'none';
+
+      const canvas = await html2canvas(cardToCapture, {
+        useCORS: true,
+        backgroundColor: null,
+      });
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      const file = new File([blob], 'bloomup-share.png', { type: blob.type });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: 'My BloomUp Moment',
+          text: `Check out my ${currentCard.type} progress with BloomUp!`,
+          files: [file],
+        });
+      } else {
+        alert("Your browser doesn't support sharing images.");
+      }
+    } catch (error) {
+      console.error('Sharing failed:', error);
+      if (error.name !== 'AbortError') {
+        alert('Oops! Something went wrong while trying to share.');
+      }
+    } finally {
+      if (shareFooter) shareFooter.style.display = '';
+      if (decorator) decorator.style.display = '';
+      cardToCapture.style.boxShadow = '';
+    }
+  };
+
+  return (
+    <div className="share-modal-overlay" onClick={onClose}>
+      <div className="share-modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="share-modal-close-btn" onClick={onClose}>×</button>
+        <div className="card-and-external-nav-wrapper">
+          <button className="nav-arrow-btn external-nav-left" onClick={goToPreviousCard} disabled={currentCardIndex === 0}>
+            <span className="material-symbols-outlined">chevron_left</span>
+          </button>
+
+          {/* This now dynamically applies the theme class from the card's configuration */}
+          <div ref={cardRef} className={`share-card-container ${currentCard.theme || 'default-theme'}`}>
+            <div className="share-card-fg">
+              <span className="card-type-indicator-internal">{currentCard.label}</span>
+              {currentCard.content}
+            </div>
+            <div className="share-card-footer-action">
+              <button className="share-action-btn-visual" onClick={handleVisualShare}>
+                <span className="material-symbols-outlined">ios_share</span>
+                Share
+              </button>
+            </div>
+          </div>
+
+          <button className="nav-arrow-btn external-nav-right" onClick={goToNextCard} disabled={currentCardIndex === shareCards.length - 1}>
+            <span className="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+        <PageIndicator
+          count={shareCards.length}
+          activeIndex={currentCardIndex}
+        />
+      </div>
+    </div>
+  );
+};
+// =================================================================
+// END: SHARE MODAL CONTAINER
+// =================================================================
+
+// =================================================================
+// START: INDIVIDUAL SHARE CARD COMPONENTS
+// =================================================================
+
+const AchievementShareCard = ({ earnedCount, totalCount, latestAchievement }) => (
+  <>
+    <div className="share-icon-large">🏆</div>
+    <div className="label-display">{earnedCount}/{totalCount}</div>
+    <div className="label-2-display">Achievements Unlocked</div>
+    {latestAchievement && (
+      <div className="share-detail-text">
+        Latest: "{latestAchievement.title}" {latestAchievement.icon}
+      </div>
+    )}
+  </>
+);
+
+const MoodShareCard = ({ moodData }) => (
+  <>
+    <div className="share-icon-large">😊</div>
+    <div className="label-display">{moodData?.averageMood || "N/A"}</div>
+    <div className="label-2-display">Average Mood This Week</div>
+    <div className="share-detail-text">Feeling: {moodData?.moodDescription || "Good!"}</div>
+  </>
+);
+
+const HabitShareCard = ({ habitData }) => (
+  <>
+    <div className="share-icon-large">🌿</div>
+    <div className="label-display">{habitData?.completedCount || 0}</div>
+    <div className="label-2-display">{habitData?.habitName || "Habits"} Completed</div>
+    <div className="share-detail-text">Streak: {habitData?.currentStreak || 0} days 🔥</div>
+  </>
+);
+
+const WeeklyReviewShareCard = ({ reviewData }) => (
+  <>
+    <div className="share-icon-large">📅</div>
+    <div className="label-display">{reviewData?.habitsCompleted || 0}</div>
+    <div className="label-2-display">Habits Completed This Week</div>
+    <div className="share-detail-text">Overall progress: {reviewData?.progressPercentage || 0}%</div>
+  </>
+);
+
+const NewHabitStatShareCard = ({ newHabitStat }) => (
+  <>
+    <div className="share-icon-large">🚀</div>
+    <div className="label-display">{newHabitStat?.newHabitCount || 0}</div>
+    <div className="label-2-display">New Habits Started</div>
+    <div className="share-detail-text">Excited to grow !</div>
+  </>
+);
+
+const HighestProgressHabitShareCard = ({ highestProgressHabit }) => (
+  <>
+    <div className="share-icon-large">📈</div>
+    <div className="label-display">{highestProgressHabit?.habitName || "Top Habit"}</div>
+    <div className="label-2-display">Highest Progress ({highestProgressHabit?.progressPercentage || 0}%)</div>
+    <div className="share-detail-text">Keep it up !</div>
+  </>
+);
+
+const OverallStreakShareCard = ({ overallStreak }) => (
+  <>
+    <div className="share-icon-large">🔥</div>
+    <div className="label-display">{overallStreak?.longestOverallStreak || 0}</div>
+    <div className="label-2-display">Longest Overall Streak</div>
+    <div className="share-detail-text">Across all habits !</div>
+  </>
+);
+
+// =================================================================
+// END: INDIVIDUAL SHARE CARD COMPONENTS
+// =================================================================
+
+
+// --- Original Profile Header Component ---
+const ProfileHeader = ({ profileData, onEditProfileClick, onShareClick, formatMemberSinceDate }) => (
   <div className="profile-card profile-header-card">
     <div className="profile-header-content">
       <div className="profile-image-section">
         <div className="profile-image-container">
-          {profile.profile_picture ? (
-            <img
-              src={profile.profile_picture}
-              alt={profile.name}
-              className="profile-image"
-            />
+          {profileData.profile_picture ? (
+            <img src={profileData.profile_picture} alt={profileData.name} className="profile-image" />
           ) : (
             <div className="profile-emoji-default">🌸</div>
           )}
         </div>
-        <div className="edit-profile-badge" onClick={onEditClick} title="Edit Profile">
-          ✏️
+        <div className="edit-profile-badge" onClick={onEditProfileClick} title="Edit Profile">
+          <span className="material-symbols-outlined">edit</span>
         </div>
       </div>
-
       <div className="profile-info-section">
         <div className="profile-header-top">
-          <h1 className="profile-name-large">{profile.name}</h1>
-          <button className="settings-btn" onClick={onSettingsClick}>
-            ⚙️ Log out
-          </button>
+          <h1 className="profile-name-large">{profileData.name}</h1>
+          <div className="profile-header-actions">
+            <button className="profile-logout-btn" onClick={handleLogout}>
+              <span className="material-icons">logout</span> Logout
+            </button>
+            <button className="profile-share-btn" onClick={onShareClick}>
+              <span className="material-icons">share</span> Share
+            </button>
+          </div>
         </div>
-
-        <p className="profile-bio-text">{profile.bio || "No bio yet"}</p>
-
+        <p className="profile-bio-text">{profileData.bio || "No bio yet"}</p>
         <div className="profile-tags">
-          <div className="profile-tag-item">
-            <span className="tag-emoji">🌱</span> Wellness Explorer
-          </div>
-          <div className="member-since-text">
-            Member since {getMemberSinceText()}
-          </div>
+          <div className="profile-tag-item"><span className="tag-emoji">🌱</span> Wellness Explorer</div>
+          <div className="member-since-text">Member since {formatMemberSinceDate()}</div>
         </div>
       </div>
     </div>
   </div>
 );
 
-const StatsSection = ({ stats }) => (
-  <div className="stats-cards-container">
-    <div className="stats-cards-grid">
-      {STATS_CONFIG.map(({ key, icon, label }) => (
-        <div key={key} className="stat-card">
-          <div className="stat-icon">
-            <span className="material-icons">{icon}</span>
-          </div>
-          <div className="stat-number">{stats[key]}</div>
+// --- Other Page Components ---
+const StatsSection = ({ userStats }) => (
+  <div className="profile-stats-cards-container">
+    <div className="profile-stats-cards-grid">
+      {STATS_CONFIGURATION.map(({ key, icon, label }) => (
+        <div key={key} className="profile-stat-card">
+          <div className="stat-icon"><span className="material-icons">{icon}</span></div>
+          <div className="stat-number">{userStats[key]}</div>
           <div className="stat-label">{label}</div>
         </div>
       ))}
@@ -78,31 +256,23 @@ const StatsSection = ({ stats }) => (
   </div>
 );
 
-const AchievementsCard = ({ achievements, earnedCount, totalCount, onViewAll }) => {
-  return (
-    <div className="profile-card achievements-card">
-      <div className="card-header">
-        <h2 className="card-title">Achievements</h2>
-        <button className="view-all-btn" onClick={onViewAll}>
-          {earnedCount}/{totalCount}
-        </button>
+const AchievementsCard = ({ userAchievements, earnedAchievementsCount, totalAchievementsCount, onViewAllAchievements }) => (
+  <div className="profile-card achievements-card">
+    <div className="card-header">
+      <h2 className="card-title">Achievements</h2>
+      <button className="view-all-btn" onClick={onViewAllAchievements}>{earnedAchievementsCount}/{totalAchievementsCount}</button>
+    </div>
+    <div className="achievements-content">
+      <div className="achievement-progress">
+        <div className="progress-number">{earnedAchievementsCount}/{totalAchievementsCount}</div>
+        <div className="progress-label">Total Achievements</div>
       </div>
-      <div className="achievements-content">
-        <div className="achievement-progress">
-          <div className="progress-number">
-            {earnedCount}/{totalCount}
-          </div>
-          <div className="progress-label">Total Achievements</div>
-        </div>
-        <div className="achievements-list">
-          {achievements.slice(0, 3).map(achievement => (
-            <AchievementItem key={achievement.achievement_id} achievement={achievement} />
-          ))}
-        </div>
+      <div className="achievements-list">
+        {userAchievements.slice(0, 3).map(achievement => <AchievementItem key={achievement.achievement_id} achievement={achievement} />)}
       </div>
     </div>
-  );
-};
+  </div>
+);
 
 const AchievementItem = ({ achievement }) => (
   <div className="achievement-item">
@@ -116,45 +286,35 @@ const AchievementItem = ({ achievement }) => (
 
 const RecentActivityCard = () => (
   <div className="profile-card activity-card">
-    <div className="card-header">
-      <h2 className="card-title">Recent Activity</h2>
-    </div>
+    <div className="card-header"><h2 className="card-title">Recent Activity</h2></div>
     <div className="activity-list">
-      {RECENT_ACTIVITIES.map((activity, index) => (
-        <ActivityItem key={index} activity={activity} />
-      ))}
+      {RECENT_ACTIVITIES_DATA.map((item, index) => <ActivityItem key={index} activityItem={item} />)}
     </div>
   </div>
 );
 
-const ActivityItem = ({ activity }) => (
+const ActivityItem = ({ activityItem }) => (
   <div className="activity-item">
-    <div className="activity-icon">{activity.icon}</div>
+    <div className="activity-icon">{activityItem.icon}</div>
     <div className="activity-content">
-      <div className="activity-text">{activity.text}</div>
-      <div className="activity-time">{activity.time}</div>
+      <div className="activity-text">{activityItem.text}</div>
+      <div className="activity-time">{activityItem.time}</div>
     </div>
   </div>
 );
 
-const AchievementsModal = ({ achievements, onClose }) => {
-  const earnedCount = achievements.filter(a => a.is_earned).length;
-  const totalCount = achievements.length;
-
+const AchievementsModal = ({ allAchievements, onCloseModal }) => {
+  const earnedCount = allAchievements.filter(a => a.is_earned).length;
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content achievements-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onCloseModal}>
+      <div className="profile-modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Achievements</h2>
-          <div className="achievements-summary">
-            {earnedCount} of {totalCount} unlocked
-          </div>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <div className="achievements-summary">{earnedCount} of {allAchievements.length} unlocked</div>
+          <button className="close-btn" onClick={onCloseModal}>×</button>
         </div>
         <div className="achievements-grid">
-          {achievements.map((achievement) => (
-            <AchievementModalItem key={achievement.achievement_id} achievement={achievement} />
-          ))}
+          {allAchievements.map(ach => <AchievementModalItem key={ach.achievement_id} achievement={ach} />)}
         </div>
       </div>
     </div>
@@ -163,93 +323,37 @@ const AchievementsModal = ({ achievements, onClose }) => {
 
 const AchievementModalItem = ({ achievement }) => (
   <div className={`achievement-card ${achievement.is_earned ? 'earned' : 'locked'}`}>
-    <div className="achievement-icon-large">
-      {achievement.is_earned ? achievement.icon : "🔒"}
-    </div>
+    <div className="achievement-icon-large">{achievement.is_earned ? achievement.icon : "🔒"}</div>
     <div className="achievement-content">
       <h3 className="achievement-title">{achievement.title}</h3>
       <p className="achievement-description">{achievement.description}</p>
-      {achievement.is_earned && achievement.earned_date && (
-        <div className="achievement-date">
-          Earned {new Date(achievement.earned_date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          })}
-        </div>
-      )}
-      {!achievement.is_earned && (
-        <div className="achievement-requirement">
-          Progress: {achievement.progress_unit_value} ({achievement.progress}%)
-        </div>
-      )}
+      {achievement.is_earned && achievement.earned_date && <div className="achievement-date">Earned {new Date(achievement.earned_date).toLocaleDateString()}</div>}
+      {!achievement.is_earned && <div className="achievement-requirement">Progress: {achievement.progress_unit_value} ({achievement.progress}%)</div>}
     </div>
   </div>
 );
 
-const EditProfileModal = ({
-  tempProfile,
-  fileInputRef,
-  onClose,
-  onChange,
-  onSave,
-  onCancel,
-  onChangeImageClick,
-  onFileChange
-}) => (
-  <div className="modal-overlay" onClick={onClose}>
-    <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
+const EditProfileModal = ({ temporaryProfileData, fileInputReference, onCloseModal, onInputChange, onSaveProfile, onCancelEdit, onChangeProfileImageClick, onProfileImageFileChange }) => (
+  <div className="modal-overlay" onClick={onCloseModal}>
+    <div className="profile-modal-content" onClick={e => e.stopPropagation()}>
       <div className="modal-header">
         <h2>Edit Profile</h2>
-        <button className="close-btn" onClick={onClose}>×</button>
+        <button className="close-btn" onClick={onCloseModal}>×</button>
       </div>
-
       <div className="edit-form">
         <div className="profile-image-edit-section">
           <div className="profile-image-container-edit">
-            <img
-              src={tempProfile.profile_picture || "/default-avatar.png"}
-              alt={tempProfile.name}
-              className="profile-image-edit"
-            />
+            {temporaryProfileData.profile_picture ? <img src={temporaryProfileData.profile_picture} alt={temporaryProfileData.name} className="profile-image-edit" /> : <div className="profile-emoji-default">🌸</div>}
           </div>
-          <button className="change-image-btn-edit" onClick={onChangeImageClick} type="button">
-            Change Photo
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={onFileChange}
-            accept=".png,.jpeg,.jpg,image/png,image/jpeg"
-            style={{ display: "none" }}
-          />
+          <button className="change-image-btn-edit" onClick={onChangeProfileImageClick} type="button">Change Photo</button>
+          <input type="file" ref={fileInputReference} onChange={onProfileImageFileChange} accept=".png,.jpeg,.jpg" style={{ display: "none" }} />
         </div>
-
         <div className="form-fields">
-          <input
-            type="text"
-            name="name"
-            value={tempProfile.name || ""}
-            onChange={onChange}
-            className="input-field-edit"
-            placeholder="Name"
-          />
-          <textarea
-            name="bio"
-            value={tempProfile.bio || ""}
-            onChange={onChange}
-            rows="4"
-            className="input-field-edit bio-textarea"
-            placeholder="Bio"
-          />
-
+          <input type="text" name="name" value={temporaryProfileData.name || ""} onChange={onInputChange} className="input-field-edit" placeholder="Name" />
+          <textarea name="bio" value={temporaryProfileData.bio || ""} onChange={onInputChange} rows="4" className="input-field-edit bio-textarea" placeholder="Bio" />
           <div className="edit-buttons">
-            <button className="btn save-btn" onClick={onSave} type="button">
-              Save Changes
-            </button>
-            <button className="btn cancel-btn" onClick={onCancel} type="button">
-              Cancel
-            </button>
+            <button className="btn save-btn" onClick={onSaveProfile} type="button">Save</button>
+            <button className="btn cancel-btn" onClick={onCancelEdit} type="button">Cancel</button>
           </div>
         </div>
       </div>
@@ -257,204 +361,181 @@ const EditProfileModal = ({
   </div>
 );
 
-// Main Component
+// --- Main Page Component ---
 export default function ProfilePage() {
-  const [profile, setProfile] = useState(null);
-  const [tempProfile, setTempProfile] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [error, setError] = useState("");
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [achievements, setAchievements] = useState([]);
-  const [earnedAchievements, setEarnedAchievements] = useState([]);
+  const [userProfile, setUserProfile] = useState(null);
+  const [temporaryProfileData, setTemporaryProfileData] = useState(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [userStatistics, setUserStatistics] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [allAchievementsList, setAllAchievementsList] = useState([]);
+  const [earnedAchievementsList, setEarnedAchievementsList] = useState([]);
   const [showAchievementsModal, setShowAchievementsModal] = useState(false);
-  const fileInputRef = useRef(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [currentShareCardIndex, setCurrentShareCardIndex] = useState(0);
+  const fileInputReference = useRef(null);
 
   useEffect(() => {
-    loadProfileData();
+    document.body.classList.add('profile-page-active');
+    return () => document.body.classList.remove('profile-page-active');
   }, []);
 
-  const loadProfileData = async () => {
+  useEffect(() => {
+    loadUserProfileData();
+  }, []);
+
+  const loadUserProfileData = async () => {
+    setIsLoading(true);
     try {
-      setLoading(true);
-      setError("");
-
-      const userProfile = await getMyProfile();
-      setProfile(userProfile);
-      setTempProfile(userProfile);
-
-      try {
-        const userStats = await getProfileStats();
-        setStats(userStats);
-      } catch {
-        setStats({
-          activeHabits: 0,
-          gratitudeEntries: 0,
-          longestStreak: 0,
-          daysTracked: 0,
-        });
-      }
-
-      // Fetch and earned all achievements from backend
-      try {
-        const allAchievements = await getUserAchievements();
-        setAchievements(allAchievements);
-
-        const earned = await getEarnedAchievements();
-        setEarnedAchievements(earned);
-      } catch (e) {
-        console.error("Failed to load achievements:", e);
-        setAchievements([]);
-        setEarnedAchievements([]);
-      }
-    } catch (e) {
-      console.error("Failed to load profile data:", e);
-      setError(`Failed to load profile: ${e.message}`);
+      const profile = await getMyProfile();
+      setUserProfile(profile);
+      setTemporaryProfileData(profile);
+      const stats = await getProfileStats();
+      setUserStatistics(stats);
+      const allAch = await getUserAchievements();
+      setAllAchievementsList(allAch);
+      const earnedAch = await getEarnedAchievements();
+      setEarnedAchievementsList(earnedAch);
+    } catch (error) {
+      console.error("Failed to load profile data:", error);
+      setErrorMessage(error.message || "Failed to load data.");
+      setUserStatistics({ activeHabits: 0, longestStreak: 0, gratitudeEntries: 0, daysTracked: 0 });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (files && files.length > 0) {
-      const file = files[0];
-      const validTypes = ['image/png', 'image/jpeg'];
-
-      if (!validTypes.includes(file.type)) {
-        setError("Please upload only PNG or JPEG files");
-        return;
-      }
-
+  const handleInputChange = (event) => {
+    const { name, value, files } = event.target;
+    if (files && files[0]) {
       const reader = new FileReader();
-      reader.onload = () => {
-        setTempProfile({ ...tempProfile, profile_picture: reader.result });
-        setError("");
-      };
-      reader.onerror = () => {
-        setError("Failed to read file");
-      };
-      reader.readAsDataURL(file);
+      reader.onload = (e) => setTemporaryProfileData({ ...temporaryProfileData, profile_picture: e.target.result });
+      reader.readAsDataURL(files[0]);
     } else {
-      setTempProfile({ ...tempProfile, [name]: value });
+      setTemporaryProfileData({ ...temporaryProfileData, [name]: value });
     }
   };
 
-  const handleSave = async () => {
+  const handleSaveProfile = async () => {
     try {
-      let updatedData = {
-        name: tempProfile.name,
-        bio: tempProfile.bio,
-      };
-
-      // If profile picture was changed and is a data URL, upload it first
-      if (tempProfile.profile_picture && tempProfile.profile_picture.startsWith('data:')) {
-        try {
-          // Convert data URL to File object
-          const dataUrl = tempProfile.profile_picture;
-          const arr = dataUrl.split(',');
-          const mime = arr[0].match(/:(.*?);/)[1];
-          const bstr = atob(arr[1]);
-          const n = bstr.length;
-          const u8arr = new Uint8Array(n);
-          for (let i = 0; i < n; i++) {
-            u8arr[i] = bstr.charCodeAt(i);
-          }
-          const file = new File([u8arr], 'avatar.jpg', { type: mime });
-
-          // Pass the File object directly
-          await uploadAvatar(file);
-        } catch (uploadError) {
-          console.error("Failed to upload avatar:", uploadError);
-          console.error("Upload error details:", uploadError.response?.data || uploadError.message);
-          setError("Failed to upload profile picture. Please try again.");
-          return;
-        }
+      if (temporaryProfileData.profile_picture && temporaryProfileData.profile_picture.startsWith('data:')) {
+        const res = await fetch(temporaryProfileData.profile_picture);
+        const blob = await res.blob();
+        const file = new File([blob], "avatar.jpg", { type: blob.type });
+        await uploadAvatar(file);
       }
-
-      // Update the rest of the profile (name, bio)
-      const updated = await updateProfile(updatedData);
-      setProfile(updated);
-      setTempProfile(updated);
-      setIsEditing(false);
-      setError("");
-    } catch (e) {
-      setError(e.message || "Failed to save profile");
+      const updatedProfile = await updateProfile({ name: temporaryProfileData.name, bio: temporaryProfileData.bio });
+      setUserProfile(updatedProfile);
+      setTemporaryProfileData(updatedProfile);
+      setIsEditingProfile(false);
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to save profile.");
     }
   };
 
-  const handleCancel = () => {
-    setTempProfile(profile);
-    setIsEditing(false);
+  const formatMemberSinceDate = () => {
+    if (!userProfile?.created_at) return "—";
+    return new Date(userProfile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" });
   };
 
-  const handleChangeImageClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+  const goToNextShareCard = () => {
+    setCurrentShareCardIndex(prevIndex => (prevIndex + 1) % shareCardsConfig.length);
   };
 
-  const handleSettingsClick = () => {
-    console.log("Settings clicked");
+  const goToPreviousShareCard = () => {
+    setCurrentShareCardIndex(prevIndex => (prevIndex - 1 + shareCardsConfig.length) % shareCardsConfig.length);
   };
 
-  const getMemberSinceText = () => {
-    if (!profile?.created_at) return "—";
-    return new Date(profile.created_at).toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-    });
-  };
+  if (isLoading) return <p className="loading">Loading...</p>;
+  if (!userProfile) return <div className="error-message">{errorMessage || "Failed to load profile"}</div>;
 
-  if (loading) return <p className="loading">Loading...</p>;
-  if (!profile) return <p className="loading">Failed to load profile</p>;
+  // --- Dynamic Share Card Configuration ---
+  const shareCardsConfig = [
+    {
+      type: "achievement",
+      label: "Achievements",
+      content: <AchievementShareCard
+        earnedCount={earnedAchievementsList.length}
+        totalCount={allAchievementsList.length}
+        latestAchievement={earnedAchievementsList.length > 0 ? earnedAchievementsList[earnedAchievementsList.length - 1] : null}
+      />,
+      theme: 'theme-achievement',
+    },
+    {
+      type: "mood",
+      label: "Weekly Mood",
+      content: <MoodShareCard moodData={{ averageMood: "😄", moodDescription: "Joyful" }} />, // Placeholder data
+      theme: 'theme-mood',
+    },
+    {
+      type: "habit",
+      label: "Habit Progress",
+      content: <HabitShareCard habitData={{ habitName: "Morning Routine", completedCount: 25, currentStreak: 7 }} />, // Placeholder data
+      theme: 'theme-habit',
+    },
+    {
+      type: "new_habit_stat",
+      label: "New Habits Started",
+      content: <NewHabitStatShareCard newHabitStat={{ newHabitCount: 3 }} />, // Placeholder data
+      theme: 'theme-new-habit',
+    },
+    {
+      type: "weekly_review",
+      label: "Weekly Review",
+      content: <WeeklyReviewShareCard reviewData={{ habitsCompleted: 15, progressPercentage: 80 }} />, // Placeholder data
+      theme: 'theme-review',
+    },
+    {
+      type: "highest_progress_habit",
+      label: "Highest Progress Habit",
+      content: <HighestProgressHabitShareCard highestProgressHabit={{ habitName: "Reading", progressPercentage: 92 }} />, // Placeholder data
+      theme: 'theme-progress',
+    },
+    {
+      type: "overall_streak",
+      label: "Overall Streak",
+      content: <OverallStreakShareCard overallStreak={{ longestOverallStreak: 30 }} />, // Placeholder data
+      theme: 'theme-streak',
+    },
+  ];
 
   return (
     <div className="profile-page">
       <ProfileHeader
-        profile={profile}
-        onEditClick={() => setIsEditing(true)}
-        onSettingsClick={handleSettingsClick}
-        getMemberSinceText={getMemberSinceText}
+        profileData={userProfile}
+        onEditProfileClick={() => setIsEditingProfile(true)}
+        onShareClick={() => setShowShareModal(true)}
+        formatMemberSinceDate={formatMemberSinceDate}
       />
-
-      {stats && (
+      {userStatistics && (
         <>
-          <StatsSection stats={stats} />
-
+          <StatsSection userStats={userStatistics} />
           <div className="content-grid">
             <AchievementsCard
-              achievements={earnedAchievements}
-              earnedCount={earnedAchievements.length}
-              totalCount={achievements.length}
-              onViewAll={() => setShowAchievementsModal(true)}
+              userAchievements={earnedAchievementsList}
+              earnedAchievementsCount={earnedAchievementsList.length}
+              totalAchievementsCount={allAchievementsList.length}
+              onViewAllAchievements={() => setShowAchievementsModal(true)}
             />
             <RecentActivityCard />
           </div>
         </>
       )}
+      {showAchievementsModal && <AchievementsModal allAchievements={allAchievementsList} onCloseModal={() => setShowAchievementsModal(false)} />}
+      {isEditingProfile && <EditProfileModal temporaryProfileData={temporaryProfileData} fileInputReference={fileInputReference} onCloseModal={() => setIsEditingProfile(false)} onInputChange={handleInputChange} onSaveProfile={handleSaveProfile} onCancelEdit={() => setTemporaryProfileData(userProfile)} onChangeProfileImageClick={() => fileInputReference.current.click()} onProfileImageFileChange={handleInputChange} />}
 
-      {showAchievementsModal && (
-        <AchievementsModal
-          achievements={achievements}
-          onClose={() => setShowAchievementsModal(false)}
+      {showShareModal && (
+        <ShareModalContainer
+          userProfile={userProfile}
+          shareCards={shareCardsConfig}
+          currentCardIndex={currentShareCardIndex}
+          onClose={() => setShowShareModal(false)}
+          goToNextCard={goToNextShareCard}
+          goToPreviousCard={goToPreviousShareCard}
         />
       )}
-
-      {isEditing && (
-        <EditProfileModal
-          tempProfile={tempProfile}
-          fileInputRef={fileInputRef}
-          onClose={() => setIsEditing(false)}
-          onChange={handleChange}
-          onSave={handleSave}
-          onCancel={handleCancel}
-          onChangeImageClick={handleChangeImageClick}
-          onFileChange={handleChange}
-        />
-      )}
-
-      {error && <div className="error-message">{error}</div>}
+      {errorMessage && <div className="error-message">{errorMessage}</div>}
     </div>
   );
 }

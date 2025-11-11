@@ -152,6 +152,7 @@
   margin-bottom: 6px;
   margin-top: 16px;
   padding: 10px 12px;
+  min-height: 260px; 
 }
 
 .rp-chart-wrapper {
@@ -265,6 +266,17 @@
 }
 .rp-muted {
   color: var(--g600);
+}
+
+.rp-empty-state {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.rp-empty-state p {
+  margin-top: 70px;
+  color: #6b7280;
+  font-size: 16px;
 }
 
 /* ==== Two Columns ==== */
