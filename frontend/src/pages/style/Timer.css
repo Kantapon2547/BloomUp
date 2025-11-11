@@ -701,7 +701,26 @@ body.timer-long-break-mode .timer-stat-value {
 
 .timer-details-close:hover {
   transform: rotate(90deg);
-  background: #ffcccc;
+  background: #fad2d2;
+}
+
+
+.timer-short-break-mode .timer-details-close {
+  color: #81c784;
+}
+
+.timer-short-break-mode .timer-details-close:hover {
+  transform: rotate(90deg);
+  background: #d9eada;
+}
+
+.timer-long-break-mode .timer-details-close {
+  color: #64b5f6;
+}
+
+.timer-long-break-mode .timer-details-close:hover {
+  transform: rotate(90deg);
+  background: #dbf0ff;
 }
 
 .timer-details-section {
