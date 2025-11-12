@@ -676,12 +676,7 @@ export default function Reports() {
     fadeIn([chartRef.current, ...twoColRef.current?.children]);
   }, [periodMode, cursor, chartType]);
 
-  const getMotivationalMessage = () => {
-    if (avgCompletion >= 80) return "🌟 Outstanding! You're crushing it!";
-    if (avgCompletion >= 60) return "🚀 Great momentum! Keep it up!";
-    if (avgCompletion >= 40) return "💪 You're making progress! Stay strong!";
-    return "🌱 Every small step counts. You got this!";
-  };
+
 
   const getStreakMessage = () => {
     if (longestStreak >= 30) return "Epic streak! You're unstoppable!";
@@ -1233,7 +1228,7 @@ export default function Reports() {
           </div>
         </header>
 
-        <p className="rp-motto">{getMotivationalMessage()}</p>
+        {/* <p className="rp-motto">{getMotivationalMessage()}</p> */}
 
         {/* KPI Cards */}
         <div className="rp-kpi">
@@ -1378,17 +1373,6 @@ export default function Reports() {
             </div>
           </div>
         </div>
-
-        {/* Motivational Summary */}
-        <p className="rp-summary">
-          {avgCompletion >= 80
-            ? "🎉 Incredible work! You're a habit master!"
-            : avgCompletion >= 60
-            ? "💫 You're on fire! Keep this energy going!"
-            : avgCompletion >= 40
-            ? "🌿 Steady progress! Every day makes a difference!"
-            : "🌱 Rome wasn't built in a day. Keep showing up!"}
-        </p>
       </section>
     </div>
   );
