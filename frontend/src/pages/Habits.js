@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {Plus, Pencil, Trash2, ChevronDown, Filter, Trophy, CheckCircle2, Sun} 
+import {Plus, Pencil, Trash2, ChevronDown, Filter, Trophy, CheckCircle2, Sun, Clock} 
   from "lucide-react";
 import "./style/Habits.css";
 import EmojiPicker from "emoji-picker-react";
+import { useSharedTasks } from "./SharedTaskContext";
 
 const USE_API_DEFAULT = true;
 const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
@@ -871,7 +872,7 @@ function CategoryPickerModal({
   );
 }
 
-export default function HabitsPage() {
+export default function HabitsPage({ onNavigateToTimer }) {
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [catFilter, setCatFilter] = useState("All Categories");
@@ -882,7 +883,7 @@ export default function HabitsPage() {
   const [editing, setEditing] = useState(null);
   const [deletingHabit, setDeletingHabit] = useState(null);
 
-  
+  const { updateHabits } = useSharedTasks();
 
   const [rowFx, setRowFx] = useState({});
   function fireRowFx(habitId) {
@@ -962,10 +963,15 @@ export default function HabitsPage() {
       const data = await storage.list();
       if (!mounted) return;
       setHabits(data);
+      updateHabits(data);
       setLoading(false);
     })();
     return () => (mounted = false);
   }, []);
+
+  useEffect(() => {
+    updateHabits(habits);
+  }, [habits, updateHabits]);
 
   const today = todayKey();
   const week = thisWeek();
@@ -1081,6 +1087,14 @@ export default function HabitsPage() {
   return (
     <div className="habits-container">
       <div className="head-actions">
+        <button
+          type="button"
+          className="fab-timer"
+          onClick={onNavigateToTimer}
+          title="Open Timer"
+        >
+          <Clock size={22} />
+        </button>
         <button
           type="button"
           className="fab-add"

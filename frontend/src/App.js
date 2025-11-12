@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Login } from "./pages/Login";
 import { Signup } from "./pages/Signup";
 import Home from "./pages/Home";
@@ -8,16 +8,18 @@ import Habits from "./pages/Habits";
 import Reports from "./pages/Reports";
 import Profile from "./pages/Profile";
 import Calendar from "./pages/Calendar";
+import Timer from "./pages/Timer";
 import GratitudeJar from "./pages/GratitudeJar";
 import Layout from "./components/Layout";
-import "./App.css"; // ✅ move CSS rules here
+import { TaskProvider } from "./pages/SharedTaskContext";
+import "./App.css"; 
 
-// ✅ A helper component to handle background updates
 function BackgroundHandler() {
   const location = useLocation();
 
   useEffect(() => {
-    document.body.className = ""; // reset previous class
+    // Clear all background classes
+    document.body.className = "";
 
     if (location.pathname === "/home") {
       document.body.classList.add("home-bg");
@@ -31,13 +33,21 @@ function BackgroundHandler() {
       document.body.classList.add("calendar-bg");
     } else if (location.pathname === "/profile") {
       document.body.classList.add("profile-bg");
+    } else if (location.pathname === "/timer") {
+      // set timer-bg as base
+      document.body.classList.add("timer-bg");
     } else {
-      // default for login, signup, demo, etc.
       document.body.classList.add("default-bg");
     }
   }, [location.pathname]);
 
-  return null; // this component only manages body classes
+  return null; 
+}
+
+// wrapper component to use useNavigate inside Routes
+function HabitsWithNav() {
+  const navigate = useNavigate();
+  return <Habits onNavigateToTimer={() => navigate('/timer')} />;
 }
 
 function App() {
@@ -56,12 +66,13 @@ function App() {
 
   return (
     <Router>
-      <BackgroundHandler /> {/* ✅ keeps background synced with route */}
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<DemoDashboard user={user} setUser={setUser} />} />
-        <Route path="/login" element={<Login onLoginSuccess={setUser} />} />
-        <Route path="/signup" element={<Signup />} />
+      <TaskProvider>
+        <BackgroundHandler />
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<DemoDashboard user={user} setUser={setUser} />} />
+          <Route path="/login" element={<Login onLoginSuccess={setUser} />} />
+          <Route path="/signup" element={<Signup />} />
 
         {/* Protected routes */}
         <Route
@@ -81,7 +92,7 @@ function App() {
           element={
             user ? (
               <Layout>
-                <Habits />
+                <HabitsWithNav />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -94,6 +105,18 @@ function App() {
             user ? (
               <Layout>
                 <Reports />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/timer"
+          element={
+            user ? (
+              <Layout>
+                <Timer />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -137,9 +160,10 @@ function App() {
           }
         />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </TaskProvider>
     </Router>
   );
 }
