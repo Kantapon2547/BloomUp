@@ -786,8 +786,10 @@ export default function Reports() {
         if (y + h > pageHeight - margin - 15) nextPage();
       };
 
-      const lineChart = (data, title, h = 55) => {
-        need(h + 36);
+      const lineChart = (data, title, h = 60) => {
+        need(h + 40);
+
+        // Title
         pdf.setFontSize(10);
         pdf.setFont(undefined, "bold");
         pdf.setTextColor(45, 95, 63);
@@ -805,14 +807,22 @@ export default function Reports() {
         for (let i = 0; i <= 4; i++) {
           const gy = y0 + (i * h) / 4;
           pdf.line(margin, gy, margin + w, gy);
-          pdf.text(`${100 - i * 25}%`, margin - 8, gy + 1);
+          pdf.text(`${100 - i * 25}%`, margin - 12, gy + 2);
         }
-        pdf.setDrawColor(180, 180, 180);
-        pdf.line(margin, y0, margin, y1);
-        pdf.line(margin, y1, margin + w, y1);
 
+        pdf.setDrawColor(180, 180, 180);
+        pdf.line(margin, y0, margin, y1); 
+        pdf.line(margin, y1, margin + w, y1); 
+
+        pdf.setFontSize(10);
+        pdf.setFont(undefined);
+        pdf.setTextColor(60, 60, 60);
+        pdf.text("Y", margin + 0.5, y0 - 2);
+        pdf.text("X", margin + w + 4, y1 + 2);
+
+        // Line data
         pdf.setDrawColor(45, 95, 63);
-        pdf.setLineWidth(0.9);
+        pdf.setLineWidth(1);
         const step = w / Math.max(data.length - 1, 1);
         for (let i = 0; i < data.length - 1; i++) {
           const x1 = margin + i * step;
@@ -820,19 +830,20 @@ export default function Reports() {
           const p1 = y0 + h - (data[i].rate / 100) * h;
           const p2 = y0 + h - (data[i + 1].rate / 100) * h;
           pdf.line(x1, p1, x2, p2);
-          pdf.setFillColor(45, 95, 63);
-          pdf.circle(x1, p1, 1.4, "F");
+          pdf.circle(x1, p1, 1, "F");
         }
+
+        // last dot
         if (data.length) {
           const lx = margin + (data.length - 1) * step;
           const ly = y0 + h - (data[data.length - 1].rate / 100) * h;
-          pdf.setFillColor(45, 95, 63);
-          pdf.circle(lx, ly, 1.4, "F");
+          pdf.circle(lx, ly, 1.5, "F");
         }
 
-        pdf.setFontSize(7);
-        pdf.setTextColor(120, 120, 120);
-        const every = Math.max(1, Math.floor(data.length / 8));
+        // X tick labels
+        pdf.setFontSize(8);
+        pdf.setTextColor(80, 80, 80);
+        const every = Math.max(1, Math.floor(data.length / 7));
         data.forEach((d, i) => {
           if (i % every === 0 || i === data.length - 1) {
             const x = margin + i * step;
@@ -840,22 +851,31 @@ export default function Reports() {
               periodMode === "week"
                 ? d.dateObj.toLocaleDateString("en-US", { weekday: "short" })
                 : d.dateObj.getDate();
-            pdf.text(String(label), x, y1 + 5, { align: "center" });
+            pdf.text(String(label), x, y1 + 6, { align: "center" });
           }
         });
 
-        y = y1 + 12; 
+        // Axis titles
+        pdf.setFontSize(9);
+        pdf.setFont(undefined, "bold");
+        pdf.text("Days", margin + w / 2, y1 + 12, { align: "center" });
+        pdf.text("Y: Completion Rate (%)", margin - 18, y0 + h / 2, {
+          angle: 90,
+          align: "center",
+        });
+
+        y = y1 + 18;
         addText(
-          periodMode === "week"
-            ? "Graph explanation: X-axis = days in this week, Y-axis = daily completion rate (0–100%). Use this to check daily consistency."
-            : "Graph explanation: X-axis = calendar days in this month, Y-axis = daily completion rate (0–100%). Use this to see how the month progressed.",
+          "X-axis = days, Y-axis = daily completion rate (0–100%). Use this to check consistency.",
           9
         );
       };
 
       // bar chart (axes + custom explanation)
       const barChart = (data, title, h = 45, expl) => {
-        need(h + 36);
+        need(h + 40);
+
+        // Title
         pdf.setFontSize(10);
         pdf.setFont(undefined, "bold");
         pdf.setTextColor(45, 95, 63);
@@ -867,11 +887,29 @@ export default function Reports() {
         const barW = Math.min(15, contentWidth / (data.length * 1.5));
         const step = contentWidth / Math.max(data.length, 1);
 
+        // Axes
         pdf.setDrawColor(180, 180, 180);
         pdf.setLineWidth(0.2);
         pdf.line(margin, y0, margin, y1);
-        pdf.line(margin, y1, margin + contentWidth, y1);
+        pdf.line(margin, y1, margin + contentWidth, y1); 
 
+        pdf.setFontSize(10);
+        pdf.setFont(undefined);
+        pdf.setTextColor(60, 60, 60);
+        pdf.text("Y", margin + 0.5, y0 - 2);
+        pdf.text("X", margin + contentWidth + 4, y1 + 2);
+
+        pdf.setFontSize(7);
+        pdf.setTextColor(120, 120, 120);
+        pdf.setDrawColor(230, 230, 230);
+        for (let i = 0; i <= 4; i++) {
+          const gy = y0 + (i * h) / 4;
+          const val = 100 - i * 25;
+          pdf.line(margin, gy, margin + contentWidth, gy);
+          pdf.text(`${val}%`, margin - 12, gy + 2);
+        }
+
+        // Bars
         data.forEach((it, i) => {
           const hh = (it.value / 100) * h;
           const x = margin + i * step + (step - barW) / 2;
@@ -884,12 +922,30 @@ export default function Reports() {
           pdf.setTextColor(60, 60, 60);
           pdf.text(`${it.value}%`, x + barW / 2, yy - 2, { align: "center" });
 
-          const label = it.label.length > 10 ? it.label.slice(0, 9) + "…" : it.label;
+          const label =
+            (it.label || "").length > 10
+              ? it.label.slice(0, 9) + "…"
+              : it.label || "";
           pdf.text(label, x + barW / 2, y1 + 5, { align: "center" });
         });
 
-        y = y1 + 12;
-        addText(expl || "Graph explanation: X-axis = categories, Y-axis = completion rate for each category (0–100%).", 9);
+        // Axis titles
+        pdf.setFontSize(9);
+        pdf.setFont(undefined, "bold");
+        pdf.text("Categories", margin + contentWidth / 2, y1 + 12, {
+          align: "center",
+        });
+        pdf.text("Y: Completion Rate (%)", margin - 18, y0 + h / 2, {
+          angle: 90,
+          align: "center",
+        });
+
+        y = y1 + 18;
+        addText(
+          expl ||
+            "X-axis = categories, Y-axis = completion rate per category (0–100%). This shows focus areas.",
+          9
+        );
       };
 
       // ========== COVER ==========
@@ -1000,7 +1056,7 @@ export default function Reports() {
           catChartData,
           "Category Completion Rates",
           45,
-          "Graph explanation: X-axis = categories, Y-axis = completion rate for each category (0–100%). This shows where you focused most."
+          "X-axis = categories, Y-axis = completion rate for each category (0–100%). This shows where you focused most."
         );
       } else {
         addText("No category data available for analysis.");
@@ -1034,7 +1090,7 @@ export default function Reports() {
           dowChart,
           "Completion Rate by Day of Week",
           45,
-          "Graph explanation: X-axis = days of week (Sun–Sat), Y-axis = average completion for those days (0–100%). This shows strong and weak weekdays."
+          "X-axis = days of week (Sun–Sat), Y-axis = average completion for those days (0–100%). This shows strong and weak weekdays."
         );
       }
 
@@ -1076,7 +1132,12 @@ export default function Reports() {
         `Report Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
         `Account: ${accountName}`,
       ];
-      meta.forEach((m) => { pdf.setFontSize(8); pdf.setFont(undefined, "normal"); pdf.setTextColor(120, 120, 120); pdf.text(m, margin, y); y += 4; });
+
+      const metaHeight = meta.length * 4 + 2;
+      y = pageHeight - margin - metaHeight;
+      pdf.setFontSize(8);
+      pdf.setTextColor(120, 120, 120);
+      meta.forEach((m) => { pdf.text(m, margin, y); y += 4; });
 
       pdf.setFontSize(9);
       pdf.setTextColor(120, 120, 120);
