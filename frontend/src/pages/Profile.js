@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import html2canvas from 'html2canvas';
 import { getMyProfile, updateProfile, uploadAvatar } from "../services/userService";
-import { getProfileStats } from "../services/statsService";
 import { getUserAchievements, getEarnedAchievements } from "../services/achievementService";
 import "./style/Profile.css";
 
@@ -110,7 +109,6 @@ const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClos
             <span className="material-symbols-outlined">chevron_left</span>
           </button>
 
-          {/* This now dynamically applies the theme class from the card's configuration */}
           <div ref={cardRef} className={`share-card-container ${currentCard.theme || 'default-theme'}`}>
             <div className="share-card-fg">
               <span className="card-type-indicator-internal">{currentCard.label}</span>
@@ -380,7 +378,6 @@ export default function ProfilePage() {
   const [temporaryProfileData, setTemporaryProfileData] = useState(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [userStatistics, setUserStatistics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [allAchievementsList, setAllAchievementsList] = useState([]);
   const [earnedAchievementsList, setEarnedAchievementsList] = useState([]);
@@ -407,23 +404,18 @@ export default function ProfilePage() {
       const profile = await getMyProfile();
       setUserProfile(profile);
       setTemporaryProfileData(profile);
-      const stats = await getProfileStats();
-      setUserStatistics(stats);
       const allAch = await getUserAchievements();
       setAllAchievementsList(allAch);
       const earnedAch = await getEarnedAchievements();
       setEarnedAchievementsList(earnedAch);
-
       const shareableData = await getShareableStats();
       setReportStats(shareableData);
-
       const weeklyMood = await getWeeklyMoodSummary();
       setMoodSummary(weeklyMood);
 
     } catch (error) {
       console.error("Failed to load profile data:", error);
       setErrorMessage(error.message || "Failed to load data.");
-      setUserStatistics({ activeHabits: 0, longestStreak: 0, gratitudeEntries: 0, daysTracked: 0 });
     } finally {
       setIsLoading(false);
     }
@@ -542,6 +534,13 @@ export default function ProfilePage() {
     },
   ];
 
+  const displayStats = {
+      activeHabits: reportStats.activeHabits,
+      longestStreak: reportStats.longestOverallStreak,
+      gratitudeEntries: reportStats.gratitudeEntries,
+      daysTracked: reportStats.daysTracked,
+  };
+
   return (
     <div className="profile-page">
       <ProfileHeader
@@ -550,20 +549,20 @@ export default function ProfilePage() {
         onShareClick={() => setShowShareModal(true)}
         formatMemberSinceDate={formatMemberSinceDate}
       />
-      {userStatistics && (
-        <>
-          <StatsSection userStats={userStatistics} />
-          <div className="content-grid">
-            <AchievementsCard
-              userAchievements={earnedAchievementsList}
-              earnedAchievementsCount={earnedAchievementsList.length}
-              totalAchievementsCount={allAchievementsList.length}
-              onViewAllAchievements={() => setShowAchievementsModal(true)}
-            />
-            <RecentActivityCard />
-          </div>
-        </>
-      )}
+
+      <>
+        <StatsSection userStats={displayStats} />
+        <div className="content-grid">
+          <AchievementsCard
+            userAchievements={earnedAchievementsList}
+            earnedAchievementsCount={earnedAchievementsList.length}
+            totalAchievementsCount={allAchievementsList.length}
+            onViewAllAchievements={() => setShowAchievementsModal(true)}
+          />
+          <RecentActivityCard />
+        </div>
+      </>
+
       {showAchievementsModal && <AchievementsModal allAchievements={allAchievementsList} onCloseModal={() => setShowAchievementsModal(false)} />}
       {isEditingProfile && <EditProfileModal temporaryProfileData={temporaryProfileData} fileInputReference={fileInputReference} onCloseModal={() => setIsEditingProfile(false)} onInputChange={handleInputChange} onSaveProfile={handleSaveProfile} onCancelEdit={() => setTemporaryProfileData(userProfile)} onChangeProfileImageClick={() => fileInputReference.current.click()} onProfileImageFileChange={handleInputChange} />}
 

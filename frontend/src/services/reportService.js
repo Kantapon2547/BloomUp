@@ -36,72 +36,94 @@ const longestStreakForHabit = (habit) => {
 export const getShareableStats = async () => {
   try {
     const habits = await storage.list();
+    // In the future, you would also fetch gratitude entries here
+    // const gratitudes = await gratitudeStorage.list();
+
     if (!habits || habits.length === 0) {
       return {
+        activeHabits: 0,
         weeklyAverage: 0,
         longestOverallStreak: 0,
         highestProgressHabit: null,
         habitsCompletedThisWeek: 0,
-        newHabitsCount: 0, // ค่าเริ่มต้น
+        newHabitsCount: 0,
+        gratitudeEntries: 0, // Default value
+        daysTracked: 0,      // Default value
       };
     }
 
+    // --- Existing Calculations ---
+    const activeHabits = habits.length;
     const today = new Date();
     const startOfWeek = (d) => addDays(d, -d.getDay());
     const start = startOfWeek(today);
     const weeklyDays = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-
     const dailyCompletion = weeklyDays.map((d) => {
       const key = fmt(d);
       const done = habits.filter((h) => h.history?.[key]).length;
       return { done };
     });
-
     const habitsCompletedThisWeek = dailyCompletion.reduce((sum, day) => sum + day.done, 0);
     const pct = (num, den) => (den === 0 ? 0 : Math.round((num / den) * 100));
-
-    const weeklyAverage = pct(
-        habitsCompletedThisWeek,
-        habits.length * 7
-    );
-
-    // ✅ 2. ใช้ฟังก์ชันที่ถูกต้องในการคำนวณ Longest Streak
+    const weeklyAverage = pct(habitsCompletedThisWeek, habits.length * 7);
     const longestOverallStreak = habits.reduce((max, h) => Math.max(max, longestStreakForHabit(h)), 0);
-
     const topHabitsThisWeek = habits
-      .map((h) => {
-        const rate = pct(
+      .map((h) => ({
+        habitName: h.name,
+        progressPercentage: pct(
           weeklyDays.filter((d) => h.history?.[fmt(d)]).length,
           weeklyDays.length
-        );
-        return { habitName: h.name, progressPercentage: rate };
-      })
+        ),
+      }))
       .sort((a, b) => b.progressPercentage - a.progressPercentage);
-
     const highestProgressHabit = topHabitsThisWeek.length > 0 ? topHabitsThisWeek[0] : null;
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 7);
+    const newHabitsCount = habits.filter((h) => new Date(h.createdAt) >= sevenDaysAgo).length;
 
-    // ✅ 3. เพิ่มการคำนวณ "New Habits Started" (ใน 7 วันที่ผ่านมา)
-    const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7));
-    const newHabitsCount = habits.filter(
-      (h) => new Date(h.createdAt) >= sevenDaysAgo
-    ).length;
+    // --- ✅ NEW: Calculate Days Tracked and Gratitude Entries ---
 
+    // 1. Calculate Total Days Tracked
+    const allTrackedDays = new Set();
+    habits.forEach(habit => {
+      if (habit.history) {
+        Object.keys(habit.history).forEach(date => {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            allTrackedDays.add(date);
+          }
+        });
+      }
+    });
+    const daysTracked = allTrackedDays.size;
+
+    // 2. Calculate Gratitude Entries (Placeholder)
+    // This value is a placeholder until a gratitude service/storage is implemented.
+    // When ready, you would calculate it like this: `const gratitudeEntries = gratitudes.length;`
+    const gratitudeEntries = 0; // Placeholder
+
+    // --- Return all stats ---
     return {
+      activeHabits,
       weeklyAverage,
       longestOverallStreak,
       highestProgressHabit,
       habitsCompletedThisWeek,
-      newHabitsCount, // ส่งค่าใหม่กลับไป
+      newHabitsCount,
+      gratitudeEntries, // Add new value to the return object
+      daysTracked,       // Add new value to the return object
     };
 
   } catch (error) {
     console.error("Failed to calculate shareable stats:", error);
     return {
+      activeHabits: 0,
       weeklyAverage: 0,
       longestOverallStreak: 0,
       highestProgressHabit: { habitName: "N/A", progressPercentage: 0 },
       habitsCompletedThisWeek: 0,
       newHabitsCount: 0,
+      gratitudeEntries: 0, // Add default error value
+      daysTracked: 0,      // Add default error value
     };
   }
 };
