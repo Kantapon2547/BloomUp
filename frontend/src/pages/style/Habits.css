@@ -1360,7 +1360,7 @@ select.input.select option {
   align-items: center;
   gap: 6px;
   font-weight: var(--font-weight-semibold);
-  color: var(--purple-800);
+  color: #575e67;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-size: 12px;
@@ -1372,6 +1372,7 @@ select.input.select option {
   font-weight: var(--font-weight-semibold);
   color: var(--purple-700);
   line-height: 1.2;
+  text-align: center;
 }
 
 .habit-stat-sub {
@@ -1379,6 +1380,8 @@ select.input.select option {
   font-size: 14px;
   color: var(--purple-600);
   margin-top: var(--space-xs);
+  text-align: center;
+  color: #4b5563;
 }
 
 .char-hint {

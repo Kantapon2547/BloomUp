@@ -749,7 +749,7 @@ function CategoryPickerModal({
       >
         <div className="floating-head">
           <div className="habit-floating-title">
-            {isEditing ? "Edit Category Colors" : "Select Category"}
+            {isEditing ? "Edit Category" : "Select Category"}
           </div>
 
           <div className="floating-actions">

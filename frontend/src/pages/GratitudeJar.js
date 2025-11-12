@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./style/GratitudeJar.css";
 import { Trash2, ImagePlus, X, ExternalLink, Send, Image } from "lucide-react";
-import { motion } from "framer-motion";
-
-// 1. IMPORT ASSETS
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import jarImage from '../assets/jar-wo-lid.png';
 import star1 from '../assets/star.png';
 import star2 from '../assets/star-2.png';
@@ -11,7 +10,9 @@ import star3 from '../assets/star-3.png';
 import star4 from '../assets/star-4.png';
 import star5 from '../assets/star-5.png';
 
-// 2. CONSTANTS
+gsap.registerPlugin(ScrollTrigger);
+
+// CONSTANTS
 const API_BASE_URL = "http://localhost:8000";
 const starImagePaths = [star1, star2, star3, star4, star5];
 const categoryColors = {
@@ -35,7 +36,6 @@ const AnimatedNewStar = ({ onAnimationEnd }) => {
   return <img src={starSrc} alt="New star" className="new-star-animation" onAnimationEnd={onAnimationEnd} />;
 };
 
-// --- Star floating with scroll parallax ---
 const FloatingStar = ({ index }) => {
   const baseTop = Math.random() * 40 + 50;
   const baseLeft = Math.random() * 40 + 30;
@@ -53,18 +53,27 @@ const FloatingStar = ({ index }) => {
   }, []);
 
   return (
-    <motion.img
-      key={index}
-      src={starImagePaths[Math.floor(Math.random() * starImagePaths.length)]}
-      className="gratitude-star"
+    <div
       style={{
+        position: 'absolute',
         top: `${baseTop}%`,
         left: `${baseLeft}%`,
-        transform: `rotate(${rotate}deg)`,
+        transform: `rotate(${rotate}deg) translateY(${scrollY}px)`,
+        animation: `float ${floatDuration}s ease-in-out infinite`,
       }}
-      animate={{ y: [0, -floatAmplitude, 0], translateY: scrollY }}
-      transition={{ duration: floatDuration, repeat: Infinity, ease: "easeInOut" }}
-    />
+    >
+      <img
+        src={starImagePaths[Math.floor(Math.random() * starImagePaths.length)]}
+        className="gratitude-star"
+        alt="star"
+        style={{
+          width: '60px',
+          height: 'auto',
+          opacity: 0,
+          animation: `floatIn 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards`,
+        }}
+      />
+    </div>
   );
 };
 
@@ -124,6 +133,17 @@ const GratitudeDetailModal = ({ entry, onClose }) => {
 
   if (!entry) return null;
 
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return new Date().toISOString().split("T")[0];
+    if (dateString.includes('T')) {
+      return dateString.split('T')[0];
+    } else if (dateString.includes(' ')) {
+      return dateString.split(' ')[0];
+    } else {
+      return dateString;
+    }
+  };
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -134,16 +154,15 @@ const GratitudeDetailModal = ({ entry, onClose }) => {
             <span className={`category ${categoryColors[entry.category] || "general"}`}>
               {entry.category}
             </span>
-            <span className="date">{entry.date}</span>
           </div>
           <p className="modal-text">{entry.text}</p>
+          <span className="date">{formatDateForDisplay(entry.date)}</span>
         </div>
       </div>
     </div>
   );
 };
 
-// --- Form inside Jar ---
 const InJarEntryForm = ({ onAddEntry, isLoading }) => {
   const [text, setText] = useState("");
   const [category, setCategory] = useState("");
@@ -207,7 +226,6 @@ const InJarEntryForm = ({ onAddEntry, isLoading }) => {
       if (result.image) result.image = makeAbsoluteImageUrl(result.image);
       onAddEntry(result);
 
-      // Reset form
       setText(""); 
       setCategory(""); 
       setImage(null);
@@ -238,7 +256,6 @@ const InJarEntryForm = ({ onAddEntry, isLoading }) => {
       />
       
       <div className="entry-controls">
-        {/* Category dropdown - takes available space */}
         <div className="category-container">
           <div 
             className={getCategoryDisplayClass()} 
@@ -250,7 +267,6 @@ const InJarEntryForm = ({ onAddEntry, isLoading }) => {
             </span>
           </div>
           
-          {/* Dropdown list */}
           <div className="custom-dropdown" ref={dropdownRef}>
             {isCategoryOpen && (
               <ul className="dropdown-list">
@@ -271,7 +287,6 @@ const InJarEntryForm = ({ onAddEntry, isLoading }) => {
           </div>
         </div>
         
-        {/* Image upload button */}
         <input 
           type="file" 
           accept="image/*" 
@@ -287,7 +302,6 @@ const InJarEntryForm = ({ onAddEntry, isLoading }) => {
           <ImagePlus size={20} />
         </button>
         
-        {/* Submit button */}
         <button 
           type="submit" 
           className="submit-entry-btn"
@@ -308,27 +322,86 @@ const GratitudeJar = () => {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [showNewStar, setShowNewStar] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [todayEntriesCount, setTodayEntriesCount] = useState(0);
+  
+  const statsContainerRef = useRef(null);
+  const entriesGridRef = useRef(null);
 
   useEffect(() => { 
     fetchEntries(); 
-    setupScrollAnimations();
   }, []);
 
-  const setupScrollAnimations = () => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('animated');
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
+  useEffect(() => {
+    updateTodayEntriesCount();
+  }, [entries]);
 
-    document.querySelectorAll('.animate-on-scroll').forEach(el => {
-      observer.observe(el);
+  useEffect(() => {
+    setupScrollAnimations();
+  }, [entries]);
+
+  const updateTodayEntriesCount = () => {
+    const today = new Date();
+    const todayFormatted = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+    
+    const todayCount = entries.filter(entry => {
+      if (!entry.date) return false;
+      return entry.date === todayFormatted;
+    }).length;
+    
+    setTodayEntriesCount(todayCount);
+  };
+
+  const setupScrollAnimations = () => {
+    // Clear previous scroll triggers
+    ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+
+    // Stat cards animation
+    const statCards = document.querySelectorAll(".gratitude-stat-card");
+    statCards.forEach((card, index) => {
+      gsap.set(card, { opacity: 0, y: 20 });
+      gsap.to(
+        card,
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          delay: index * 0.1,
+          scrollTrigger: {
+            trigger: card,
+            start: "top 85%",
+            end: "top 70%",
+            scrub: 0.5,
+            markers: false,
+          },
+        }
+      );
     });
+
+    // Entry cards staggered animation
+    const entryCards = document.querySelectorAll(".entry-card");
+    entryCards.forEach((card, index) => {
+      gsap.set(card, { opacity: 0, y: 20 });
+      gsap.to(
+        card,
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          delay: index * 0.08,
+          scrollTrigger: {
+            trigger: card,
+            start: "top 90%",
+            end: "top 75%",
+            scrub: 0.5,
+            markers: false,
+          },
+        }
+      );
+    });
+
+    return () => {
+      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+    };
   };
 
   const fetchEntries = async () => {
@@ -347,14 +420,14 @@ const GratitudeJar = () => {
       
       if (!res.ok) throw new Error(res.status);
       const data = await res.json();
-     
-      setEntries(
-        data.map(e => ({
-          ...e,
-          image: makeAbsoluteImageUrl(e.image),
-          date: e.date?.split("T")[0] || new Date().toISOString().split("T")[0],
-        }))
-      );
+      
+      const processedEntries = data.map(e => ({
+        ...e,
+        image: makeAbsoluteImageUrl(e.image),
+        date: e.date
+      }));
+
+      setEntries(processedEntries);
     } catch (err) { 
       console.error("Failed to fetch entries:", err); 
     } finally {
@@ -364,13 +437,7 @@ const GratitudeJar = () => {
 
   const addEntry = (newEntry) => {
     setShowNewStar(true);
-
-    const todayDate = new Date().toISOString().split("T")[0];
-    const entryWithDate = { 
-      ...newEntry, 
-      date: newEntry.date ? newEntry.date.split(/[ T]/)[0] : todayDate 
-    };
-
+    const entryWithDate = { ...newEntry };
     setEntries((prev) => [entryWithDate, ...prev]);
   };
 
@@ -396,9 +463,12 @@ const GratitudeJar = () => {
     }
   };
 
-  const getTodayEntriesCount = () => {
-    const today = new Date().toISOString().split("T")[0];
-    return entries.filter(entry => entry.date === today).length;
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) {
+      const today = new Date();
+      return `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+    }
+    return dateString;
   };
 
   const getEntriesText = () => {
@@ -407,11 +477,11 @@ const GratitudeJar = () => {
 
   return (
     <div className="app-container">
-      <div className="content-wrapper">
+      
         {/* Jar Section */}
         <section className="main-content">
           <div className="jar-area">
-            <img src={jarImage} alt="Jar" className="jar-image" />
+            <img src={jarImage} alt="Jar" className="gratitude-jar-image" />
             <div className="stars-container">
               {entries.map((_, i) => (
                 <FloatingStar key={i} index={i} />
@@ -429,39 +499,29 @@ const GratitudeJar = () => {
           </div>
         </section>
 
-        {/* Collection Section - Now in same container */}
         <section className="collection-section">
-          <div className="stats-container">
-            <motion.div 
-              className="stat-card purple animate-on-scroll"
-              initial={{ opacity: 0, y: 50 }} 
-              whileInView={{ opacity: 1, y: 0 }} 
-              viewport={{ once: true }} 
-              transition={{ duration: 0.6 }}
-            > 
+          <div className="stats-container" ref={statsContainerRef}>
+            <div className="gratitude-stat-card purple">
               <h2>{entries.length}</h2>
               <p>{getEntriesText()}</p>
-            </motion.div>
+            </div>
             
-            <motion.div 
-              className="stat-card blue animate-on-scroll"
-              initial={{ opacity: 0, y: 50 }} 
-              whileInView={{ opacity: 1, y: 0 }} 
-              viewport={{ once: true }} 
-              transition={{ duration: 0.6, delay: 0.2 }}
-            > 
-              <h2>{getTodayEntriesCount()}</h2>
+            <div className="gratitude-stat-card blue">
+              <h2>{todayEntriesCount}</h2>
               <p>Added Today</p>
-            </motion.div>
+            </div>
           </div>
           
-          <h2 className="collection-title animate-on-scroll">Your Gratitude Collection</h2>
+          <h2 className="collection-title">Your Gratitude Collection</h2>
           
-          <div className="entries-grid">
+          <div className="entries-grid" ref={entriesGridRef}>
             {entries.map((entry, index) => (
               <EntryCard 
                 key={entry.id} 
-                entry={entry} 
+                entry={{
+                  ...entry,
+                  date: formatDateForDisplay(entry.date)
+                }}
                 index={index} 
                 handleCardClick={setSelectedEntry} 
                 deleteEntry={deleteEntry} 
@@ -469,7 +529,6 @@ const GratitudeJar = () => {
             ))}
           </div>
         </section>
-      </div>
       
       {selectedEntry && (
         <GratitudeDetailModal 
