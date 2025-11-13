@@ -1,6 +1,5 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { FiLogOut } from "react-icons/fi";
 import "./Navbar.css";
 
 const Navbar = ({ onLogout }) => {
@@ -34,9 +33,6 @@ const Navbar = ({ onLogout }) => {
           ))}
         </div>
 
-        <button className="logout-btn" onClick={onLogout}>
-          <FiLogOut size={20} />
-        </button>
       </div>
     </nav>
   );

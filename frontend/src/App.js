@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Login } from "./pages/Login";
 import { Signup } from "./pages/Signup";
 import Home from "./pages/Home";
@@ -8,33 +8,71 @@ import Habits from "./pages/Habits";
 import Reports from "./pages/Reports";
 import Profile from "./pages/Profile";
 import Calendar from "./pages/Calendar";
+import Timer from "./pages/Timer";
 import GratitudeJar from "./pages/GratitudeJar";
 import Layout from "./components/Layout";
+import { TaskProvider } from "./pages/SharedTaskContext";
+import "./App.css"; 
+
+function BackgroundHandler() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Clear all background classes
+    document.body.className = "";
+
+    if (location.pathname === "/home") {
+      document.body.classList.add("home-bg");
+    } else if (location.pathname === "/gratitude") {
+      document.body.classList.add("gratitude-bg");
+    } else if (location.pathname === "/habits") {
+      document.body.classList.add("habits-bg");
+    } else if (location.pathname === "/reports") {
+      document.body.classList.add("reports-bg");
+    } else if (location.pathname === "/calendar") {
+      document.body.classList.add("calendar-bg");
+    } else if (location.pathname === "/profile") {
+      document.body.classList.add("profile-bg");
+    } else if (location.pathname === "/timer") {
+      // set timer-bg as base
+      document.body.classList.add("timer-bg");
+    } else {
+      document.body.classList.add("default-bg");
+    }
+  }, [location.pathname]);
+
+  return null; 
+}
+
+// wrapper component to use useNavigate inside Routes
+function HabitsWithNav() {
+  const navigate = useNavigate();
+  return <Habits onNavigateToTimer={() => navigate('/timer')} />;
+}
 
 function App() {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // 👈 Add a loading flag
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false); // 👈 Only finish loading after checking storage
+    if (savedUser) setUser(JSON.parse(savedUser));
+    setLoading(false);
   }, []);
 
   if (loading) {
-    // 👇 Optional: simple placeholder to prevent redirect flicker
     return <div style={{ textAlign: "center", marginTop: "30vh" }}>Loading...</div>;
   }
 
   return (
     <Router>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<DemoDashboard user={user} setUser={setUser} />} />
-        <Route path="/login" element={<Login onLoginSuccess={setUser} />} />
-        <Route path="/signup" element={<Signup />} />
+      <TaskProvider>
+        <BackgroundHandler />
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<DemoDashboard user={user} setUser={setUser} />} />
+          <Route path="/login" element={<Login onLoginSuccess={setUser} />} />
+          <Route path="/signup" element={<Signup />} />
 
         {/* Protected routes */}
         <Route
@@ -54,7 +92,7 @@ function App() {
           element={
             user ? (
               <Layout>
-                <Habits />
+                <HabitsWithNav />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -67,6 +105,18 @@ function App() {
             user ? (
               <Layout>
                 <Reports />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/timer"
+          element={
+            user ? (
+              <Layout>
+                <Timer />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -110,9 +160,10 @@ function App() {
           }
         />
 
-        {/* Fallback route */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </TaskProvider>
     </Router>
   );
 }

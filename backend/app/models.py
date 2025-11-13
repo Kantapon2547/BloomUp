@@ -1,4 +1,3 @@
-# pylint: disable=missing-class-docstring
 from sqlalchemy import (
     Boolean,
     Column,
@@ -147,6 +146,7 @@ class GratitudeEntry(Base):
     )
     body = Column(Text, nullable=False)
     category = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)  # NEW: Add this line
     created_at = Column(DateTime, server_default=func.now())
 
     # GratitudeEntry ↔ User
@@ -177,9 +177,6 @@ class MoodLog(Base):
     )
 
     __table_args__ = (UniqueConstraint("user_id", "logged_on", name="uq_mood_per_day"),)
-
-
-# ==================== ACHIEVEMENT MODELS ====================
 
 
 class Achievement(Base):
