@@ -22,9 +22,9 @@
   --gray-400: #9ca3af;
   --gray-500: #6b7280;
   --gray-600: #4b5563;
-  --gray-700: #374151;
-  --gray-800: #2b3344;
-  --gray-900: #1a1f35;
+  --gray-700: #4e4f52;
+  --gray-800: #2a2c31;
+  --gray-900: #303139;
   
   /* Semantic Colors */
   --bg: #faf8ff;
@@ -1360,7 +1360,7 @@ select.input.select option {
   align-items: center;
   gap: 6px;
   font-weight: var(--font-weight-semibold);
-  color: var(--purple-800);
+  color: #575e67;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-size: 12px;
@@ -1372,6 +1372,7 @@ select.input.select option {
   font-weight: var(--font-weight-semibold);
   color: var(--purple-700);
   line-height: 1.2;
+  text-align: center;
 }
 
 .habit-stat-sub {
@@ -1379,6 +1380,8 @@ select.input.select option {
   font-size: 14px;
   color: var(--purple-600);
   margin-top: var(--space-xs);
+  text-align: center;
+  color: #4b5563;
 }
 
 .char-hint {
@@ -1688,7 +1691,7 @@ select.input.select option {
 }
 
 .task-name-input {
-  width: 90%;
+  width: 100%;
   font-size: 16px;
   font-weight: var(--font-weight-medium);
   text-align: center;
@@ -1696,13 +1699,11 @@ select.input.select option {
   background: transparent;
   color: var(--purple-900);
   outline: none;
-  border-bottom: 2px solid;
-  border-bottom-color: rgba(226, 209, 255, 0.35);
+  border-bottom: 2px solid transparent;
   padding: var(--space-sm);
 }
 
 .task-name-input:focus {
-  border-bottom: 2px solid;
   border-bottom-color: rgba(124, 58, 237, 0.35);
 }
 
@@ -2119,7 +2120,7 @@ select.input.select option {
     flex-direction: column;
     gap: 10px;
   }
-} 
+}
 
 @media (max-width: 520px) {
   .grid-3 {

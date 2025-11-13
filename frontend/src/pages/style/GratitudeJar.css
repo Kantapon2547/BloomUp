@@ -35,11 +35,11 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: center;
-  /* margin-top: 50px; */
+  margin-top: 45px;
   overflow: hidden;
 }
 
-.jar-image {
+.gratitude-jar-image {
   width: 100%;
   height: auto;
   user-select: none;
@@ -49,10 +49,10 @@ html, body {
 
 .stars-container {
   position: absolute;
-  top: 0;
+  top: 5;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 85%;
   pointer-events: none;
 }
 
@@ -99,11 +99,11 @@ html, body {
 }
 
 /* ------------------------------
-   Entry Form - Updated Styles
+   Entry Form
 -------------------------------- */
 .entry-form {
   position: absolute;
-  top: 80%;
+  top: 68%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 60%;
@@ -189,8 +189,8 @@ html, body {
 
 .image-upload-btn:hover {
   background-color: #f9f9ff;
-  border-color: #c4b5fd;
-  color: #7a5af8;
+  border-color: #b5b7fd;
+  color: #5a77f8;
 }
 
 .image-upload-btn.has-image {
@@ -200,7 +200,7 @@ html, body {
 }
 
 .submit-entry-btn {
-  background-color: #7a5af8;
+  background-color: #5763e9;
   color: #fff;
 }
 
@@ -216,7 +216,7 @@ html, body {
 /* Dropdown styles */
 .custom-dropdown { 
   position: absolute;
-  top: 100%;
+  top: -410%;
   left: 0;
   right: 0;
   z-index: 100;
@@ -280,12 +280,13 @@ html, body {
   padding: 50px 30px;
   max-width: 900px;
   margin: 0 auto;
+  padding-top: 0;
 }
 
 .collection-title {
   text-align: left;
   color: white;
-  margin-top: 70px;
+  margin-top: 60px;
   margin-bottom: 40px;
   font-size: 1.7rem;
 }
@@ -298,7 +299,7 @@ html, body {
   margin-bottom: 30px;
 }
 
-.stat-card {
+.gratitude-stat-card {
   flex: 1;
   min-width: 250px;
   padding: 20px;
@@ -309,8 +310,8 @@ html, body {
   backdrop-filter: blur(5px);
 }
 
-.stat-card h2 { margin: 0; font-size: 28px; }
-.stat-card p { 
+.gratitude-stat-card h2 { margin: 0; font-size: 28px; }
+.gratitude-stat-card p { 
   font-size: 14px; 
   margin-top: 6px; 
   color: #ffffff; 
@@ -318,8 +319,8 @@ html, body {
   letter-spacing: 0.8px;
 }
 
-.stat-card.purple h2 { color: #fff9c9; }
-.stat-card.blue h2 { color: #cbe7ff; }
+.gratitude-stat-card.purple h2 { color: #fff9c9; }
+.gratitude-stat-card.blue h2 { color: #cbe7ff; }
 
 .entries-grid {
   display: grid;
@@ -378,7 +379,7 @@ html, body {
 
 .date { 
   font-size: 12px; 
-  color: #e0e0e0; 
+  color: #e2e2e2; 
   font-weight: 500;
 }
 
@@ -416,7 +417,6 @@ html, body {
 
 .achievements { 
   background-color: rgba(255, 193, 7, 0.7); 
-  color: #333;
 }
 
 .nature { 
@@ -435,10 +435,6 @@ html, body {
   background-color: rgba(0, 188, 212, 0.7); 
 }
 
-.general { 
-  background-color: rgba(221, 221, 221, 0.7); 
-  color: #555; 
-}
 
 .delete-icon { 
   position: absolute; 
@@ -501,6 +497,13 @@ html, body {
   overflow:hidden; display:flex; flex-direction:column;
   position:relative; padding:0;
   animation: slideIn 0.3s ease;
+}
+
+.modal-details .date {
+  padding-left: 24rem;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
 }
 @keyframes slideIn { from{transform:translateY(-30px) scale(0.98); opacity:0;} to{transform:translateY(0) scale(1); opacity:1;} }
 
