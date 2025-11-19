@@ -1,6 +1,5 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { FiLogOut } from "react-icons/fi";
 import "./Navbar.css";
 
 const Navbar = ({ onLogout }) => {
@@ -8,8 +7,8 @@ const Navbar = ({ onLogout }) => {
     { path: "/home", label: "Home" },
     { path: "/gratitude", label: "Gratitude" },
     { path: "/calendar", label: "Mood" },
-    { path: "/reports", label: "Report" },
     { path: "/habits", label: "Habit" },
+    { path: "/reports", label: "Report" },
     { path: "/profile", label: <span className="material-symbols-outlined">account_circle</span> },
   ];
 

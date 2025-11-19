@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {Plus, Pencil, Trash2, ChevronDown, Filter, Trophy, CheckCircle2, Sun} 
+import {Plus, Pencil, Trash2, ChevronDown, Filter, Trophy, CheckCircle2, Sun, Clock} 
   from "lucide-react";
 import "./style/Habits.css";
 import EmojiPicker from "emoji-picker-react";
-import confetti from "canvas-confetti";
+import { useSharedTasks } from "./SharedTaskContext";
 
 const USE_API_DEFAULT = true;
 const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
@@ -561,7 +561,6 @@ function HabitModal({
       </div>
   );
 }
-
 function NewCategoryModal({
   onClose,
   onAdd,
@@ -571,12 +570,16 @@ function NewCategoryModal({
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
+
+
       <div
         className="floating-panel"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="floating-head">
-          <div className="floating-title">Select Category</div>
+          <div className="floating-title">Add Category</div>
+          <div className="floating-actions">
+          </div>
         </div>
 
         <div className="color-row-main color-row-cat">
@@ -624,7 +627,6 @@ function NewCategoryModal({
     </div>
   );
 }
-
 function EmojiPickerModal({ onClose, onSelect }) {
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -667,106 +669,210 @@ function CategoryPickerModal({
   onApplyColor, 
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [tempCategories, setTempCategories] = useState(categories);
+  const [selectedColor, setSelectedColor] = useState(PASTELS[0]);
+  const [deletingCategory, setDeletingCategory] = useState(null);
+  const [selectingCategory, setSelectingCategory] = useState(null);
 
-  const activeCat = categories.find(c => c.name === current);
+  useEffect(() => {
+    setTempCategories(categories);
+  }, [categories]);
+
+  const activeCat = tempCategories.find(c => c.name === current);
   const activeColor = activeCat?.color || PASTELS[0];
+
+  const handleColorChange = (categoryName, newColor) => {
+    setTempCategories(prev => 
+      prev.map(cat => 
+        cat.name === categoryName ? { ...cat, color: newColor } : cat
+      )
+    );
+  };
+
+  const handleSaveChanges = () => {
+    tempCategories.forEach(cat => {
+      const originalCat = categories.find(c => c.name === cat.name);
+      if (originalCat && originalCat.color !== cat.color) {
+        onApplyColor(cat.name, cat.color);
+      }
+    });
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setTempCategories(categories);
+    setIsEditing(false);
+  };
+
+  const handleSelectCategory = (categoryName) => {
+    setSelectingCategory(categoryName);
+    
+    setTimeout(() => {
+      onSelect(categoryName);
+      setSelectingCategory(null);
+      onClose();
+    }, 600);
+  };
+
+  const handleDeleteCategory = (categoryName) => {
+    setDeletingCategory(categoryName);
+    
+    setTimeout(() => {
+      onDeleteCategory(categoryName);
+      setDeletingCategory(null);
+    }, 400);
+  };
+
+  const isLightColor = (color) => {
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.6;
+  };
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
+      {/* Close button with different positions based on mode */}
+      <button
+        className={`sheet-close-external ${isEditing ? 'edit-mode' : 'select-mode'}`}
+        onClick={onClose}
+      >
+        ✕
+      </button>
+
       <div
-        className="floating-panel"
+        className={`floating-panel ${isEditing ? 'is-editing' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="floating-head">
-          <div className="floating-title">Select Category</div>
+          <div className="habit-floating-title">
+            {isEditing ? "Edit Category" : "Select Category"}
+          </div>
 
           <div className="floating-actions">
-            <button
-              className="floating-edit-btn"
-              onClick={() => setIsEditing((prev) => !prev)}
-            >
-              {isEditing ? "Done" : "Edit"}
-            </button>
+            {isEditing ? (
+              <>
+                <button
+                  className="floating-edit-btn"
+                  onClick={handleCancelEdit}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="floating-edit-btn"
+                  onClick={handleSaveChanges}
+                  style={{ color: 'var(--purple-600)', fontWeight: 'var(--font-weight-semibold)' }}
+                >
+                  Done
+                </button>
+              </>
+            ) : (
+              <button
+                className="floating-edit-btn"
+                onClick={() => setIsEditing(true)}
+              >
+                Edit
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Color selection - shows when editing */}
+        {isEditing && (
+          <div className="color-row-main color-row-cat">
+            {PASTELS.map((c) => (
+              <button
+                key={c}
+                className={`color-dot-main ${c === selectedColor ? " is-selected" : ""}`}
+                style={{ backgroundColor: c }}
+                onClick={() => setSelectedColor(c)}
+              />
+            ))}
+          </div>
+        )}
+        
+        <div className="floating-scroll">
+          <div className="option-grid">
+            {tempCategories.map((cat) => {
+              const selected = cat.name === current;
+              const isProtected = cat.name === "General";
+              const isDeleting = deletingCategory === cat.name;
+              const isSelecting = selectingCategory === cat.name;
+
+              return (
+                <div
+                  key={cat.name}
+                  className={
+                    `option-tile ${selected ? "is-active" : ""} ${isEditing ? "is-editing" : ""} ${isDeleting ? "is-deleting" : ""} ${isSelecting ? "is-selecting" : ""}`
+                  }
+                  style={{
+                    borderColor: cat.color,
+                    borderWidth: selected ? '2.5px' : '1.8px',
+                    backgroundColor: selected ? cat.color : 'var(--surface)',
+                    color: selected ? (isLightColor(cat.color) ? 'var(--text-primary)' : 'white') : 'var(--text-primary)'
+                  }}
+                  onClick={() => {
+                    if (isEditing) {
+                      handleColorChange(cat.name, selectedColor);
+                    } else if (!isDeleting) {
+                      handleSelectCategory(cat.name);
+                    }
+                  }}
+                >
+                  <div className="option-tile-label">{cat.name}</div>
+
+                  {isEditing && !isProtected && !isDeleting && (
+                    <button
+                      className="option-tile-delete"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteCategory(cat.name);
+                      }}
+                      title="Delete category"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+
+                  {isDeleting && (
+                    <div className="option-tile-deleting">
+                      <div className="deleting-spinner"></div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
 
             <button
-              className="floating-back"
-              onClick={onClose}
+              className="option-tile add-tile"
+              onClick={onAddNewRequest}
             >
-              Back
+              <div className="add-tile-plus">＋</div>
+              <div className="option-tile-label">Add Category</div>
             </button>
           </div>
         </div>
 
-        <div className="color-row-main color-row-cat">
-          {PASTELS.map((c) => (
-            <button
-              key={c}
-              className={
-                "color-dot-main" +
-                (c === activeColor ? " is-selected" : "")
-              }
-              style={{ backgroundColor: c }}
-              onClick={() => {
-                if (activeCat) {
-                  onApplyColor(activeCat.name, c);
-                }
-              }}
-            />
-          ))}
-        </div>
-        
-        <div className="floating-scroll">
-        <div className="option-grid">
-          {categories.map((cat) => {
-            const selected = cat.name === current;
-            const isProtected = cat.name === "General";
-
-            return (
-              <div
-                key={cat.name}
-                className={
-                  "option-tile" +
-                  (selected ? " is-active" : "") +
-                  (isEditing ? " is-editing" : "")
-                }
-                onClick={() => {
-                  if (isEditing) return; 
-                  onSelect(cat.name);
-                  onClose();
-                }}
-              >
-                <div className="option-tile-label">{cat.name}</div>
-
-                {isEditing && !isProtected && (
-                  <button
-                    className="option-tile-delete"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteCategory(cat.name);
-                    }}
-                    title="Delete category"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
-              </div>
-            );
-          })}
-
-          <button
-            className="option-tile add-tile"
-            onClick={onAddNewRequest}
-          >
-            <div className="add-tile-plus">＋</div>
-            <div className="option-tile-label">Add Category</div>
-          </button>
-        </div>
-        </div>
+        {isEditing && (
+          <div style={{ 
+            padding: 'var(--space-md) var(--space-xl)', 
+            textAlign: 'center',
+            fontSize: '13px',
+            color: 'var(--purple-500)',
+            borderTop: '1px solid var(--border)'
+          }}>
+            Select a color above, then tap any category to apply it
+          </div>
+        )}
       </div>
     </div>
   );
 }
-export default function HabitsPage() {
+
+export default function HabitsPage({ onNavigateToTimer }) {
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [catFilter, setCatFilter] = useState("All Categories");
@@ -775,31 +881,11 @@ export default function HabitsPage() {
   const [durationFilter, setDurationFilter] = useState("All Durations");
   const [openModal, setOpenModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [deletingHabit, setDeletingHabit] = useState(null);
 
-function triggerConfettiSides() {
-  confetti({
-    particleCount: 14,
-    spread: 50,
-    startVelocity: 40,
-    origin: { x: 0, y: 0.8 }, 
-    angle: 60,
-    gravity: 0.7,
-    scalar: 0.8,
-    colors: ["#a78bfa", "#c084fc", "#fbcfe8", "#facc15"],
-  });
+  const { updateHabits } = useSharedTasks();
 
-  confetti({
-    particleCount: 14,
-    spread: 50,
-    startVelocity: 40,
-    origin: { x: 1, y: 0.8 },
-    angle: 120,
-    gravity: 0.7,
-    scalar: 0.8,
-    colors: ["#a78bfa", "#c084fc", "#fbcfe8", "#facc15"],
-  });
-}
-const [rowFx, setRowFx] = useState({});
+  const [rowFx, setRowFx] = useState({});
   function fireRowFx(habitId) {
     setRowFx((s) => ({ ...s, [habitId]: true }));
     setTimeout(() => {
@@ -808,26 +894,26 @@ const [rowFx, setRowFx] = useState({});
   }
   
   const DEFAULT_CATEGORIES = [
-  { name: "General", color: "#ede9ff" },
-  { name: "Study", color: "#fff4cc" },
-  { name: "Health", color: "#e9fcef" },
-  { name: "Mind", color: "#fbefff" },
-];
+    { name: "General", color: "#ede9ff" },
+    { name: "Study", color: "#fff4cc" },
+    { name: "Health", color: "#e9fcef" },
+    { name: "Mind", color: "#fbefff" },
+  ];
 
-const [categories, setCategories] = useState(() => {
-  try {
-    const raw = JSON.parse(localStorage.getItem(CATS_LS));
-    if (Array.isArray(raw)) {
-      if (typeof raw[0] === "string") {
-        return raw.map((n) => ({ name: n, color: "#ede9ff" }));
+  const [categories, setCategories] = useState(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(CATS_LS));
+      if (Array.isArray(raw)) {
+        if (typeof raw[0] === "string") {
+          return raw.map((n) => ({ name: n, color: "#ede9ff" }));
+        }
+        return raw;
       }
-      return raw;
+      return DEFAULT_CATEGORIES;
+    } catch {
+      return DEFAULT_CATEGORIES;
     }
-    return DEFAULT_CATEGORIES;
-  } catch {
-    return DEFAULT_CATEGORIES;
-  }
-});
+  });
 
   const addCategoryGlobal = (name, color) => {
     if (!categories.some((c) => c.name === name)) {
@@ -877,10 +963,15 @@ const [categories, setCategories] = useState(() => {
       const data = await storage.list();
       if (!mounted) return;
       setHabits(data);
+      updateHabits(data);
       setLoading(false);
     })();
     return () => (mounted = false);
   }, []);
+
+  useEffect(() => {
+    updateHabits(habits);
+  }, [habits, updateHabits]);
 
   const today = todayKey();
   const week = thisWeek();
@@ -963,10 +1054,14 @@ const [categories, setCategories] = useState(() => {
   };
 
   const removeHabit = async (id) => {
-    await storage.remove(id);
-    setHabits((x) => x.filter((h) => h.id !== id));
+    setDeletingHabit(id);
+    
+    setTimeout(async () => {
+      await storage.remove(id);
+      setHabits((x) => x.filter((h) => h.id !== id));
+      setDeletingHabit(null);
+    }, 400);
   };
-
 
   const toggle = async (id, date, newDone) => {
     await storage.toggleHistory(id, date, newDone);
@@ -994,6 +1089,14 @@ const [categories, setCategories] = useState(() => {
       <div className="head-actions">
         <button
           type="button"
+          className="fab-timer"
+          onClick={onNavigateToTimer}
+          title="Open Timer"
+        >
+          <Clock size={22} />
+        </button>
+        <button
+          type="button"
           className="fab-add"
           onClick={() => setOpenModal(true)}>
           <Plus size={22} />
@@ -1001,7 +1104,7 @@ const [categories, setCategories] = useState(() => {
       </div>
   
       <section className="summary-section">
-        <div className="summary-title">Today's Progress</div>
+        <div className="habit-summary-title">Today's Progress</div>
         <div className="progress-wrap" style={{ marginBottom: 16 }}>
           <span className="progress__pct">{totals.todayPct}%</span>
           <div className="progress">
@@ -1013,33 +1116,33 @@ const [categories, setCategories] = useState(() => {
         </div>
         <div className="summary-stats grid-3">
           <div className="stat-card stack">
-            <div className="stat-title">
+            <div className="habit-stat-title">
               <Sun size={18} style={{ marginRight: 8 }} />
               TODAY
             </div>
             <div className="stat-big">{totals.doneToday}</div>
-            <div className="stat-sub">completed</div>
+            <div className="habit-stat-sub">completed</div>
           </div>
           <div className="stat-card stack">
-            <div className="stat-title">
+            <div className="habit-stat-title">
               <CheckCircle2 size={18} style={{ marginRight: 8 }} />
               COMPLETION
             </div>
             <div className="stat-big">{totals.completion}%</div>
-            <div className="stat-sub">avg this week</div>
+            <div className="habit-stat-sub">avg this week</div>
           </div>
           <div className="stat-card stack">
-            <div className="stat-title">
+            <div className="habit-stat-title">
               <Trophy size={18} style={{ marginRight: 8 }} />
               BEST STREAK
             </div>
             <div className="stat-big">{plural(totals.best, "day")}</div>
-            <div className="stat-sub">longest running</div>
+            <div className="habit-stat-sub">longest running</div>
           </div>
         </div>
       </section>
 
-      <section className="card filters-row">
+      <section className="card-filters-row">
         <div className="filters-icon">
           <Filter size={18} />
           Filters
@@ -1086,9 +1189,13 @@ const [categories, setCategories] = useState(() => {
               const streak = bestStreak(h.history || {});
               const catData = categories.find(c => c.name === h.category);
               const bg = catData?.color || "#eef1ff";
+              const isDeleting = deletingHabit === h.id;
               
               return (
-                <div key={h.id} className="card habit-card habit-card--row">
+                <div 
+                  key={h.id} 
+                  className={`card-habit-card habit-card--row ${isDeleting ? 'is-deleting' : ''}`}
+                >
                   <div className="hl-left">
                     <input
                       className="checkbox"
@@ -1101,7 +1208,7 @@ const [categories, setCategories] = useState(() => {
                         toggle(h.id, today, nowChecked);
                         if (!wasChecked && nowChecked) {
                           fireRowFx(h.id);
-                          triggerConfettiSides();
+                    
                         }
                       }}
                     />
@@ -1167,18 +1274,23 @@ const [categories, setCategories] = useState(() => {
                     </div>
                     <div className="hl-actions">
                       <button
-                        className="icon-btn soft"
+                        className="habit-icon-btn soft"
                         onClick={() => setEditing(h)}
                         aria-label="Edit habit"
                       >
                         <Pencil size={18} />
                       </button>
                       <button
-                        className="icon-btn soft"
+                        className="habit-icon-btn soft delete-btn"
                         onClick={() => removeHabit(h.id)}
                         aria-label="Delete habit"
+                        disabled={isDeleting}
                       >
-                        <Trash2 size={18} />
+                        {isDeleting ? (
+                          <div className="delete-spinner"></div>
+                        ) : (
+                          <Trash2 size={18} />
+                        )}
                       </button>
                     </div>
                   </div>

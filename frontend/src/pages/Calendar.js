@@ -335,9 +335,13 @@ export default function Calendar() {
                 </span>
               </div>
               <div className="kv">
-                <span className="kv-key">Days tracked:</span>
-                <span className="kv-val">{totalTracked} / {daysInMonth}</span>
-              </div>
+              <span className="kv-key">
+                {totalTracked <= 1 ? 'Day tracked:' : 'Days tracked:'}
+              </span>
+              <span className="kv-val">
+                {totalTracked} / {daysInMonth}
+              </span>
+            </div>
             </div>
           </div>
         </section>

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import gsap from "gsap";
 import "./style/Reports.css";
-import { createStorage } from "./Habits";
+import { createStorage } from "../services/habitStorage";
 
 /* Utility Functions */
 const storage = createStorage();

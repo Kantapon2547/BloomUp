@@ -1,4 +1,3 @@
-# pylint: disable=missing-class-docstring
 from sqlalchemy import (
     Boolean,
     Column,

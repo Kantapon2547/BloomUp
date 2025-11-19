@@ -36,3 +36,32 @@
     transform: rotate(360deg);
   }
 }
+/* Default background (e.g. login, signup) */
+.default-bg {
+  background-color: #ffffff;
+}
+
+/* Page-specific backgrounds */
+.home-bg {
+  background-color: #d4eeff;
+}
+
+.gratitude-bg {
+  background-color: #516087;
+}
+
+
+.reports-bg {
+  background-color: #d7f0d0;
+}
+
+.calendar-bg {
+  background-color: #FDF4CB;
+}
+
+body {
+  background-attachment: fixed;
+  background-size: cover;
+  transition: background-color 0.5s ease;
+  margin: 0;
+}

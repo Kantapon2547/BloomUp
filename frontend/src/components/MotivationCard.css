@@ -67,7 +67,7 @@
   top: 0.4em;
   height: 2.2em;
   width: 4px;
-  background: #7c3aed;
+  background: #8ebbfb;
   border-radius: 2px;
 }
 
@@ -81,7 +81,9 @@
   letter-spacing: 0.18px;
 }
 
-
+.motivation-card {
+  padding-top: 0;
+}
 /* Responsive Design */
 @media (max-width: 768px) {
   .motivation-card {
