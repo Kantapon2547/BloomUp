@@ -27,6 +27,18 @@ const doneOnDay = (habit, date) => {
 };
 const pct = (num, den) => (den === 0 ? 0 : Math.round((num / den) * 100));
 
+const API =
+  process.env.REACT_APP_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8000";
+
+const authHeaders = () => {
+  const token = localStorage.getItem("token");
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+};
+
 const startOfWeekMon = (d) => {
   const base = atMidnight(d);
   const day = base.getDay();          
@@ -584,6 +596,7 @@ export default function Reports() {
   const [cursor, setCursor] = useState(new Date());
   const [chartType, setChartType] = useState("bar");
   const [prevAvg, setPrevAvg] = useState(null);
+  const [moods, setMoods] = useState([]); 
 
   const chartRef = useRef();
   const twoColRef = useRef();
@@ -591,6 +604,22 @@ export default function Reports() {
 
   useEffect(() => {
     storage.list().then(setHabits).catch(console.error);
+        const fetchMoods = async () => {
+      try {
+        const res = await fetch(`${API}/mood/?limit=365`, {
+          headers: authHeaders(),
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch moods: ${res.status}`);
+        }
+        const data = await res.json();
+        setMoods(data || []);
+      } catch (e) {
+        console.error("Failed to load moods for reports:", e);
+      }
+    };
+
+    fetchMoods();
   }, []);
 
   const period = usePeriod(periodMode, cursor);
@@ -624,7 +653,6 @@ export default function Reports() {
         return { name: h.name, category: h.category || "general", rate };
       })
       .sort((a, b) => b.rate - a.rate)
-      .slice(0, 5);
   }, [habits, period]);
 
   const categoryPct = useMemo(() => {
@@ -676,8 +704,6 @@ export default function Reports() {
     fadeIn([chartRef.current, ...twoColRef.current?.children]);
   }, [periodMode, cursor, chartType]);
 
-
-
   const getStreakMessage = () => {
     if (longestStreak >= 30) return "Epic streak! You're unstoppable!";
     if (longestStreak >= 14) return "Amazing consistency!";
@@ -686,465 +712,1122 @@ export default function Reports() {
   };
 
   const downloadPDF = async () => {
-    try {
-      const jsPDF = (await import("jspdf")).default;
+  try {
+    const jsPDF = (await import("jspdf")).default;
 
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 20;
-      const contentWidth = pageWidth - margin * 2;
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentWidth = pageWidth - margin * 2;
 
-      const accountName =
-        localStorage.getItem("bloomup@displayName") ||
-        localStorage.getItem("user@displayName") ||
-        localStorage.getItem("profile_name") ||
-        "BloomUp User";
+    const colors = {
+      primary: [126, 187, 143],       
+      primaryDark: [34, 94, 60],      
+      secondary: [203, 232, 213],    
+      accent: [234, 248, 239],        
+      text: [34, 55, 40],             
+      textLight: [86, 110, 92],       
+      textGray: [110, 110, 110],      
+      border: [195, 216, 202],        
+      white: [255, 255, 255],
+      gradient1: [126, 187, 143],     
+      gradient2: [168, 213, 186]
+    };
 
-      let y = margin;
-      let page = 1;
+    const resolveAccountName = () => {
+      const directKeys = [
+        "bloomup@fullName",
+        "bloomup@displayName",
+        "user_full_name",
+        "user@displayName",
+        "user_name",
+        "username",
+        "profile_name",
+        "name"
+      ];
+      for (const key of directKeys) {
+        const v = localStorage.getItem(key);
+        if (v && v.trim()) return v.trim();
+      }
 
-      // ---------- helpers (with spacing fixes) ----------
-      const addSectionHeader = (title, gapTop = true) => {
-        if (gapTop) y += 12;                
-        const barH = 10;
-        pdf.setFillColor(45, 95, 63);
-        pdf.rect(margin, y, contentWidth, barH, "F");
+      const jsonKeys = ["user", "bloomup@user", "auth_user"];
+      for (const key of jsonKeys) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          const obj = JSON.parse(raw);
+          const candidate =
+            obj.full_name ||
+            obj.name ||
+            obj.username ||
+            obj.displayName ||
+            obj.email;
+          if (candidate && String(candidate).trim())
+            return String(candidate).trim();
+        } catch {
+        }
+      }
+      return "BloomUp User";
+    };
 
-        pdf.setFontSize(12);
-        pdf.setFont(undefined, "bold");
-        pdf.setTextColor(255, 255, 255);
-        pdf.text(title, margin + 4, y + barH - 3); 
+    const accountName = resolveAccountName();
 
-        y += barH + 8;                       
-        pdf.setTextColor(60, 60, 60);      
-        pdf.setFont(undefined, "normal");
-      };
+    let y = margin;
+    let page = 1;
 
-      const addSubHeader = (title) => {
-        y += 2; 
-        pdf.setFontSize(11);
-        pdf.setFont(undefined, "bold");
-        pdf.setTextColor(45, 95, 63);
-        pdf.text(title, margin, y);
-        y += 6; 
-        pdf.setTextColor(60, 60, 60);
-        pdf.setFont(undefined, "normal");
-      };
+    const setColor = (c) => pdf.setTextColor(...c);
+    const setFillColor = (c) => pdf.setFillColor(...c);
+    const setDrawColor = (c) => pdf.setDrawColor(...c);
 
-      const addText = (text, size = 10, indent = 0) => {
-        pdf.setFontSize(size);
-        pdf.setFont(undefined, "normal");
-        pdf.setTextColor(60, 60, 60);
-        const lines = pdf.splitTextToSize(text, contentWidth - indent);
-        pdf.text(lines, margin + indent, y);
-        y += lines.length * 5 + 2;
-      };
+    const durationToMins = (raw) => {
+      if (typeof raw === "number") return raw;
+      if (typeof raw === "string") {
+        const lower = raw.toLowerCase().trim();
+        const mMatch = lower.match(/(\d+)\s*m/);
+        if (mMatch) return parseInt(mMatch[1], 10);
+        const hMatch = lower.match(/(\d+)\s*h/);
+        if (hMatch) return parseInt(hMatch[1], 10) * 60;
+        const num = parseInt(lower, 10);
+        if (!isNaN(num)) return num;
+      }
+      return 30;
+    };
 
-      const drawTable = (rows, colWidths) => {
-        pdf.setLineWidth(0.2);
-        pdf.setDrawColor(210, 210, 210);
-        pdf.setTextColor(60, 60, 60);
+    const formatFocusMinutes = (minutes) => {
+      if (!minutes || minutes <= 0) return "0 min";
+      const hrs = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      if (hrs === 0) return `${mins} min`;
+      if (mins === 0) return `${hrs} h`;
+      return `${hrs} h ${mins} min`;
+    };
 
-        const rowH = 8;
-        rows.forEach((row, rIdx) => {
-          let x = margin;
-          pdf.setFont(undefined, rIdx === 0 ? "bold" : "normal");
-          pdf.setFontSize(9);
+    const addSectionHeader = (title, gapTop = true) => {
+      if (gapTop) y += 15;
 
-          row.forEach((cell, i) => {
-            const w = colWidths[i];
-            const text = String(cell ?? "");
-            const lines = pdf.splitTextToSize(text, w - 4);
-            pdf.text(lines, x + 2, y + 4.8);
-            pdf.rect(x, y, w, rowH, "S");
-            x += w;
-          });
-          y += rowH;
-        });
+      const barH = 12;
 
-        y += 6;
-        pdf.setTextColor(60, 60, 60);
-        pdf.setFont(undefined, "normal");
-      };
+      setFillColor(colors.primary);
+      pdf.roundedRect(margin, y, contentWidth, barH, 2, 2, "F");
 
-      const nextPage = () => {
-        pdf.setFontSize(9);
-        pdf.setTextColor(120, 120, 120);
-        pdf.text(`Page ${page}`, pageWidth / 2, pageHeight - 10, { align: "center" });
-        page++;
-        pdf.addPage();
-        y = margin + 4; 
-      };
+      pdf.setFontSize(13);
+      pdf.setFont(undefined, "bold");
+      setColor(colors.white);
+      pdf.text(title, margin + 5, y + barH - 3.5);
 
-      const need = (h) => {
-        if (y + h > pageHeight - margin - 15) nextPage();
-      };
+      y += barH + 10;
+      setColor(colors.text);
+      pdf.setFont(undefined, "normal");
+    };
 
-      const lineChart = (data, title, h = 60) => {
-        need(h + 40);
+    const addSubHeader = (title) => {
+      y += 1;
+      pdf.setFontSize(11);
+      pdf.setFont(undefined, "bold");
+      setColor(colors.primaryDark);
+      pdf.text(title, margin, y);
+      y += 5;
+      setColor(colors.text);
+      pdf.setFont(undefined, "normal");
+    };
 
-        // Title
-        pdf.setFontSize(10);
-        pdf.setFont(undefined, "bold");
-        pdf.setTextColor(45, 95, 63);
-        pdf.text(title, margin, y);
-        y += 8;
+    const addText = (text, size = 10, indent = 0, lineHeight = 5.5) => {
+      pdf.setFontSize(size);
+      pdf.setFont(undefined, "normal");
+      setColor(colors.textLight);
+      const lines = pdf.splitTextToSize(text, contentWidth - indent);
+      pdf.text(lines, margin + indent, y);
+      y += lines.length * lineHeight + 3;
+    };
 
-        const w = contentWidth;
-        const y0 = y;
-        const y1 = y0 + h;
+    const drawTable = (rows, colUnits) => {
+      pdf.setLineWidth(0.3);
+      setDrawColor(colors.border);
 
-        pdf.setDrawColor(230, 230, 230);
-        pdf.setLineWidth(0.2);
-        pdf.setFontSize(7);
-        pdf.setTextColor(120, 120, 120);
-        for (let i = 0; i <= 4; i++) {
-          const gy = y0 + (i * h) / 4;
-          pdf.line(margin, gy, margin + w, gy);
-          pdf.text(`${100 - i * 25}%`, margin - 12, gy + 2);
+      const totalUnits = colUnits.reduce((a, b) => a + b, 0) || 1;
+      const colWidths = colUnits.map((u) => (u / totalUnits) * contentWidth);
+
+      const rowH = 9;
+      const headerH = 10;
+
+      rows.forEach((row, rIdx) => {
+        let x = margin;
+        const isHeader = rIdx === 0;
+        const currentRowH = isHeader ? headerH : rowH;
+
+        if (isHeader) {
+          setFillColor(colors.accent);
+          pdf.rect(margin, y, contentWidth, currentRowH, "F");
         }
 
-        pdf.setDrawColor(180, 180, 180);
-        pdf.line(margin, y0, margin, y1); 
-        pdf.line(margin, y1, margin + w, y1); 
+        if (!isHeader && rIdx % 2 === 0) {
+          setFillColor([244, 250, 246]);
+          pdf.rect(margin, y, contentWidth, currentRowH, "F");
+        }
 
-        pdf.setFontSize(10);
-        pdf.setFont(undefined);
-        pdf.setTextColor(60, 60, 60);
-        pdf.text("Y", margin + 0.5, y0 - 2);
-        pdf.text("X", margin + w + 4, y1 + 2);
+        pdf.setFont(undefined, isHeader ? "bold" : "normal");
+        pdf.setFontSize(isHeader ? 10 : 9);
+        setColor(isHeader ? colors.text : colors.textLight);
 
-        // Line data
-        pdf.setDrawColor(45, 95, 63);
-        pdf.setLineWidth(1);
+        row.forEach((cell, i) => {
+          const w = colWidths[i] ?? contentWidth / row.length;
+          const text = String(cell ?? "");
+          const lines = pdf.splitTextToSize(text, w - 4);
+
+          const numeric = !isNaN(text.replace("%", ""));
+          const align = i === 0 ? "left" : "center";
+
+          if (align === "center") {
+            pdf.text(lines, x + w / 2, y + 6, { align: "center" });
+          } else {
+            pdf.text(lines, x + 2, y + 6);
+          }
+
+          setDrawColor(colors.border);
+          pdf.rect(x, y, w, currentRowH, "S");
+          x += w;
+        });
+
+        y += currentRowH;
+      });
+
+      y += 12;
+      setColor(colors.text);
+      pdf.setFont(undefined, "normal");
+    };
+
+    const nextPage = () => {
+      pdf.setFontSize(9);
+      setColor(colors.textGray);
+      setDrawColor(colors.secondary);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+      pdf.text(`Page ${page}`, pageWidth / 2, pageHeight - 10, {
+        align: "center"
+      });
+      pdf.setFontSize(8);
+      pdf.text("BloomUp Habit Tracker", margin, pageHeight - 10);
+
+      page++;
+      pdf.addPage();
+      y = margin + 5;
+    };
+
+    const need = (h) => {
+      if (y + h > pageHeight - margin - 20) nextPage();
+    };
+
+    const lineChart = (
+      data,
+      title,
+      h = 70,
+      yLabel = "Completion Rate (%)",
+      xLabel = "Days"
+    ) => {
+      need(h + 50);
+
+      pdf.setFontSize(11);
+      pdf.setFont(undefined, "bold");
+      setColor(colors.primaryDark);
+      pdf.text(title, margin, y);
+      y += 10;
+
+      const w = contentWidth;
+      const y0 = y;
+      const y1 = y0 + h;
+
+      setFillColor(colors.accent);
+      pdf.rect(margin - 2, y0 - 2, w + 4, h + 4, "F");
+
+      setDrawColor(colors.secondary);
+      pdf.setLineWidth(0.25);
+      pdf.setFontSize(8);
+      setColor(colors.textGray);
+
+      for (let i = 0; i <= 4; i++) {
+        const gy = y0 + (i * h) / 4;
+        pdf.line(margin, gy, margin + w, gy);
+        pdf.text(`${100 - i * 25}%`, margin - 15, gy + 2);
+      }
+
+      setDrawColor(colors.primaryDark);
+      pdf.setLineWidth(0.6);
+      pdf.line(margin, y0, margin, y1);
+      pdf.line(margin, y1, margin + w, y1);
+
+      pdf.setFontSize(9);
+      pdf.setFont(undefined, "bold");
+      setColor(colors.text);
+      pdf.text(yLabel, margin - 18, y0 + h / 2, {
+        angle: 90,
+        align: "center"
+      });
+      pdf.text(xLabel, margin + w / 2, y1 + 12, { align: "center" });
+
+      if (data.length > 0) {
+        setDrawColor(colors.primary);
+        pdf.setLineWidth(0.8);
         const step = w / Math.max(data.length - 1, 1);
+        const maxRate = Math.max(...data.map((d) => d.rate));
+
         for (let i = 0; i < data.length - 1; i++) {
           const x1 = margin + i * step;
           const x2 = margin + (i + 1) * step;
           const p1 = y0 + h - (data[i].rate / 100) * h;
           const p2 = y0 + h - (data[i + 1].rate / 100) * h;
+
           pdf.line(x1, p1, x2, p2);
+
+          setFillColor(colors.primary);
           pdf.circle(x1, p1, 1, "F");
-        }
 
-        // last dot
-        if (data.length) {
-          const lx = margin + (data.length - 1) * step;
-          const ly = y0 + h - (data[data.length - 1].rate / 100) * h;
-          pdf.circle(lx, ly, 1.5, "F");
-        }
-
-        // X tick labels
-        pdf.setFontSize(8);
-        pdf.setTextColor(80, 80, 80);
-        const every = Math.max(1, Math.floor(data.length / 7));
-        data.forEach((d, i) => {
-          if (i % every === 0 || i === data.length - 1) {
-            const x = margin + i * step;
-            const label =
-              periodMode === "week"
-                ? d.dateObj.toLocaleDateString("en-US", { weekday: "short" })
-                : d.dateObj.getDate();
-            pdf.text(String(label), x, y1 + 6, { align: "center" });
+          if (data[i].rate === maxRate) {
+            setFillColor(colors.gradient1);
+            pdf.circle(x1, p1, 1.4, "F");
           }
-        });
-
-        // Axis titles
-        pdf.setFontSize(9);
-        pdf.setFont(undefined, "bold");
-        pdf.text("Days", margin + w / 2, y1 + 12, { align: "center" });
-        pdf.text("Y: Completion Rate (%)", margin - 18, y0 + h / 2, {
-          angle: 90,
-          align: "center",
-        });
-
-        y = y1 + 18;
-        addText(
-          "X-axis = days, Y-axis = daily completion rate (0–100%). Use this to check consistency.",
-          9
-        );
-      };
-
-      // bar chart (axes + custom explanation)
-      const barChart = (data, title, h = 45, expl) => {
-        need(h + 40);
-
-        // Title
-        pdf.setFontSize(10);
-        pdf.setFont(undefined, "bold");
-        pdf.setTextColor(45, 95, 63);
-        pdf.text(title, margin, y);
-        y += 8;
-
-        const y0 = y;
-        const y1 = y0 + h;
-        const barW = Math.min(15, contentWidth / (data.length * 1.5));
-        const step = contentWidth / Math.max(data.length, 1);
-
-        // Axes
-        pdf.setDrawColor(180, 180, 180);
-        pdf.setLineWidth(0.2);
-        pdf.line(margin, y0, margin, y1);
-        pdf.line(margin, y1, margin + contentWidth, y1); 
-
-        pdf.setFontSize(10);
-        pdf.setFont(undefined);
-        pdf.setTextColor(60, 60, 60);
-        pdf.text("Y", margin + 0.5, y0 - 2);
-        pdf.text("X", margin + contentWidth + 4, y1 + 2);
-
-        pdf.setFontSize(7);
-        pdf.setTextColor(120, 120, 120);
-        pdf.setDrawColor(230, 230, 230);
-        for (let i = 0; i <= 4; i++) {
-          const gy = y0 + (i * h) / 4;
-          const val = 100 - i * 25;
-          pdf.line(margin, gy, margin + contentWidth, gy);
-          pdf.text(`${val}%`, margin - 12, gy + 2);
         }
 
-        // Bars
-        data.forEach((it, i) => {
-          const hh = (it.value / 100) * h;
-          const x = margin + i * step + (step - barW) / 2;
-          const yy = y0 + h - hh;
+        const last = data[data.length - 1];
+        const lx = margin + (data.length - 1) * step;
+        const ly = y0 + h - (last.rate / 100) * h;
+        setFillColor(colors.primary);
+        pdf.circle(lx, ly, 1, "F");
+      }
 
-          pdf.setFillColor(126, 187, 143);
-          pdf.rect(x, yy, barW, hh, "F");
+      pdf.setFontSize(8);
+      setColor(colors.textGray);
+      const stepX = contentWidth / Math.max(data.length - 1, 1);
+      const every = Math.max(1, Math.floor(data.length / 8));
 
-          pdf.setFontSize(8);
-          pdf.setTextColor(60, 60, 60);
-          pdf.text(`${it.value}%`, x + barW / 2, yy - 2, { align: "center" });
-
+      data.forEach((d, i) => {
+        if (i % every === 0 || i === data.length - 1) {
+          const x = margin + i * stepX;
           const label =
-            (it.label || "").length > 10
-              ? it.label.slice(0, 9) + "…"
-              : it.label || "";
-          pdf.text(label, x + barW / 2, y1 + 5, { align: "center" });
-        });
+            periodMode === "week"
+              ? d.dateObj.toLocaleDateString("en-US", { weekday: "short" })
+              : d.dateObj.getDate();
+          pdf.text(String(label), x, y1 + 5, { align: "center" });
+        }
+      });
 
-        // Axis titles
-        pdf.setFontSize(9);
-        pdf.setFont(undefined, "bold");
-        pdf.text("Categories", margin + contentWidth / 2, y1 + 12, {
-          align: "center",
-        });
-        pdf.text("Y: Completion Rate (%)", margin - 18, y0 + h / 2, {
-          angle: 90,
-          align: "center",
-        });
+      y = y1 + 19;
+      addText(
+        "This chart visualizes your daily rate throughout the period. Look for patterns and consistency.",
+        9,
+        0,
+        5
+      );
+    };
 
-        y = y1 + 18;
-        addText(
-          expl ||
-            "X-axis = categories, Y-axis = completion rate per category (0–100%). This shows focus areas.",
-          9
-        );
-      };
-
-      // ========== COVER ==========
-      pdf.setDrawColor(45, 95, 63);
-      pdf.setLineWidth(2);
-      pdf.rect(margin - 5, margin - 5, contentWidth + 10, 60, "S");
-
-      pdf.setFontSize(24);
-      pdf.setFont(undefined, "bold");
-      pdf.setTextColor(45, 95, 63);
-      pdf.text("HABIT PERFORMANCE", pageWidth / 2, 35, { align: "center" });
-      pdf.text("ANALYSIS REPORT", pageWidth / 2, 47, { align: "center" });
+    const barChart = (
+      data,
+      title,
+      h = 55,
+      expl,
+      yLabel = "Completion Rate (%)",
+      xLabel = "Categories"
+    ) => {
+      need(h + 50);
 
       pdf.setFontSize(11);
-      pdf.setFont(undefined, "normal");
-      pdf.setTextColor(80, 80, 80);
-      const periodText =
-        periodMode === "week"
-          ? `Weekly Report: ${fmtLocal(period.start)} - ${fmtLocal(period.end)}`
-          : `Monthly Report: ${period.start.toLocaleDateString(undefined, { month: "long", year: "numeric" })}`;
-      pdf.text(periodText, margin, 62);
-      pdf.text(`Account: ${accountName}`, margin, 68);
-
-      // Executive summary box
-      y = 90;
-      pdf.setDrawColor(200, 200, 200);
-      pdf.setLineWidth(0.5);
-      pdf.rect(margin, y, contentWidth, 50, "S");
+      pdf.setFont(undefined, "bold");
+      setColor(colors.primaryDark);
+      pdf.text(title, margin, y);
       y += 10;
 
-      const summary = [
-        `Reporting Period: ${period.days.length} days (${fmtLocal(period.start)} to ${fmtLocal(period.end)})`,
-        `Total Habits Tracked: ${habits.length}`,
-        `Average Completion Rate: ${avgCompletion}%`,
-        `Best Streak: ${longestStreak} days`,
-        `Total Completions: ${dailyCompletion.reduce((s, d) => s + d.done, 0)}`,
-      ];
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, "normal");
-      pdf.setTextColor(60, 60, 60);
-      summary.forEach((t) => { pdf.text(t, margin + 5, y); y += 6; });
+      const y0 = y;
+      const y1 = y0 + h;
+      const barW = Math.min(18, contentWidth / (data.length * 1.8));
+      const step = contentWidth / Math.max(data.length, 1);
 
-      nextPage();
+      setFillColor(colors.accent);
+      pdf.rect(margin - 2, y0 - 2, contentWidth + 4, h + 4, "F");
 
-      // ========== PAGE 1: PERFORMANCE METRICS ==========
-      addSectionHeader("1. PERFORMANCE METRICS", false);
-
-      const changePct = (prevAvg && prevAvg > 0) ? Math.round(((avgCompletion - prevAvg) / prevAvg) * 100) : null;
-      const metrics = [
-        ["Metric", "Current Value", "Previous Period", "Change"],
-        ["Completion Rate", `${avgCompletion}%`, prevAvg ? `${prevAvg}%` : "N/A", changePct == null ? "N/A" : `${changePct >= 0 ? "+" : ""}${changePct}%`],
-        ["Total Habits", `${habits.length}`, "N/A", "N/A"],
-        ["No-Activity Days (0%)", `${dailyCompletion.filter((d) => d.rate === 0).length}`, "N/A", "N/A"],
-        ["Best Streak (days)", `${longestStreak}`, "N/A", "N/A"],
-      ];
-      drawTable(metrics, [70, 35, 35, 30]);
-
-      if (dailyCompletion.length) {
-        lineChart(dailyCompletion, periodMode === "week" ? "Daily Completion Trend (Week)" : "Daily Completion Trend (Month)", 60);
-      }
-
-      addSubHeader("Statistical Summary");
-      const rates = dailyCompletion.map((d) => d.rate);
-      const mean = avgCompletion;
-      const minR = rates.length ? Math.min(...rates) : 0;
-      const maxR = rates.length ? Math.max(...rates) : 0;
-      const variance = rates.reduce((s, r) => s + Math.pow(r - mean, 2), 0) / (rates.length || 1);
-      const stdDev = Math.sqrt(variance);
-      addText(
-        `In simple terms: your average daily completion this period was ${mean}%. Your lowest day was ${minR}% and your best day was ${maxR}%. Overall you ${stdDev < 20 ? "kept a steady rhythm" : "had some ups and downs"}.`,
-        9
-      );
-      addText(
-        periodMode === "week"
-          ? "What this tells you: pick one or two weak days from the chart and create a smaller version of your hardest habit for those days."
-          : "What this tells you: look for long flat lines near 0% and set a tiny daily floor (e.g., 1 minute) to reduce zero days.",
-        9
-      );
-
-      nextPage();
-
-      // ========== PAGE 2: HABIT & CATEGORY ==========
-      addSectionHeader("2. HABIT PERFORMANCE ANALYSIS", false);
-
-      const top = [...topHabits].slice(0, 10);
-      if (top.length) {
-        const t = [["Rank", "Habit Name", "Category", "Completion Rate"]];
-        top.forEach((h, i) => t.push([`${i + 1}`, h.name.length > 30 ? h.name.slice(0, 27) + "..." : h.name, h.category, `${h.rate}%`]));
-        drawTable(t, [20, 80, 40, 30]);
-      } else {
-        addText("No habit data available for analysis.");
-      }
-
-      y += 2;
-      addSectionHeader("3. CATEGORY DISTRIBUTION");
-      const activeCats = categoryPct.filter((c) => c.rate > 0).sort((a, b) => b.rate - a.rate);
-      if (activeCats.length) {
-        const catTable = [["Category", "Completion Rate", "Number of Habits"]];
-        activeCats.forEach((c) => {
-          const label = c.label.charAt(0).toUpperCase() + c.label.slice(1);
-          const num = habits.filter((h) => (h.category || "general").toLowerCase() === c.label).length;
-          catTable.push([label, `${c.rate}%`, `${num}`]);
-        });
-        drawTable(catTable, [60, 35, 35]);
-
-        const catChartData = activeCats.map((c) => ({ label: c.label.charAt(0).toUpperCase() + c.label.slice(1), value: c.rate }));
-        barChart(
-          catChartData,
-          "Category Completion Rates",
-          45,
-          "X-axis = categories, Y-axis = completion rate for each category (0–100%). This shows where you focused most."
-        );
-      } else {
-        addText("No category data available for analysis.");
-      }
-
-      nextPage();
-
-      // ========== PAGE 3: BEHAVIOR ==========
-      addSectionHeader("4. BEHAVIORAL PATTERNS", false);
-
-      // 4.1 Day-of-week pattern
-      addSubHeader("4.1 Weekly Pattern Analysis");
-      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-      const bucket = {};
-      dailyCompletion.forEach((d) => {
-        const k = d.dateObj.getDay();
-        bucket[k] = bucket[k] || { sum: 0, n: 0 };
-        bucket[k].sum += d.rate; bucket[k].n += 1;
-      });
-      const dow = Object.keys(bucket)
-        .map((k) => ({ i: +k, name: dayNames[+k], avg: Math.round(bucket[k].sum / bucket[k].n) }))
-        .sort((a, b) => a.i - b.i);
-
-      if (dow.length) {
-        const t2 = [["Day of Week", "Average Rate"]];
-        dow.forEach((d) => t2.push([d.name, `${d.avg}%`]));
-        drawTable(t2, [80, 80]);
-
-        const dowChart = dow.map((d) => ({ label: d.name.slice(0, 3), value: d.avg }));
-        barChart(
-          dowChart,
-          "Completion Rate by Day of Week",
-          45,
-          "X-axis = days of week (Sun–Sat), Y-axis = average completion for those days (0–100%). This shows strong and weak weekdays."
-        );
-      }
-
-      // 4.2 Consistency
-      addSubHeader("4.2 Consistency Overview");
-      addText("Quick take: aim for fewer 0% days and a steadier middle-to-high range. If one weekday is always low, try an easier version of your habits on that day.", 9);
-
-      // 4.3 Trend vs previous period (week-to-week or month-to-month)
-      addSubHeader("4.3 Trend Analysis (Compared with Last Period)");
-      const delta = prevAvg == null ? null : Math.round(avgCompletion - prevAvg);
-      addText(
-        prevAvg == null
-          ? "There’s no previous period stored yet, so we can’t compare."
-          : delta > 0
-          ? `Improved by ${delta}% compared with the previous period — nice progress!`
-          : delta < 0
-          ? `Decreased by ${Math.abs(delta)}% compared with the previous period — review what changed and adjust.`
-          : "Same as the previous period — stable performance.",
-        9
-      );
-
-      nextPage();
-
-      // ========== PAGE 4: CONCLUSION ==========
-      addSectionHeader("5. CONCLUSION", false);
-      const conclusion =
-        avgCompletion >= 70
-          ? `Strong overall performance at ${avgCompletion}%. Keep your current approach and watch for small dips.`
-          : avgCompletion >= 40
-          ? `Moderate performance at ${avgCompletion}%. A few small changes can lift your average — keep building steady days.`
-          : `Current performance is ${avgCompletion}%. Focus on showing up daily and keeping habits small and simple to rebuild momentum.`;
-      addText(conclusion);
-
-      y += 6;
-      // addSubHeader("Report Metadata");
-      const meta = [
-        `Report Type: ${periodMode === "week" ? "Weekly" : "Monthly"} Performance Analysis`,
-        `Reporting Period: ${fmtLocal(period.start)} to ${fmtLocal(period.end)} (${period.days.length} days)`,
-        `Report Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
-        `Account: ${accountName}`,
-      ];
-
-      const metaHeight = meta.length * 4 + 2;
-      y = pageHeight - margin - metaHeight;
+      setDrawColor(colors.secondary);
+      pdf.setLineWidth(0.25);
       pdf.setFontSize(8);
-      pdf.setTextColor(120, 120, 120);
-      meta.forEach((m) => { pdf.text(m, margin, y); y += 4; });
+      setColor(colors.textGray);
+
+      for (let i = 0; i <= 4; i++) {
+        const gy = y0 + (i * h) / 4;
+        const val = 100 - i * 25;
+        pdf.line(margin, gy, margin + contentWidth, gy);
+        pdf.text(`${val}%`, margin - 15, gy + 2);
+      }
+
+      setDrawColor(colors.primaryDark);
+      pdf.setLineWidth(0.6);
+      pdf.line(margin, y0, margin, y1);
+      pdf.line(margin, y1, margin + contentWidth, y1);
+
+      const maxVal = data.length ? Math.max(...data.map((d) => d.value)) : 0;
+
+      data.forEach((it, i) => {
+        const hh = (it.value / 100) * h;
+        const x = margin + i * step + (step - barW) / 2;
+        const yy = y0 + h - hh;
+
+        let barColor = colors.primary;
+        if (it.value === maxVal) {
+          barColor = [27, 128, 75]; 
+        }
+
+        setFillColor(barColor);
+        pdf.roundedRect(x, yy, barW, hh, 1.5, 1.5, "F");
+
+        pdf.setFontSize(8);
+        pdf.setFont(undefined, "bold");
+        setColor(colors.primaryDark);
+        pdf.text(`${it.value}%`, x + barW / 2, yy - 2, { align: "center" });
+
+        pdf.setFont(undefined, "normal");
+        setColor(colors.textGray);
+        const label =
+          (it.label || "").length > 12
+            ? it.label.slice(0, 10) + "…"
+            : it.label || "";
+        pdf.text(label, x + barW / 2, y1 + 5, { align: "center" });
+      });
 
       pdf.setFontSize(9);
-      pdf.setTextColor(120, 120, 120);
-      pdf.text(`Page ${page}`, pageWidth / 2, pageHeight - 10, { align: "center" });
+      pdf.setFont(undefined, "bold");
+      setColor(colors.text);
+      pdf.text(xLabel, margin + contentWidth / 2, y1 + 12, {
+        align: "center"
+      });
+      pdf.text(yLabel, margin - 18, y0 + h / 2, {
+        angle: 90,
+        align: "center"
+      });
 
-      const fileName = `Habit-Performance-Report-${periodMode === "week" ? "Weekly" : "Monthly"}-${fmtLocal(new Date())}.pdf`;
-      pdf.save(fileName);
-    } catch (e) {
-      console.error("PDF export failed:", e);
-      alert("Failed to generate PDF. Please try again.");
+      y = y1 + 20;
+      addText(
+        expl ||
+          "This chart shows your performance distribution for the selected dimension.",
+        9,
+        0,
+        5
+      );
+    };
+
+    // ===== cover page =====
+    setFillColor(colors.accent);
+    pdf.roundedRect(margin - 5, margin - 5, contentWidth + 10, 70, 3, 3, "F");
+
+    setDrawColor(colors.primary);
+    pdf.setLineWidth(2);
+    pdf.roundedRect(margin - 5, margin - 5, contentWidth + 10, 70, 3, 3, "S");
+
+    pdf.setFontSize(28);
+    pdf.setFont(undefined, "bold");
+    setColor(colors.primaryDark);
+    pdf.text("HABIT PERFORMANCE", pageWidth / 2, 38, { align: "center" });
+    pdf.text("ANALYSIS REPORT", pageWidth / 2, 52, { align: "center" });
+
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, "normal");
+    setColor(colors.textLight);
+    const periodText =
+      periodMode === "week"
+        ? `Weekly Report: ${fmtLocal(period.start)} – ${fmtLocal(
+            period.end
+          )}`
+        : `Monthly Report: ${period.start.toLocaleDateString(undefined, {
+            month: "long",
+            year: "numeric"
+          })}`;
+    pdf.text(periodText, pageWidth / 2, 66, { align: "center" });
+
+    y = 100;
+    pdf.setFontSize(11);
+    setColor(colors.text);
+    pdf.text(`Account: ${accountName}`, margin, y);
+    pdf.text(`Generated: ${new Date().toLocaleDateString()}`, margin, y + 6);
+
+    // ===== executive summary =====
+    y = 125;
+    setFillColor([250, 252, 255]);
+    pdf.roundedRect(margin, y, contentWidth, 60, 2, 2, "F");
+    setDrawColor(colors.border);
+    pdf.setLineWidth(0.5);
+    pdf.roundedRect(margin, y, contentWidth, 60, 2, 2, "S");
+
+    y += 8;
+    pdf.setFontSize(13);
+    pdf.setFont(undefined, "bold");
+    setColor(colors.primaryDark);
+    pdf.text("Executive Summary", margin + 5, y);
+
+    const totalCompletions = dailyCompletion.reduce(
+      (s, d) => s + d.done,
+      0
+    );
+
+    y += 10;
+    const summary = [
+      `Reporting Period: ${period.days.length} days (${fmtLocal(
+        period.start
+      )} to ${fmtLocal(period.end)})`,
+      `Total Habits Tracked: ${habits.length}`,
+      `Average Completion Rate: ${avgCompletion}%`,
+      `Best Streak: ${longestStreak} days`,
+      `Total Completions: ${totalCompletions}`
+    ];
+
+    pdf.setFontSize(10);
+    pdf.setFont(undefined, "normal");
+    setColor(colors.textLight);
+    summary.forEach((t) => {
+      pdf.text("• " + t, margin + 8, y);
+      y += 7;
+    });
+
+    nextPage();
+
+    // ===== performance metrics =====
+    const habitHasActivityInPeriod = (habit, periodObj) =>
+      periodObj?.days?.some((d) => doneOnDay(habit, d));
+
+    const buildPeriodMetrics = (periodObj) => {
+      if (!periodObj || !periodObj.days?.length) return null;
+
+      const daily = periodObj.days.map((d) => {
+        const done = countDoneOnDay(habits, d);
+        const rate = pct(done, habits.length || 1);
+        return { dateObj: d, key: fmtLocal(d), done, rate };
+      });
+
+      const avg =
+        daily.length > 0
+          ? Math.round(
+              daily.reduce((s, d) => s + d.rate, 0) / daily.length
+            )
+          : null;
+
+      const noActivityDays = daily.filter((d) => d.rate === 0).length;
+      const totalHabitsActive = habits.filter((h) =>
+        habitHasActivityInPeriod(h, periodObj)
+      ).length;
+
+      const bestStreak = habits.reduce((max, h) => {
+        const keys = allDoneKeys(h).filter((k) => {
+          const dt = new Date(k + "T00:00:00");
+          return dt >= periodObj.start && dt <= periodObj.end;
+        });
+        if (!keys.length) return max;
+
+        let best = 1;
+        let cur = 1;
+        for (let i = 1; i < keys.length; i++) {
+          const prevD = new Date(keys[i - 1] + "T00:00:00");
+          const currD = new Date(keys[i] + "T00:00:00");
+          const delta = (currD - prevD) / (1000 * 60 * 60 * 24);
+          if (delta === 1) cur += 1;
+          else if (delta > 1) cur = 1;
+          best = Math.max(best, cur);
+        }
+        return Math.max(max, best);
+      }, 0);
+
+      return { daily, avg, noActivityDays, totalHabitsActive, bestStreak };
+    };
+
+    const currentMetrics = buildPeriodMetrics(period);
+
+    let prevPeriod = null;
+    if (periodMode === "week") {
+      const prevStart = addDays(period.start, -7);
+      const prevEnd = addDays(prevStart, 6);
+      const prevDays = Array.from({ length: 7 }, (_, i) =>
+        addDays(prevStart, i)
+      );
+      prevPeriod = { start: prevStart, end: prevEnd, days: prevDays };
+    } else {
+      const prevMonthDate = new Date(
+        period.start.getFullYear(),
+        period.start.getMonth() - 1,
+        1
+      );
+      const prevStart = startOfMonth(prevMonthDate);
+      const prevEnd = new Date(
+        prevMonthDate.getFullYear(),
+        prevMonthDate.getMonth() + 1,
+        0
+      );
+      const totalPrev = prevEnd.getDate();
+      const prevDays = Array.from({ length: totalPrev }, (_, i) =>
+        addDays(prevStart, i)
+      );
+      prevPeriod = { start: prevStart, end: prevEnd, days: prevDays };
     }
+
+    const prevMetrics = buildPeriodMetrics(prevPeriod);
+
+    addSectionHeader("1. PERFORMANCE METRICS", false);
+
+    const currAvg = avgCompletion;
+    const currTotalHabits =
+      currentMetrics?.totalHabitsActive ?? habits.length;
+    const currNoActivity =
+      currentMetrics?.noActivityDays ??
+      dailyCompletion.filter((d) => d.rate === 0).length;
+    const currBestStreak = currentMetrics?.bestStreak ?? longestStreak;
+
+    const prevAvgMetric = prevMetrics?.avg ?? null;
+    const prevTotalHabits = prevMetrics?.totalHabitsActive ?? null;
+    const prevNoActivity = prevMetrics?.noActivityDays ?? null;
+    const prevBestStreak = prevMetrics?.bestStreak ?? null;
+
+    const pctChange = (curr, prev) => {
+      if (prev == null || prev === 0) return "—";
+      const deltaPct = Math.round(((curr - prev) / prev) * 100);
+      return `${Math.abs(deltaPct)}%`;
+    };
+
+    const metrics = [
+      ["Metric", "Current", "Previous", "Change"],
+      [
+        "Completion Rate",
+        `${currAvg}%`,
+        prevAvgMetric != null ? `${prevAvgMetric}%` : "—",
+        pctChange(currAvg, prevAvgMetric)
+      ],
+      [
+        "Active Habits",
+        `${currTotalHabits}`,
+        prevTotalHabits != null ? `${prevTotalHabits}` : "—",
+        pctChange(currTotalHabits, prevTotalHabits)
+      ],
+      [
+        "Zero Days",
+        `${currNoActivity}`,
+        prevNoActivity != null ? `${prevNoActivity}` : "—",
+        pctChange(currNoActivity, prevNoActivity)
+      ],
+      [
+        "Best Streak",
+        `${currBestStreak}`,
+        prevBestStreak != null ? `${prevBestStreak}` : "—",
+        pctChange(currBestStreak, prevBestStreak)
+      ]
+    ];
+    drawTable(metrics, [65, 35, 35, 35]);
+
+    if (dailyCompletion.length) {
+      lineChart(
+        dailyCompletion,
+        periodMode === "week"
+          ? "Daily Completion Trend (Weekly)"
+          : "Daily Completion Trend (Monthly)",
+        70,
+        "Completion Rate (%)",
+        periodMode === "week" ? "Day of Week" : "Day of Month"
+      );
+    }
+
+    addSubHeader("Statistical Insights");
+    const rates = dailyCompletion.map((d) => d.rate);
+    const mean = avgCompletion;
+    const minR = rates.length ? Math.min(...rates) : 0;
+    const maxR = rates.length ? Math.max(...rates) : 0;
+    const variance =
+      rates.reduce((s, r) => s + Math.pow(r - mean, 2), 0) /
+      (rates.length || 1);
+    const stdDev = Math.sqrt(variance);
+
+    addText(
+      `Your average completion rate was ${mean}%, with a range from ${minR}% (lowest) to ${maxR}% (highest). ` +
+        (stdDev < 20
+          ? "You maintained good consistency throughout the period."
+          : "There is room to improve consistency. Consider setting smaller daily goals."),
+      9,
+      0,
+      5.5
+    );
+
+    nextPage();
+
+    // ===== habit performance =====
+    addSectionHeader("2. HABIT PERFORMANCE ANALYSIS", false);
+
+    const top = [...topHabits].slice(0, 10);
+    if (top.length) {
+      const t = [["Rank", "Habit Name", "Category", "Rate"]];
+
+      top.forEach((h, i) => {
+        const rank = `${i + 1}`;
+        t.push([
+          rank,
+          h.name.length > 35 ? h.name.slice(0, 32) + "..." : h.name,
+          h.category,
+          `${h.rate}%`
+        ]);
+      });
+      drawTable(t, [18, 80, 42, 30]);
+    } else {
+      addText("No habit data available for this period.", 10);
+    }
+
+    nextPage();
+
+    // ===== category distribution =====
+    addSectionHeader("3. CATEGORY DISTRIBUTION");
+
+    const activeCats = categoryPct
+      .filter((c) => c.rate > 0)
+      .sort((a, b) => b.rate - a.rate);
+
+    if (activeCats.length) {
+      const catTable = [["Category", "Completion", "Habits"]];
+      activeCats.forEach((c) => {
+        const label = c.label.charAt(0).toUpperCase() + c.label.slice(1);
+        const num = habits.filter(
+          (h) => (h.category || "general").toLowerCase() === c.label
+        ).length;
+        catTable.push([label, `${c.rate}%`, `${num}`]);
+      });
+      drawTable(catTable, [80, 40, 40]);
+
+      const catChartData = activeCats.map((c) => ({
+        label: c.label.charAt(0).toUpperCase() + c.label.slice(1),
+        value: c.rate
+      }));
+      barChart(
+        catChartData,
+        "Category Performance Comparison",
+        55,
+        "This chart shows your performance across different habit categories.",
+        "Completion Rate (%)",
+        "Category"
+      );
+    } else {
+      addText("No category data available.", 10);
+    }
+
+    nextPage();
+
+    // ===== behavioural patterns =====
+    addSectionHeader("4. BEHAVIORAL PATTERNS", false);
+
+    addSubHeader("Weekly Pattern Analysis");
+    const dayNames = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday"
+    ];
+    const bucket = {};
+    dailyCompletion.forEach((d) => {
+      const k = d.dateObj.getDay();
+      bucket[k] = bucket[k] || { sum: 0, n: 0 };
+      bucket[k].sum += d.rate;
+      bucket[k].n += 1;
+    });
+
+    const dow = Object.keys(bucket)
+      .map((k) => ({
+        i: +k,
+        name: dayNames[+k],
+        avg: Math.round(bucket[k].sum / bucket[k].n)
+      }))
+      .sort((a, b) => a.i - b.i);
+
+    if (dow.length) {
+      const t2 = [["Day of Week", "Avg Rate"]];
+      dow.forEach((d) => t2.push([d.name, `${d.avg}%`]));
+      drawTable(t2, [100, 60]);
+
+      const dowChart = dow.map((d) => ({
+        label: d.name.slice(0, 3),
+        value: d.avg
+      }));
+      barChart(
+        dowChart,
+        "Performance by Day of Week",
+        55,
+        "This chart shows your performance by day of week.",
+        "Completion Rate (%)",
+        "Day of Week"
+      );
+    }
+
+    addSubHeader("Consistency Insights");
+    addText(
+      "Aim for steady performance across all days. If certain weekdays show lower completion rates, consider adapting your habits for those days—make them smaller or schedule them at different times.",
+      9,
+      0,
+      5.5
+    );
+
+    addSubHeader("Period-over-Period Trend");
+    const trendPrevAvg = prevAvgMetric;
+    const delta = trendPrevAvg == null ? null : Math.round(currAvg - trendPrevAvg);
+
+    addText(
+      trendPrevAvg == null
+        ? "No previous period data available for comparison."
+        : delta > 0
+        ? `Performance improved by ${delta}% compared to the previous period. Maintain the practices that support this result.`
+        : delta < 0
+        ? `Performance decreased by ${Math.abs(
+            delta
+          )}% from the previous period. Review what changed and adjust your habits accordingly.`
+        : "Performance is stable compared to the previous period.",
+      9,
+      0,
+      5.5
+    );
+
+    nextPage();
+
+    // ===== mood analysis =====
+    addSectionHeader("5. MOOD ANALYSIS", false);
+
+    const moodsInPeriod = (moods || []).filter((m) => {
+      const d = atMidnight(new Date(m.logged_on));
+      return d >= period.start && d <= period.end;
+    });
+
+    if (!moodsInPeriod.length) {
+      addText(
+        "No mood entries recorded in this period. Start logging your daily mood to discover patterns between your emotional state and habit performance.",
+        9,
+        0,
+        5.5
+      );
+    } else {
+      const scores = moodsInPeriod.map((m) => m.mood_score || 0);
+      const totalEntries = scores.length;
+      const avgMood = scores.reduce((s, v) => s + v, 0) / totalEntries;
+      const minMood = Math.min(...scores);
+      const maxMood = Math.max(...scores);
+      const positiveEntries = moodsInPeriod.filter(
+        (m) => m.mood_score >= 3
+      ).length;
+      const positiveEntriesPct = Math.round(
+        (positiveEntries / totalEntries) * 100
+      );
+
+      const moodSummaryRows = [
+        ["Metric", "Value"],
+        ["Total Entries", `${totalEntries}`],
+        ["Average Mood", `${avgMood.toFixed(1)}/5`],
+        ["Highest Mood", `${maxMood}/5`],
+        ["Lowest Mood", `${minMood}/5`],
+        ["Positive Days (>=3)", `${positiveEntriesPct}%`]
+      ];
+      drawTable(moodSummaryRows, [90, 70]);
+
+      const moodByDayMap = {};
+      moodsInPeriod.forEach((m) => {
+        const key = fmtLocal(new Date(m.logged_on));
+        if (!moodByDayMap[key]) moodByDayMap[key] = [];
+        moodByDayMap[key].push(m.mood_score || 0);
+      });
+
+      const moodDailySeries = period.days.map((d) => {
+        const key = fmtLocal(d);
+        const arr = moodByDayMap[key] || [];
+        const avg = arr.length
+          ? arr.reduce((s, v) => s + v, 0) / arr.length
+          : 0;
+        return { dateObj: d, key, score: avg };
+      });
+
+      const moodLineData = moodDailySeries.map((d) => ({
+        dateObj: d.dateObj,
+        key: d.key,
+        rate: d.score * 20
+      }));
+
+      if (moodLineData.length) {
+        lineChart(
+          moodLineData,
+          "Daily Mood Trend (1–5 scale, scaled to %)",
+          70,
+          "Mood Score (scaled to %)",
+          periodMode === "week" ? "Day of Week" : "Day of Month"
+        );
+        addText(
+          "Mood scores (1–5) are scaled to percentages for visualization (1=0%, 3=60%, 5=100%). Compare this with your habit completion to identify correlations.",
+          8,
+          0,
+          5
+        );
+      }
+
+      const labels = {
+        1: "Very Low",
+        2: "Low",
+        3: "Neutral",
+        4: "Good",
+        5: "Great"
+      };
+      const distCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      scores.forEach((s) => {
+        distCounts[s] = (distCounts[s] || 0) + 1;
+      });
+
+      const distRows = [["Score", "Label", "Count", "Share"]];
+      [1, 2, 3, 4, 5].forEach((score) => {
+        const c = distCounts[score] || 0;
+        if (!c) return;
+        const share = Math.round((c / totalEntries) * 100);
+        distRows.push([`${score}`, labels[score], `${c}`, `${share}%`]);
+      });
+
+      if (distRows.length > 1) {
+        drawTable(distRows, [30, 50, 30, 30]);
+      }
+
+      addText(
+        avgMood >= 4
+          ? "Overall mood is positive and likely supports your habit performance."
+          : avgMood >= 3
+          ? "Mood is generally balanced. Continue monitoring for patterns that affect your habits."
+          : "Consider incorporating mood-supporting activities on lower days. Small, consistent actions can improve both mood and habit completion.",
+        9,
+        0,
+        5.5
+      );
+    }
+
+    nextPage();
+
+    // ===== 6. FOCUS TIME (BASED ON HABIT DURATION) – NEW SECTION =====
+    addSectionHeader("6. FOCUS TIME (BASED ON HABIT DURATION)", false);
+
+    const focusDaily = period.days.map((d) => {
+      let totalMinutes = 0;
+      habits.forEach((h) => {
+        if (!h || h.duration == null) return;
+        if (doneOnDay(h, d)) {
+          totalMinutes += durationToMins(h.duration);
+        }
+      });
+      return { dateObj: d, key: fmtLocal(d), totalMinutes };
+    });
+
+    const totalFocusMinutes = focusDaily.reduce(
+      (s, d) => s + d.totalMinutes,
+      0
+    );
+    const activeFocusDays = focusDaily.filter((d) => d.totalMinutes > 0);
+
+    if (!totalFocusMinutes) {
+      addText(
+        "No completed habits with durations were found in this period. Add an estimated duration (for example 25 minutes) to your habits and mark them as done to see focus-time analytics here.",
+        9,
+        0,
+        5.5
+      );
+    } else {
+      const avgPerCalendarDay = Math.round(
+        totalFocusMinutes / (period.days.length || 1)
+      );
+      const avgPerActiveDay = Math.round(
+        totalFocusMinutes / (activeFocusDays.length || 1)
+      );
+      const zeroFocusDays = period.days.length - activeFocusDays.length;
+
+      const mostFocused = activeFocusDays.reduce(
+        (max, d) => (d.totalMinutes > max.totalMinutes ? d : max),
+        activeFocusDays[0]
+      );
+      const leastFocused = activeFocusDays.reduce(
+        (min, d) => (d.totalMinutes < min.totalMinutes ? d : min),
+        activeFocusDays[0]
+      );
+
+      const formatDayLabel = (dateObj) =>
+        periodMode === "week"
+          ? dateObj.toLocaleDateString("en-US", { weekday: "long" })
+          : dateObj.toLocaleDateString(undefined, {
+              day: "numeric",
+              month: "short"
+            });
+
+      const focusSummaryRows = [
+        ["Metric", "Value"],
+        [
+          "Total Focus Time (completed habits)",
+          formatFocusMinutes(totalFocusMinutes)
+        ],
+        [
+          "Average Focus per Day (all days)",
+          formatFocusMinutes(avgPerCalendarDay)
+        ],
+        [
+          "Average Focus on Active Days",
+          formatFocusMinutes(avgPerActiveDay)
+        ],
+        [
+          "Most Focused Day",
+          `${formatDayLabel(mostFocused.dateObj)} • ${formatFocusMinutes(
+            mostFocused.totalMinutes
+          )}`
+        ],
+        [
+          "Least Focused Active Day",
+          `${formatDayLabel(
+            leastFocused.dateObj
+          )} • ${formatFocusMinutes(leastFocused.totalMinutes)}`
+        ],
+        ["Days without Focus Time", `${zeroFocusDays}`]
+      ];
+      drawTable(focusSummaryRows, [65, 55]);
+
+      addSubHeader("How to Use This");
+      addText(
+        "Focus time is estimated from the durations attached to your habits. If completion is high but focus time is low, your habits are very short—consider increasing durations for important work. If focus time is high but completion drops, shorten sessions slightly to keep them sustainable.",
+        9,
+        0,
+        5.5
+      );
+    }
+
+    nextPage();
+
+    // ===== conclusion =====
+    addSectionHeader("7. CONCLUSION & RECOMMENDATIONS", false);
+
+    addSubHeader("Overall Performance");
+    const conclusion =
+      avgCompletion >= 80
+        ? `Performance at ${avgCompletion}% indicates excellent consistency and dedication to your habits. Maintain this level and consider gradually introducing more challenging goals.`
+        : avgCompletion >= 60
+        ? `Performance at ${avgCompletion}% shows that you are building strong habits. Focus on maintaining this level while improving weaker days.`
+        : avgCompletion >= 40
+        ? `Performance at ${avgCompletion}% suggests that your habits are developing but not yet stable. Identify what works on your best days and replicate those conditions more often.`
+        : `Current performance is ${avgCompletion}%. Focus on building a foundation with smaller, more achievable habits and aim for daily completion, even with minimal effort.`;
+    addText(conclusion, 10, 0, 6);
+
+    addSubHeader("Key Insights");
+    const insights = [];
+
+    if (longestStreak >= 14) {
+      insights.push(
+        `• Your longest streak of ${longestStreak} days reflects strong commitment. Protect this momentum.`
+      );
+    } else if (longestStreak >= 7) {
+      insights.push(
+        "• You have established a week-long streak. Aim to extend this towards a two-week period."
+      );
+    } else {
+      insights.push(
+        "• Building a 7-day streak should be a priority. Consistency is more important than intensity."
+      );
+    }
+
+    if (currNoActivity > period.days.length * 0.3) {
+      insights.push(
+        "• There are many days with no completions. Consider setting a minimum goal of at least one habit per day."
+      );
+    }
+
+    if (dow.length) {
+      const bestDay = dow.reduce(
+        (max, d) => (d.avg > max.avg ? d : max),
+        dow[0]
+      );
+      const worstDay = dow.reduce(
+        (min, d) => (d.avg < min.avg ? d : min),
+        dow[0]
+      );
+      if (bestDay && worstDay && bestDay.avg - worstDay.avg > 30) {
+        insights.push(
+          `• There is a large gap between ${bestDay.name} (${bestDay.avg}%) and ${worstDay.name} (${worstDay.avg}%). Consider simplifying or rescheduling habits on ${worstDay.name}.`
+        );
+      }
+    }
+
+    if (activeCats.length > 0) {
+      const topCat = activeCats[0];
+      const label =
+        topCat.label.charAt(0).toUpperCase() + topCat.label.slice(1);
+      insights.push(
+        `• Strongest category: ${label} (${topCat.rate}%). Techniques that work in this area may be transferable to other categories.`
+      );
+    }
+
+    y += 3;
+    pdf.setFontSize(9);
+    setColor(colors.textLight);
+    insights.forEach((insight) => {
+      const lines = pdf.splitTextToSize(insight, contentWidth - 5);
+      pdf.text(lines, margin + 3, y);
+      y += lines.length * 5.5 + 2;
+    });
+
+    addSubHeader("Recommended Action Items");
+    const actions = [
+      "1. Review the lowest-performing days and identify specific obstacles or time conflicts.",
+      "2. For habits with completion rates below 50%, reduce difficulty or duration to make them more achievable.",
+      "3. Set a daily minimum target: complete at least one habit each day without exception.",
+      "4. Log mood regularly to understand how emotional state affects habit performance.",
+      "5. Acknowledge progress regularly to maintain motivation and momentum."
+    ];
+
+    y += 3;
+    pdf.setFontSize(9);
+    setColor(colors.textLight);
+    actions.forEach((action) => {
+      const lines = pdf.splitTextToSize(action, contentWidth - 5);
+      pdf.text(lines, margin + 3, y);
+      y += lines.length * 5.5 + 2;
+    });
+
+    y = pageHeight - margin - 35;
+    setDrawColor(colors.secondary);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, y, pageWidth - margin, y);
+
+    y += 8;
+    pdf.setFontSize(9);
+    pdf.setFont(undefined, "normal");
+    setColor(colors.textGray);
+
+    const meta = [
+      `Report Type: ${
+        periodMode === "week" ? "Weekly" : "Monthly"
+      } Performance Analysis`,
+      `Period: ${fmtLocal(period.start)} to ${fmtLocal(
+        period.end
+      )} (${period.days.length} days)`,
+      `Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+      `Account: ${accountName}`
+    ];
+
+    meta.forEach((m) => {
+      pdf.text(m, margin, y);
+      y += 5;
+    });
+
+    setDrawColor(colors.secondary);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+
+    pdf.setFontSize(9);
+    setColor(colors.textGray);
+    pdf.text(`Page ${page}`, pageWidth / 2, pageHeight - 10, {
+      align: "center"
+    });
+    pdf.text("BloomUp Habit Tracker", margin, pageHeight - 10);
+
+    const fileName = `BloomUp-${
+      periodMode === "week" ? "Weekly" : "Monthly"
+    }-Report-${fmtLocal(period.start)}.pdf`;
+    pdf.save(fileName);
+  } catch (e) {
+    console.error("PDF export failed:", e);
+    alert("Failed to generate PDF report. Please try again.");
+  }
   };
+
 
   return (
     <div className="reports-root" ref={reportRef}>
@@ -1227,8 +1910,6 @@ export default function Reports() {
             </button>
           </div>
         </header>
-
-        {/* <p className="rp-motto">{getMotivationalMessage()}</p> */}
 
         {/* KPI Cards */}
         <div className="rp-kpi">
