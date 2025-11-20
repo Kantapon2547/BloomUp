@@ -595,7 +595,7 @@ export default function Reports() {
   const [periodMode, setPeriodMode] = useState("week");
   const [cursor, setCursor] = useState(new Date());
   const [chartType, setChartType] = useState("bar");
-  const [prevAvg, setPrevAvg] = useState(null);
+  // const [prevAvg, setPrevAvg] = useState(null);
   const [moods, setMoods] = useState([]); 
 
   const chartRef = useRef();
@@ -637,6 +637,48 @@ export default function Reports() {
     const sum = dailyCompletion.reduce((a, b) => a + b.rate, 0);
     return Math.round(sum / (dailyCompletion.length || 1));
   }, [dailyCompletion]);
+
+    // Average completion for the *previous* period (for comparison badge)
+  const prevAvg = useMemo(() => {
+    if (!period?.start || !period?.days?.length || !habits.length) return null;
+
+    let prevStart, prevEnd, prevDays;
+
+    if (periodMode === "week") {
+      // previous week: 7 days before current start
+      prevStart = addDays(period.start, -7);
+      prevEnd = addDays(prevStart, 6);
+      prevDays = Array.from({ length: 7 }, (_, i) => addDays(prevStart, i));
+    } else {
+      // previous month
+      const prevMonthDate = new Date(
+        period.start.getFullYear(),
+        period.start.getMonth() - 1,
+        1
+      );
+      prevStart = startOfMonth(prevMonthDate);
+      prevEnd = new Date(
+        prevMonthDate.getFullYear(),
+        prevMonthDate.getMonth() + 1,
+        0
+      );
+      const totalPrevDays = prevEnd.getDate();
+      prevDays = Array.from({ length: totalPrevDays }, (_, i) =>
+        addDays(prevStart, i)
+      );
+    }
+
+    const dailyPrevRates = prevDays.map((d) => {
+      const done = countDoneOnDay(habits, d);
+      const rate = pct(done, habits.length || 1);
+      return rate;
+    });
+
+    if (!dailyPrevRates.length) return null;
+    const sumPrev = dailyPrevRates.reduce((s, r) => s + r, 0);
+    return Math.round(sumPrev / dailyPrevRates.length);
+  }, [periodMode, period.start, habits]);
+
 
   const longestStreak = useMemo(
     () => habits.reduce((m, h) => Math.max(m, longestStreakForHabit(h)), 0),
@@ -692,13 +734,10 @@ export default function Reports() {
     setChartType(newType);
   };
 
-  useEffect(() => {
-    const saved = localStorage.getItem("prevAvg");
-    if (saved) setPrevAvg(parseFloat(saved));
-    localStorage.setItem("prevAvg", avgCompletion);
-  }, [avgCompletion]);
-  
-  const changePct = prevAvg ? Math.round(((avgCompletion - prevAvg) / prevAvg) * 100) : null;
+  const changePct =
+    prevAvg && prevAvg > 0
+      ? Math.round(((avgCompletion - prevAvg) / prevAvg) * 100)
+      : null;
 
   useEffect(() => {
     fadeIn([chartRef.current, ...twoColRef.current?.children]);
