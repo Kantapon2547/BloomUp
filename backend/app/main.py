@@ -28,7 +28,6 @@ app = FastAPI(title="BloomUp API", lifespan=lifespan)
 
 Base.metadata.create_all(bind=engine)
 
-# CORS - MUST be before other middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -36,19 +35,14 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3001",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=[
-        "Content-Type",
-        "Authorization",
-        "X-User-Email",
-        "X-User-ID",
-        "Accept",
-        "Origin",
-    ],
+    allow_methods=["*"],
+    allow_headers=["*"],
     expose_headers=["*"],
-    max_age=600,
+    max_age=7200,
 )
 
 # serve uploaded files
