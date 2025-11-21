@@ -1,24 +1,33 @@
-// --- Constants and Configuration ---
+import { authService } from './authService';
+
+// Constants and Configuration
 const USE_API_DEFAULT = true;
-const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
-const AUTH_TOKEN = import.meta?.env?.VITE_API_TOKEN || "";
+const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 const LS_KEY = "habit-tracker@hybrid";
 
-// --- API Fetch Utility ---
+
 async function apiFetch(path, options = {}) {
+  const token = authService.getToken(); // Use authService
+  
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: {
       "Content-Type": "application/json",
-      ...(AUTH_TOKEN ? { Authorization: `Bearer ${AUTH_TOKEN}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
     ...options,
   });
+  
+  if (res.status === 401) {
+    authService.removeToken();
+    window.location.href = '/login';
+    throw new Error('Unauthorized');
+  }
+  
   if (!res.ok) throw new Error(await res.text());
   return res.status === 204 ? null : res.json();
 }
 
-// --- Helper Functions ---
 const uid = () =>
   Math.random().toString(36).slice(2, 7) + Date.now().toString(36).slice(-3);
 
@@ -33,7 +42,7 @@ export const normalizeHabit = (h) => ({
   createdAt: h.createdAt ?? new Date().toISOString(),
 });
 
-// --- Main Storage Logic (Named Export) ---
+// Logic 
 export function createStorage() {
   let useApi = USE_API_DEFAULT;
 
