@@ -27,7 +27,7 @@ class User(Base):
     profile_picture = Column(String, nullable=True)
 
     created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, onupdate=func.now())
+    updated_at = Column(DateTime, onupdate=func.now(), server_default=func.now())
 
     # User ↔ Habit
     habits = relationship(
@@ -65,6 +65,33 @@ class User(Base):
     )
 
 
+class HabitCategory(Base):
+    """Categories for habits with custom colors"""
+    __tablename__ = "habit_categories"
+
+    category_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    category_name = Column(String(100), nullable=False)
+    color = Column(String(7), default="#ede9ff")
+    
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    habits = relationship(
+        "Habit",
+        back_populates="category",
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "category_name", name="uq_user_category_name"),
+    )
+
+
 class Habit(Base):
     __tablename__ = "habits"
 
@@ -75,22 +102,45 @@ class Habit(Base):
         nullable=False,
         index=True,
     )
+    category_id = Column(
+        Integer,
+        ForeignKey("habit_categories.category_id", ondelete="SET NULL"),
+        nullable=True,
+    )
     habit_name = Column(String, nullable=False)
-    category_id = Column(String)
+    description = Column(Text, nullable=True)
+    
+    emoji = Column(String(32), default="📚")
+    duration_minutes = Column(Integer, default=30)
+    
     start_date = Column(Date, nullable=False)
     end_date = Column(Date)
     best_streak = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
 
     # Habit ↔ User
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
     owner = relationship(
         "User",
         back_populates="habits",
     )
 
     # Habit ↔ HabitCompletion
+    category = relationship(
+        "HabitCategory",
+        back_populates="habits",
+    )
+
     completions = relationship(
         "HabitCompletion",
+        back_populates="habit",
+        cascade="all, delete-orphan",
+    )
+
+    sessions = relationship(
+        "HabitSession",
         back_populates="habit",
         cascade="all, delete-orphan",
     )
@@ -134,6 +184,54 @@ class HabitCompletion(Base):
     )
 
 
+class HabitSession(Base):
+    """Timer sessions for habits with status tracking"""
+    __tablename__ = "habit_sessions"
+
+    session_id = Column(Integer, primary_key=True, index=True)
+    habit_id = Column(
+        Integer,
+        ForeignKey("habits.habit_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    
+    # Status: 'todo', 'in_progress', 'done'
+    status = Column(String(20), default="todo", nullable=False)
+    
+    # Timer/Duration tracking - ✅ NOW IN SECONDS
+    planned_duration_seconds = Column(Integer, nullable=False)  # Planned time in seconds
+    actual_duration_seconds = Column(Integer, default=0)  # Actual time in seconds
+    
+    # Timestamps
+    session_date = Column(Date, nullable=False, index=True)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    # Metadata
+    notes = Column(Text, nullable=True)
+    meta = Column(JSONB, default={})
+
+    habit = relationship(
+        "Habit",
+        back_populates="sessions",
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "habit_id", "user_id", "session_date", name="uq_session_per_day"
+        ),
+    )
+
+
 class GratitudeEntry(Base):
     __tablename__ = "gratitude_entries"
 
@@ -146,7 +244,7 @@ class GratitudeEntry(Base):
     )
     body = Column(Text, nullable=False)
     category = Column(String, nullable=True)
-    image_url = Column(String, nullable=True)  # NEW: Add this line
+    image_url = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
     # GratitudeEntry ↔ User
@@ -166,7 +264,7 @@ class MoodLog(Base):
         nullable=False,
         index=True,
     )
-    mood_score = Column(Integer, nullable=False)  # 1-10 scale
+    mood_score = Column(Integer, nullable=False)
     logged_on = Column(Date, nullable=False, index=True)
     note = Column(Text, nullable=True)
 
