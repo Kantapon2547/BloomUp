@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import gsap from "gsap";
 import "./style/Reports.css";
 import { createStorage } from "../services/habitStorage";
+import { useSharedTasks } from "./SharedTaskContext";
+
+
 
 /* Utility Functions */
 const storage = createStorage();
@@ -597,6 +600,7 @@ export default function Reports() {
   const [chartType, setChartType] = useState("bar");
   // const [prevAvg, setPrevAvg] = useState(null);
   const [moods, setMoods] = useState([]); 
+  const { habits: timerTasksFromShared } = useSharedTasks();
 
   const chartRef = useRef();
   const twoColRef = useRef();
@@ -748,6 +752,29 @@ export default function Reports() {
     if (longestStreak >= 14) return "Amazing consistency!";
     if (longestStreak >= 7) return "Week streak! Nice work!";
     return "Start building your streak today!";
+  };
+
+  const buildTimerAnalysis = () => {
+    if (!timerTasksFromShared || timerTasksFromShared.length === 0) {
+      return { completed: 0, inProgress: 0, pending: 0, list: [] };
+    }
+
+    const completed = timerTasksFromShared.filter(t => t.completed).length;
+    const pending = timerTasksFromShared.filter(t => !t.completed).length;
+
+    const detailedList = timerTasksFromShared.map(task => ({
+      name: task.name,
+      duration: task.minutes,
+      completed: task.completed,
+      category: task.category || "general"
+    }));
+
+    return {
+      completed,
+      inProgress: pending > 0 ? 1 : 0,
+      pending,
+      list: detailedList
+    };
   };
 
   const downloadPDF = async () => {
@@ -1637,99 +1664,49 @@ export default function Reports() {
 
     nextPage();
 
-    // ===== 6. FOCUS TIME (BASED ON HABIT DURATION) – NEW SECTION =====
-    addSectionHeader("6. FOCUS TIME (BASED ON HABIT DURATION)", false);
+  // ===== 6. TIMER ANALYSIS =====
+  addSectionHeader("6. TIMER ANALYSIS", false);
 
-    const focusDaily = period.days.map((d) => {
-      let totalMinutes = 0;
-      habits.forEach((h) => {
-        if (!h || h.duration == null) return;
-        if (doneOnDay(h, d)) {
-          totalMinutes += durationToMins(h.duration);
-        }
-      });
-      return { dateObj: d, key: fmtLocal(d), totalMinutes };
+  const timerStats = buildTimerAnalysis();
+
+  if (!timerStats.list.length) {
+    addText(
+      "No timer data available for this period. Use the Pomodoro or Regular timer to generate task-based performance insights.",
+      9,
+      0,
+      5.5
+    );
+  } else {
+    const timerRows = [
+      ["Metric", "Value"],
+      ["Completed Tasks", `${timerStats.completed}`],
+      ["Pending Tasks", `${timerStats.pending}`],
+    ];
+
+    drawTable(timerRows, [70, 50]);
+
+    addSubHeader("Task List Status");
+    const detailRows = [["Task", "Category", "Duration", "Status"]];
+    timerStats.list.forEach(t => {
+      detailRows.push([
+        t.name,
+        t.category,
+        `${t.duration} mins`,
+        t.completed ? "Completed" : "In Progress"
+      ]);
     });
 
-    const totalFocusMinutes = focusDaily.reduce(
-      (s, d) => s + d.totalMinutes,
-      0
+    drawTable(detailRows, [60, 40, 40, 40]);
+
+    addText(
+      "Tasks shown here reflect the behaviors captured through the Timer module. Completed tasks strengthen discipline and consistency, while pending tasks highlight opportunities for improved focus.",
+      9,
+      0,
+      5.5
     );
-    const activeFocusDays = focusDaily.filter((d) => d.totalMinutes > 0);
+  }
 
-    if (!totalFocusMinutes) {
-      addText(
-        "No completed habits with durations were found in this period. Add an estimated duration (for example 25 minutes) to your habits and mark them as done to see focus-time analytics here.",
-        9,
-        0,
-        5.5
-      );
-    } else {
-      const avgPerCalendarDay = Math.round(
-        totalFocusMinutes / (period.days.length || 1)
-      );
-      const avgPerActiveDay = Math.round(
-        totalFocusMinutes / (activeFocusDays.length || 1)
-      );
-      const zeroFocusDays = period.days.length - activeFocusDays.length;
-
-      const mostFocused = activeFocusDays.reduce(
-        (max, d) => (d.totalMinutes > max.totalMinutes ? d : max),
-        activeFocusDays[0]
-      );
-      const leastFocused = activeFocusDays.reduce(
-        (min, d) => (d.totalMinutes < min.totalMinutes ? d : min),
-        activeFocusDays[0]
-      );
-
-      const formatDayLabel = (dateObj) =>
-        periodMode === "week"
-          ? dateObj.toLocaleDateString("en-US", { weekday: "long" })
-          : dateObj.toLocaleDateString(undefined, {
-              day: "numeric",
-              month: "short"
-            });
-
-      const focusSummaryRows = [
-        ["Metric", "Value"],
-        [
-          "Total Focus Time (completed habits)",
-          formatFocusMinutes(totalFocusMinutes)
-        ],
-        [
-          "Average Focus per Day (all days)",
-          formatFocusMinutes(avgPerCalendarDay)
-        ],
-        [
-          "Average Focus on Active Days",
-          formatFocusMinutes(avgPerActiveDay)
-        ],
-        [
-          "Most Focused Day",
-          `${formatDayLabel(mostFocused.dateObj)} • ${formatFocusMinutes(
-            mostFocused.totalMinutes
-          )}`
-        ],
-        [
-          "Least Focused Active Day",
-          `${formatDayLabel(
-            leastFocused.dateObj
-          )} • ${formatFocusMinutes(leastFocused.totalMinutes)}`
-        ],
-        ["Days without Focus Time", `${zeroFocusDays}`]
-      ];
-      drawTable(focusSummaryRows, [65, 55]);
-
-      addSubHeader("How to Use This");
-      addText(
-        "Focus time is estimated from the durations attached to your habits. If completion is high but focus time is low, your habits are very short—consider increasing durations for important work. If focus time is high but completion drops, shorten sessions slightly to keep them sustainable.",
-        9,
-        0,
-        5.5
-      );
-    }
-
-    nextPage();
+  nextPage();
 
     // ===== conclusion =====
     addSectionHeader("7. CONCLUSION & RECOMMENDATIONS", false);
