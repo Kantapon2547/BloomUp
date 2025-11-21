@@ -4,8 +4,6 @@ import "./style/Reports.css";
 import { createStorage } from "../services/habitStorage";
 import { useSharedTasks } from "./SharedTaskContext";
 
-
-
 /* Utility Functions */
 const storage = createStorage();
 const atMidnight = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -127,7 +125,6 @@ const usePeriod = (periodMode, cursor) =>
     return { start, end, days };
   }, [periodMode, cursor]);
 
-/* Animation Helper */
 const fadeIn = (targets, opts = {}) => {
   gsap.fromTo(
     targets,
@@ -222,8 +219,20 @@ const ReportsDonut = React.memo(({ value = 0 }) => {
   const c = 2 * Math.PI * r;
 
   return (
-    <svg ref={containerRef} width="120" height="120" viewBox="0 0 100 100">
-      <circle cx="50" cy="50" r={r} stroke="#e8f3ec" strokeWidth="10" fill="none" />
+    <svg 
+    ref={containerRef} 
+    width="120" 
+    height="120" 
+    viewBox="0 0 100 100"
+    >
+      <circle 
+      cx="50" 
+      cy="50" 
+      r={r} 
+      stroke="#e8f3ec" 
+      strokeWidth="10" 
+      fill="none" 
+      />
       <circle
         ref={circleRef}
         cx="50"
@@ -237,9 +246,21 @@ const ReportsDonut = React.memo(({ value = 0 }) => {
         transform="rotate(-90 50 50)"
       />
       <defs>
-        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#7ebb8f" />
-          <stop offset="100%" stopColor="#a8d5ba" />
+        <linearGradient 
+        id="gradient" 
+        x1="0%" 
+        y1="0%" 
+        x2="100%"
+        y2="100%"
+        >
+          <stop 
+          offset="0%" 
+          stopColor="#7ebb8f" 
+          />
+          <stop 
+          offset="100%" 
+          stopColor="#a8d5ba" 
+          />
         </linearGradient>
       </defs>
       <text
@@ -257,15 +278,12 @@ const ReportsDonut = React.memo(({ value = 0 }) => {
   );
 });
 
-
 const ReportsBarChart = React.memo(({ data, periodMode }) => {
   const barsRef = useRef([]);
   const numbersRef = useRef([]);
   const [hovered, setHovered] = useState(null);
-
   const barWidth = periodMode === "week" ? 24 : 16;
   const spacing = periodMode === "week" ? 40 : 28;
-
   const chartData = data ?? [];
 
   useEffect(() => {
@@ -305,12 +323,31 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
     <div className="rp-chart-wrapper">
       <svg viewBox={`0 0 ${svgWidth} 180`} className="rp-svgb">
         <defs>
-          <linearGradient id="barGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#a8d5ba" />
-            <stop offset="100%" stopColor="#7ebb8f" />
+          <linearGradient 
+          id="barGradient" 
+          x1="0%" 
+          y1="0%" 
+          x2="0%" 
+          y2="100%"
+          >
+            <stop 
+            offset="0%" 
+            stopColor="#a8d5ba" 
+            />
+            <stop 
+            offset="100%" 
+            stopColor="#7ebb8f" 
+            />
           </linearGradient>
         </defs>
-        <line x1="0" y1="150" x2={svgWidth} y2="150" stroke="#e8f3ec" strokeWidth="2"/>
+        <line 
+        x1="0" 
+        y1="150" 
+        x2={svgWidth} 
+        y2="150" 
+        stroke="#e8f3ec" 
+        strokeWidth="2"
+        />
         
         {chartData.map((d, i) => {
           const isWeek = periodMode === "week";
@@ -389,7 +426,11 @@ const ReportsCategoryPieChart = ({ data }) => {
   useEffect(() => {
     gsap.fromTo(
       svgRef.current,
-      { opacity: 0, scale: 0, rotate: -180 },
+      { 
+        opacity: 0, 
+        scale: 0, 
+        rotate: -180 
+      },
       { 
         opacity: 1, 
         scale: 1, 
@@ -403,7 +444,11 @@ const ReportsCategoryPieChart = ({ data }) => {
   if (total === 0) {
     return (
       <div className="rp-empty-state">
-        <p style={{ fontSize: '48px', margin: '20px 0' }}></p>
+        <p style={{ 
+          fontSize: '48px', 
+          margin: '20px 0' 
+          }}>           
+          </p>
         <p>Track habits to see your progress breakdown!</p>
       </div>
     );
@@ -413,21 +458,77 @@ const ReportsCategoryPieChart = ({ data }) => {
     const item = normalizedData[0];
     const color = item.color;
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <svg ref={svgRef} viewBox={`0 0 ${svgSize} ${svgSize}`} width={svgSize} height={svgSize}>
+      <div style={{ 
+        display: "flex", 
+        flexDirection: "column", 
+        alignItems: "center" 
+        }}
+        >
+        <svg 
+        ref={svgRef} 
+        viewBox={`0 0 ${svgSize} ${svgSize}`} 
+        width={svgSize} height={svgSize}
+        >
           <defs>
-            <linearGradient id="pieFull" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={color} />
-              <stop offset="100%" stopColor={color} stopOpacity="0.7" />
+            <linearGradient 
+            id="pieFull" 
+            x1="0%" 
+            y1="0%" 
+            x2="100%" 
+            y2="100%"
+            >
+              <stop 
+              offset="0%" 
+              stopColor={color} 
+              />
+              <stop 
+              offset="100%" 
+              stopColor={color} 
+              stopOpacity="0.7" 
+              />
             </linearGradient>
           </defs>
-          <circle cx={center} cy={center} r={radius} fill="url(#pieFull)" />
+          <circle 
+          cx={center} 
+          cy={center} 
+          r={radius} 
+          fill="url(#pieFull)" 
+          />
         </svg>
 
-        <div style={{ display:"flex", gap:16, flexWrap:"wrap", justifyContent:"center", marginTop:20, padding:"0 20px" }}>
-          <div style={{ display:"flex", alignItems:"center", padding:"8px 12px", borderRadius:12, background:"#f0f7f3" }}>
-            <span style={{ width:14, height:14, borderRadius:"50%", background: color, marginRight:8, boxShadow:"0 2px 4px rgba(0,0,0,.1)" }} />
-            <span style={{ fontSize:14, color:"#2d5f3f", fontWeight:600 }}>
+        <div style={{ 
+          display:"flex", 
+          flexWrap:"wrap", 
+          justifyContent:"center", 
+          marginTop:20, 
+          padding:"0 20px" 
+          }}
+          >
+          <div style={{ 
+            display:"flex", 
+            alignItems:"center", 
+            padding:"8px 12px", 
+            borderRadius:12, 
+            background:"#f0f7f3" 
+            }}
+            >
+            <span 
+            style={{ 
+              width:14, 
+              height:14, 
+              borderRadius:"50%", 
+              background: color, 
+              marginRight:8, 
+              boxShadow:"0 2px 4px rgba(0,0,0,.1)" 
+              }} 
+              />
+            <span 
+            style={{ 
+              fontSize:14, 
+              color:"#2d5f3f", 
+              fontWeight:600 
+              }}
+              >
               {item.label}: <strong>100%</strong>
             </span>
           </div>
@@ -443,13 +544,35 @@ const ReportsCategoryPieChart = ({ data }) => {
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <svg ref={svgRef} viewBox={`0 0 ${svgSize} ${svgSize}`} width={svgSize} height={svgSize}>
+    <div style={{ 
+      display: "flex", 
+      flexDirection: "column", 
+      alignItems: "center" 
+      }}
+      >
+      <svg 
+      ref={svgRef} 
+      viewBox={`0 0 ${svgSize} ${svgSize}`}
+       width={svgSize} height={svgSize}>
         <defs>
           {normalizedData.map((item, idx) => (
-            <linearGradient key={idx} id={`pieGradient${idx}`} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={item.color} />
-              <stop offset="100%" stopColor={item.color} stopOpacity="0.7" />
+            <linearGradient 
+            key={idx} 
+            id={`pieGradient${idx}`} 
+            x1="0%" 
+            y1="0%" 
+            x2="100%" 
+            y2="100%"
+            >
+              <stop 
+              offset="0%" 
+              stopColor={item.color} 
+              />
+              <stop 
+              offset="100%" 
+              stopColor={item.color} 
+              stopOpacity="0.7" 
+              />
             </linearGradient>
           ))}
         </defs>
@@ -598,10 +721,8 @@ export default function Reports() {
   const [periodMode, setPeriodMode] = useState("week");
   const [cursor, setCursor] = useState(new Date());
   const [chartType, setChartType] = useState("bar");
-  // const [prevAvg, setPrevAvg] = useState(null);
   const [moods, setMoods] = useState([]); 
   const { habits: timerTasksFromShared } = useSharedTasks();
-
   const chartRef = useRef();
   const twoColRef = useRef();
   const reportRef = useRef();
@@ -642,19 +763,16 @@ export default function Reports() {
     return Math.round(sum / (dailyCompletion.length || 1));
   }, [dailyCompletion]);
 
-    // Average completion for the *previous* period (for comparison badge)
   const prevAvg = useMemo(() => {
     if (!period?.start || !period?.days?.length || !habits.length) return null;
 
     let prevStart, prevEnd, prevDays;
 
     if (periodMode === "week") {
-      // previous week: 7 days before current start
       prevStart = addDays(period.start, -7);
       prevEnd = addDays(prevStart, 6);
       prevDays = Array.from({ length: 7 }, (_, i) => addDays(prevStart, i));
     } else {
-      // previous month
       const prevMonthDate = new Date(
         period.start.getFullYear(),
         period.start.getMonth() - 1,
@@ -683,7 +801,6 @@ export default function Reports() {
     return Math.round(sumPrev / dailyPrevRates.length);
   }, [periodMode, period.start, habits]);
 
-
   const longestStreak = useMemo(
     () => habits.reduce((m, h) => Math.max(m, longestStreakForHabit(h)), 0),
     [habits]
@@ -709,7 +826,6 @@ export default function Reports() {
     }));
 
     const uniqueCats = Array.from(new Set(normalized.map(h => h.category)));
-
     const results = uniqueCats.map(cat => {
       const catHabits = normalized.filter(h => h.category === cat);
       const totalHabits = catHabits.length;
@@ -755,25 +871,170 @@ export default function Reports() {
   };
 
   const buildTimerAnalysis = () => {
-    if (!timerTasksFromShared || timerTasksFromShared.length === 0) {
-      return { completed: 0, inProgress: 0, pending: 0, list: [] };
+    const normalizeMinutes = (raw) => {
+      if (typeof raw === "number" && !Number.isNaN(raw)) return raw;
+      if (typeof raw === "string") {
+        const lower = raw.toLowerCase().trim();
+        const mMatch = lower.match(/(\d+)\s*m/);
+        if (mMatch) return parseInt(mMatch[1], 10);
+        const hMatch = lower.match(/(\d+)\s*h/);
+        if (hMatch) return parseInt(hMatch[1], 10) * 60;
+        const num = parseInt(lower, 10);
+        if (!Number.isNaN(num)) return num;
+      }
+      return 0;
+    };
+
+    let sessions = [];
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem("bloomup_timer_sessions");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) sessions = parsed;
+        }
+      } catch {
+      }
     }
 
-    const completed = timerTasksFromShared.filter(t => t.completed).length;
-    const pending = timerTasksFromShared.filter(t => !t.completed).length;
+    const hasPeriod = period && period.start && period.end;
+    const start = hasPeriod ? atMidnight(period.start) : null;
+    const end = hasPeriod ? atMidnight(period.end) : null;
 
-    const detailedList = timerTasksFromShared.map(task => ({
-      name: task.name,
-      duration: task.minutes,
-      completed: task.completed,
-      category: task.category || "general"
-    }));
+    const inPeriod = (completedAt) => {
+      if (!hasPeriod || !completedAt) return false;
+      const d = new Date(completedAt);
+      if (Number.isNaN(d.getTime())) return false;
+      return d >= start && d <= new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
+    };
+    
+    const filteredSessions = sessions.filter((s) => inPeriod(s.completedAt));
+
+    if (filteredSessions.length > 0) {
+      const modeStats = {
+        pomodoro: 0,
+        regular: 0,
+        break: 0,
+      };
+
+      const categoryMap = new Map();
+
+      const detailList = filteredSessions.map((s) => {
+        const minutes = normalizeMinutes(
+          s.actualMinutes ?? s.minutes ?? s.plannedMinutes ?? s.duration
+        );
+
+        let rawMode = (s.mode || "pomodoro").toLowerCase();
+        let bucket = "pomodoro";
+        if (rawMode === "regular") {
+          bucket = "regular";
+        } else if (
+          rawMode.includes("break") ||
+          rawMode === "short" ||
+          rawMode === "long"
+        ) {
+          bucket = "break";
+        }
+
+        modeStats[bucket] += minutes;
+
+        const category = (s.category || "General").trim() || "General";
+        categoryMap.set(category, (categoryMap.get(category) || 0) + minutes);
+
+        return {
+          name: s.taskName || s.taskTitle || s.name || "Unnamed task",
+          category,
+          mode: bucket,
+          modeLabel:
+            bucket === "pomodoro"
+              ? "Pomodoro"
+              : bucket === "regular"
+              ? "Regular"
+              : "Break",
+          duration: minutes,
+          completed: true,
+        };
+      });
+
+      const categoryBreakdown = Array.from(categoryMap.entries()).map(
+        ([name, minutes]) => ({ name, minutes })
+      );
+      categoryBreakdown.sort((a, b) => b.minutes - a.minutes);
+      const topCategory = categoryBreakdown[0] || null;
+
+      const totalMinutes = detailList.reduce(
+        (sum, t) => sum + t.duration,
+        0
+      );
+
+      return {
+        source: "sessions",
+        completedTasks: detailList.length,
+        pendingTasks: 0,
+        totalMinutes,
+        modeStats,
+        categoryBreakdown,
+        topCategory,
+        list: detailList,
+      };
+    }
+
+    if (timerTasksFromShared && timerTasksFromShared.length > 0) {
+      const detailList = timerTasksFromShared.map((task) => {
+        const minutes = normalizeMinutes(task.minutes);
+        const category = (task.category || "General").trim() || "General";
+
+        return {
+          name: task.name,
+          category,
+          mode: "task",
+          modeLabel: "Task",
+          duration: minutes,
+          completed: !!task.completed,
+        };
+      });
+
+      const completedTasks = detailList.filter((t) => t.completed).length;
+      const pendingTasks = detailList.length - completedTasks;
+
+      const categoryMap = new Map();
+      detailList.forEach((t) => {
+        if (!t.completed) return;
+        categoryMap.set(t.category, (categoryMap.get(t.category) || 0) + t.duration);
+      });
+
+      const categoryBreakdown = Array.from(categoryMap.entries()).map(
+        ([name, minutes]) => ({ name, minutes })
+      );
+      categoryBreakdown.sort((a, b) => b.minutes - a.minutes);
+      const topCategory = categoryBreakdown[0] || null;
+
+      const totalMinutes = detailList.reduce(
+        (sum, t) => sum + (t.completed ? t.duration : 0),
+        0
+      );
+
+      return {
+        source: "tasks",
+        completedTasks,
+        pendingTasks,
+        totalMinutes,
+        modeStats: null,
+        categoryBreakdown,
+        topCategory,
+        list: detailList,
+      };
+    }
 
     return {
-      completed,
-      inProgress: pending > 0 ? 1 : 0,
-      pending,
-      list: detailedList
+      source: "none",
+      completedTasks: 0,
+      pendingTasks: 0,
+      totalMinutes: 0,
+      modeStats: null,
+      categoryBreakdown: null,
+      topCategory: null,
+      list: [],
     };
   };
 
@@ -800,6 +1061,13 @@ export default function Reports() {
       gradient1: [126, 187, 143],     
       gradient2: [168, 213, 186]
     };
+
+    const fmtDisplayDate = (d) =>
+      d.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
 
     const resolveAccountName = () => {
       const directKeys = [
@@ -838,6 +1106,7 @@ export default function Reports() {
     };
 
     const accountName = resolveAccountName();
+    const timerAnalysis = buildTimerAnalysis();
 
     let y = margin;
     let page = 1;
@@ -845,20 +1114,6 @@ export default function Reports() {
     const setColor = (c) => pdf.setTextColor(...c);
     const setFillColor = (c) => pdf.setFillColor(...c);
     const setDrawColor = (c) => pdf.setDrawColor(...c);
-
-    const durationToMins = (raw) => {
-      if (typeof raw === "number") return raw;
-      if (typeof raw === "string") {
-        const lower = raw.toLowerCase().trim();
-        const mMatch = lower.match(/(\d+)\s*m/);
-        if (mMatch) return parseInt(mMatch[1], 10);
-        const hMatch = lower.match(/(\d+)\s*h/);
-        if (hMatch) return parseInt(hMatch[1], 10) * 60;
-        const num = parseInt(lower, 10);
-        if (!isNaN(num)) return num;
-      }
-      return 30;
-    };
 
     const formatFocusMinutes = (minutes) => {
       if (!minutes || minutes <= 0) return "0 min";
@@ -908,6 +1163,8 @@ export default function Reports() {
     };
 
     const drawTable = (rows, colUnits) => {
+      if (!rows || !rows.length) return;
+
       pdf.setLineWidth(0.3);
       setDrawColor(colors.border);
 
@@ -917,19 +1174,21 @@ export default function Reports() {
       const rowH = 9;
       const headerH = 10;
 
-      rows.forEach((row, rIdx) => {
+      const headerRow = rows[0];
+      const bodyRows = rows.slice(1);
+
+      const drawRow = (row, { isHeader = false, bodyIndex = 0 } = {}) => {
         let x = margin;
-        const isHeader = rIdx === 0;
-        const currentRowH = isHeader ? headerH : rowH;
+        const h = isHeader ? headerH : rowH;
 
         if (isHeader) {
           setFillColor(colors.accent);
-          pdf.rect(margin, y, contentWidth, currentRowH, "F");
+          pdf.rect(margin, y, contentWidth, h, "F");
         }
 
-        if (!isHeader && rIdx % 2 === 0) {
+        if (!isHeader && bodyIndex % 2 === 0) {
           setFillColor([244, 250, 246]);
-          pdf.rect(margin, y, contentWidth, currentRowH, "F");
+          pdf.rect(margin, y, contentWidth, h, "F");
         }
 
         pdf.setFont(undefined, isHeader ? "bold" : "normal");
@@ -941,7 +1200,6 @@ export default function Reports() {
           const text = String(cell ?? "");
           const lines = pdf.splitTextToSize(text, w - 4);
 
-          const numeric = !isNaN(text.replace("%", ""));
           const align = i === 0 ? "left" : "center";
 
           if (align === "center") {
@@ -951,11 +1209,26 @@ export default function Reports() {
           }
 
           setDrawColor(colors.border);
-          pdf.rect(x, y, w, currentRowH, "S");
+          pdf.rect(x, y, w, h, "S");
           x += w;
         });
 
-        y += currentRowH;
+        y += h;
+      };
+
+      const minBlockHeight = headerH + (bodyRows.length ? rowH : 0);
+      if (y + minBlockHeight > pageHeight - margin - 20) {
+        nextPage();
+      }
+
+      drawRow(headerRow, { isHeader: true });
+
+      bodyRows.forEach((row, idx) => {
+        if (y + rowH > pageHeight - margin - 20) {
+          nextPage();
+          drawRow(headerRow, { isHeader: true });
+        }
+        drawRow(row, { bodyIndex: idx });
       });
 
       y += 12;
@@ -1196,20 +1469,19 @@ export default function Reports() {
     setColor(colors.textLight);
     const periodText =
       periodMode === "week"
-        ? `Weekly Report: ${fmtLocal(period.start)} – ${fmtLocal(
-            period.end
-          )}`
-        : `Monthly Report: ${period.start.toLocaleDateString(undefined, {
+        ? `Weekly Report: ${fmtDisplayDate(period.start)} – ${fmtDisplayDate(period.end)}`
+        : `Monthly Report: ${period.start.toLocaleDateString("en-GB", {
             month: "long",
             year: "numeric"
           })}`;
+
     pdf.text(periodText, pageWidth / 2, 66, { align: "center" });
 
     y = 100;
     pdf.setFontSize(11);
     setColor(colors.text);
     pdf.text(`Account: ${accountName}`, margin, y);
-    pdf.text(`Generated: ${new Date().toLocaleDateString()}`, margin, y + 6);
+    pdf.text(`Generated: ${fmtDisplayDate(new Date())}`, margin, y + 6);
 
     // ===== executive summary =====
     y = 125;
@@ -1232,9 +1504,9 @@ export default function Reports() {
 
     y += 10;
     const summary = [
-      `Reporting Period: ${period.days.length} days (${fmtLocal(
+      `Reporting Period: ${period.days.length} days (${fmtDisplayDate(
         period.start
-      )} to ${fmtLocal(period.end)})`,
+      )} to ${fmtDisplayDate(period.end)})`,
       `Total Habits Tracked: ${habits.length}`,
       `Average Completion Rate: ${avgCompletion}%`,
       `Best Streak: ${longestStreak} days`,
@@ -1446,7 +1718,7 @@ export default function Reports() {
     nextPage();
 
     // ===== category distribution =====
-    addSectionHeader("3. CATEGORY DISTRIBUTION");
+    addSectionHeader("3. CATEGORY DISTRIBUTION", false);
 
     const activeCats = categoryPct
       .filter((c) => c.rate > 0)
@@ -1481,25 +1753,25 @@ export default function Reports() {
 
     nextPage();
 
-    // ===== behavioural patterns =====
+    // ===== behavioral patterns =====
     addSectionHeader("4. BEHAVIORAL PATTERNS", false);
 
     addSubHeader("Weekly Pattern Analysis");
     const dayNames = [
-      "Sunday",
       "Monday",
       "Tuesday",
       "Wednesday",
       "Thursday",
       "Friday",
-      "Saturday"
+      "Saturday",
+      "Sunday"
     ];
     const bucket = {};
     dailyCompletion.forEach((d) => {
-      const k = d.dateObj.getDay();
-      bucket[k] = bucket[k] || { sum: 0, n: 0 };
-      bucket[k].sum += d.rate;
-      bucket[k].n += 1;
+      const monIndex = (d.dateObj.getDay() + 6) % 7;
+      bucket[monIndex] = bucket[monIndex] || { sum: 0, n: 0 };
+      bucket[monIndex].sum += d.rate;
+      bucket[monIndex].n += 1;
     });
 
     const dow = Object.keys(bucket)
@@ -1688,49 +1960,53 @@ export default function Reports() {
 
     nextPage();
 
-  // ===== 6. TIMER ANALYSIS =====
-  addSectionHeader("6. TIMER ANALYSIS", false);
+    // ========== TIMER ANALYSIS ==========
+    addSectionHeader("6. TIMER ANALYSIS", false);
 
-  const timerStats = buildTimerAnalysis();
+    if (!timerAnalysis.list.length) {
+      addText(
+        "No timer data is available for this period. Use the Pomodoro or Regular timer to generate focused work sessions, and they will be summarized here.",
+        9,
+        0,
+        5.5
+      );
+    } else {
+      // Summary table
+      const summaryRows = [
+        ["Metric", "Value"],
+        ["Completed Tasks", `${timerAnalysis.completedTasks}`],
+        ["Pending Tasks", `${timerAnalysis.pendingTasks}`],
+        ["Total Focus Time", formatFocusMinutes(timerAnalysis.totalMinutes)],
+      ];
 
-  if (!timerStats.list.length) {
-    addText(
-      "No timer data available for this period. Use the Pomodoro or Regular timer to generate task-based performance insights.",
-      9,
-      0,
-      5.5
-    );
-  } else {
-    const timerRows = [
-      ["Metric", "Value"],
-      ["Completed Tasks", `${timerStats.completed}`],
-      ["Pending Tasks", `${timerStats.pending}`],
-    ];
+      drawTable(summaryRows, [70, 50]);
 
-    drawTable(timerRows, [70, 50]);
+      addSubHeader("Task List Status");
+      const detailRows = [["Task", "Category", "Planned Duration", "Status"]];
+      const sortedTasks = [...timerAnalysis.list].sort(
+        (a, b) => Number(b.completed) - Number(a.completed)
+      );
 
-    addSubHeader("Task List Status");
-    const detailRows = [["Task", "Category", "Duration", "Status"]];
-    timerStats.list.forEach(t => {
-      detailRows.push([
-        t.name,
-        t.category,
-        `${t.duration} mins`,
-        t.completed ? "Completed" : "In Progress"
-      ]);
-    });
+      sortedTasks.forEach((t) => {
+        const durText = t.minutes ? `${t.minutes} min` : "—";
+        detailRows.push([
+          t.name,
+          t.category,
+          durText,
+          t.completed ? "Completed" : "In Progress",
+        ]);
+      });
+      drawTable(detailRows, [60, 40, 40, 30]);
 
-    drawTable(detailRows, [60, 40, 40, 40]);
+      addText(
+        "Each row represents a habit linked to your timer. Completed items indicate where you protected focused time during this period, while in-progress items show habits that still need attention.",
+        9,
+        0,
+        5.5
+      );
+    }
 
-    addText(
-      "Tasks shown here reflect the behaviors captured through the Timer module. Completed tasks strengthen discipline and consistency, while pending tasks highlight opportunities for improved focus.",
-      9,
-      0,
-      5.5
-    );
-  }
-
-  nextPage();
+    nextPage();
 
     // ===== conclusion =====
     addSectionHeader("7. CONCLUSION & RECOMMENDATIONS", false);
@@ -1835,10 +2111,10 @@ export default function Reports() {
       `Report Type: ${
         periodMode === "week" ? "Weekly" : "Monthly"
       } Performance Analysis`,
-      `Period: ${fmtLocal(period.start)} to ${fmtLocal(
+      `Period: ${fmtDisplayDate(period.start)} to ${fmtDisplayDate(
         period.end
       )} (${period.days.length} days)`,
-      `Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+      `Generated: ${fmtDisplayDate(new Date())} at ${new Date().toLocaleTimeString()}`,
       `Account: ${accountName}`
     ];
 
@@ -1868,7 +2144,6 @@ export default function Reports() {
   }
   };
 
-
   return (
     <div className="reports-root" ref={reportRef}>
       <section className="reports-content">
@@ -1885,7 +2160,11 @@ export default function Reports() {
                     if (m === "week") setCursor(c => startOfWeekMon(c));
                     gsap.fromTo('.rp-seg-btn.is-active', 
                       { scale: 0.95 }, 
-                      { scale: 1.05, duration: 0.2, yoyo: true, repeat: 1 }
+                      { scale: 1.05, 
+                        duration: 0.2, 
+                        yoyo: true, 
+                        repeat: 1 
+                      }
                     );
                   }}
                 >
