@@ -21,6 +21,11 @@ JWT_SECRET = os.getenv("JWT_SECRET", "change_me")
 JWT_ALG = "HS256"
 JWT_EXPIRE_MIN = 60 * 24
 
+# Log JWT_SECRET
+logger.warning(f"JWT_SECRET loaded: {JWT_SECRET[:20]}... (length: {len(JWT_SECRET)})")
+if JWT_SECRET == "change_me":
+    logger.error("JWT_SECRET is using default value! Please set JWT_SECRET environment variable!")
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -49,6 +54,7 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
 
 
 def create_access_token(subject: str) -> str:
+    """Create a JWT token for the given subject (email)"""
     payload = {
         "sub": subject,
         "exp": datetime.utcnow() + timedelta(minutes=JWT_EXPIRE_MIN),
@@ -59,24 +65,38 @@ def create_access_token(subject: str) -> str:
 
 
 def decode_token(token: str) -> str:
+    """Decode JWT token and return the subject (email)"""
     try:
-        logger.debug(f"Attempting to decode token: {token[:20]}...")
+        token = token.strip()
+        
+        if token.startswith("Bearer "):
+            token = token[7:]
+        
+        logger.debug(f"🔐 Decoding token (length: {len(token)})")
+        logger.debug(f"   Token start: {token[:30]}...")
+        logger.debug(f"   JWT_SECRET: {JWT_SECRET[:20]}... (length: {len(JWT_SECRET)})")
+        logger.debug(f"   Algorithm: {JWT_ALG}")
+        
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
         email = payload.get("sub")
-        logger.debug(f"Token decoded successfully, email: {email}")
+        logger.info(f"Token decoded successfully for: {email}")
         return email
     except ExpiredSignatureError:
         logger.warning("Token has expired")
         raise HTTPException(status_code=401, detail="Token expired")
     except InvalidTokenError as e:
-        logger.warning(f"Invalid token: {e}")
-        raise HTTPException(status_code=401, detail="Invalid token")
+        logger.error(f"Invalid token error: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
     except Exception as e:
-        logger.error(f"Error decoding token: {e}", exc_info=True)
+        logger.error(f"Unexpected error decoding token: {type(e).__name__}: {e}", exc_info=True)
         raise HTTPException(status_code=401, detail="Could not validate credentials")
 
 
 def get_current_email(token: str = Depends(oauth2_scheme)) -> str:
+    """Extract email from token"""
+    if token.startswith("Bearer "):
+        token = token[7:]
+    
     email = decode_token(token)
     if not email:
         raise HTTPException(status_code=401, detail="Could not validate credentials")
@@ -91,19 +111,13 @@ def get_current_user(
     Dependency function to retrieve the authenticated user from the JWT token.
     """
     try:
-        logger.info("get_current_user called")
-        logger.debug(f"Token received: {token[:30]}...")
+        logger.debug("get_current_user called")
 
-        # Decode token
         email = decode_token(token)
-        logger.debug(f"Token decoded, email: {email}")
+        logger.debug(f"Decoded email: {email}")
 
-        # Import here to avoid circular imports
         from . import crud
-
-        # Get user from database
         user = crud.get_user_by_email(db, email=email)
-        logger.debug(f"User lookup result: {user}")
 
         if user is None:
             logger.warning(f"User not found for email: {email}")
@@ -113,7 +127,7 @@ def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        logger.info(f"Authenticated user: {user.user_id} ({user.email})")
+        logger.debug(f"Authenticated user: {user.user_id} ({user.email})")
         return user
 
     except HTTPException:
@@ -125,3 +139,4 @@ def get_current_user(
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
