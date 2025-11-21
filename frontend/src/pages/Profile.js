@@ -24,7 +24,8 @@ const RECENT_ACTIVITIES_DATA = [
 ];
 
 const handleLogout = () => {
-  localStorage.removeItem("access_token");
+  localStorage.removeItem("token");
+  localStorage.removeItem("user"); 
   window.location.href = "/login";
 };
 
@@ -38,9 +39,7 @@ const scoreToMoodDisplay = (score) => {
   return { emoji: "🤔", description: "Not tracked" };
 };
 
-// =================================================================
 // PAGE INDICATOR COMPONENT
-// =================================================================
 const PageIndicator = ({ count, activeIndex }) => (
     <div className="page-indicator">
       {Array.from({ length: count }).map((_, index) => (
@@ -52,9 +51,8 @@ const PageIndicator = ({ count, activeIndex }) => (
     </div>
   );
 
-// =================================================================
+
 // START: SHARE MODAL CONTAINER - UPDATED AND CLEANED
-// =================================================================
 const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClose, goToNextCard, goToPreviousCard }) => {
   const cardRef = useRef(null);
   const currentCard = shareCards[currentCardIndex];
@@ -136,14 +134,8 @@ const ShareModalContainer = ({ userProfile, currentCardIndex, shareCards, onClos
     </div>
   );
 };
-// =================================================================
-// END: SHARE MODAL CONTAINER
-// =================================================================
 
-// =================================================================
-// START: INDIVIDUAL SHARE CARD COMPONENTS
-// =================================================================
-
+// SHARE CARD COMPONENTS
 const AchievementShareCard = ({ earnedCount, totalCount, latestAchievement }) => (
   <>
     <div className="share-icon-large">🏆</div>
@@ -210,11 +202,6 @@ const OverallStreakShareCard = ({ overallStreak }) => (
     <div className="share-detail-text">Across all habits !</div>
   </>
 );
-
-// =================================================================
-// END: INDIVIDUAL SHARE CARD COMPONENTS
-// =================================================================
-
 
 // --- Original Profile Header Component ---
 const ProfileHeader = ({ profileData, onEditProfileClick, onShareClick, formatMemberSinceDate }) => (

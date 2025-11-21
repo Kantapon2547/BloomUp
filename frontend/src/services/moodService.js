@@ -1,7 +1,7 @@
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem("access_token");
+  const token = localStorage.getItem("token");
 
   const headers = {
     "Content-Type": "application/json",
@@ -10,14 +10,14 @@ const getAuthHeaders = () => {
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   } else {
-    console.warn("Authentication token not found in localStorage ('access_token').");
+    console.warn("Authentication token not found in localStorage ('token').");
   }
 
   return headers;
 };
 
 
-// --- Service Function to Get Weekly Mood Summary ---
+// Service Function to Get Weekly Mood Summary
 export const getWeeklyMoodSummary = async () => {
   try {
     const response = await fetch(`${API_URL}/mood/week/summary`, {
