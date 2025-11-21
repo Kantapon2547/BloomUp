@@ -1402,16 +1402,24 @@ export default function Reports() {
       (rates.length || 1);
     const stdDev = Math.sqrt(variance);
 
-    addText(
-      `Your average completion rate was ${mean}%, with a range from ${minR}% (lowest) to ${maxR}% (highest). ` +
-        (stdDev < 20
-          ? "You maintained good consistency throughout the period."
-          : "There is room to improve consistency. Consider setting smaller daily goals."),
-      9,
-      0,
-      5.5
-    );
-
+    if (habits.length === 0) {
+      addText(
+        "No habits were tracked during this period. Begin by adding at least one habit to start measuring your progress.",
+        9,
+        0,
+        5.5
+      );
+    } else {
+      addText(
+        `Your average completion rate was ${mean}%, with a range from ${minR}% (lowest) to ${maxR}% (highest). ` +
+          (stdDev < 20
+            ? "You maintained good consistency throughout the period."
+            : "There is room to improve consistency. Consider setting smaller daily goals."),
+        9,
+        0,
+        5.5
+      );
+    }
     nextPage();
 
     // ===== habit performance =====
@@ -1522,31 +1530,47 @@ export default function Reports() {
     }
 
     addSubHeader("Consistency Insights");
-    addText(
-      "Aim for steady performance across all days. If certain weekdays show lower completion rates, consider adapting your habits for those days—make them smaller or schedule them at different times.",
-      9,
-      0,
-      5.5
-    );
+    if (habits.length === 0) {
+      addText(
+        "No habit data is available to evaluate consistency. Add a habit and track it daily to begin building patterns.",
+        9,
+        0,
+        5.5
+      );
+    } else {
+      addText(
+        "Aim for steady performance across all days. If certain weekdays show lower completion rates, consider adapting your habits for those days—make them smaller or schedule them at different times.",
+        9,
+        0,
+        5.5
+      );
+    }
 
     addSubHeader("Period-over-Period Trend");
     const trendPrevAvg = prevAvgMetric;
     const delta = trendPrevAvg == null ? null : Math.round(currAvg - trendPrevAvg);
 
-    addText(
-      trendPrevAvg == null
-        ? "No previous period data available for comparison."
-        : delta > 0
-        ? `Performance improved by ${delta}% compared to the previous period. Maintain the practices that support this result.`
-        : delta < 0
-        ? `Performance decreased by ${Math.abs(
-            delta
-          )}% from the previous period. Review what changed and adjust your habits accordingly.`
-        : "Performance is stable compared to the previous period.",
-      9,
-      0,
-      5.5
-    );
+    if (habits.length === 0) {
+      addText(
+        "No trend comparison can be made because no habits were tracked in this or previous periods.",
+        9,
+        0,
+        5.5
+      );
+    } else {
+      addText(
+        trendPrevAvg == null
+          ? "No previous period data available for comparison."
+          : delta > 0
+          ? `Performance improved by ${delta}% compared to the previous period.`
+          : delta < 0
+          ? `Performance decreased by ${Math.abs(delta)}%. Review what changed and adjust your habits accordingly.`
+          : "Performance is stable compared to the previous period.",
+        9,
+        0,
+        5.5
+      );
+    }
 
     nextPage();
 
