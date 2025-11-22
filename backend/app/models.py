@@ -205,9 +205,9 @@ class HabitSession(Base):
     # Status: 'todo', 'in_progress', 'done'
     status = Column(String(20), default="todo", nullable=False)
     
-    # Timer/Duration tracking - ✅ NOW IN SECONDS
-    planned_duration_seconds = Column(Integer, nullable=False)  # Planned time in seconds
-    actual_duration_seconds = Column(Integer, default=0)  # Actual time in seconds
+    # Timer/Duration tracking
+    planned_duration_seconds = Column(Integer, nullable=False)  
+    actual_duration_seconds = Column(Integer, default=0)
     
     # Timestamps
     session_date = Column(Date, nullable=False, index=True)
