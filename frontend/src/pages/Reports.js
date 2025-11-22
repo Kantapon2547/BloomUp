@@ -907,8 +907,12 @@ export default function Reports() {
       if (Number.isNaN(d.getTime())) return false;
       return d >= start && d <= new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
     };
-    
-    const filteredSessions = sessions.filter((s) => inPeriod(s.completedAt));
+
+    const currentHabitIds = new Set(habits.map(h => h.id));
+
+    const filteredSessions = sessions.filter((s) => {
+      return inPeriod(s.completedAt) && currentHabitIds.has(s.habitId);
+    });
 
     if (filteredSessions.length > 0) {
       const modeStats = {
@@ -980,7 +984,24 @@ export default function Reports() {
     }
 
     if (timerTasksFromShared && timerTasksFromShared.length > 0) {
-      const detailList = timerTasksFromShared.map((task) => {
+      const currentTasks = timerTasksFromShared.filter(task => 
+        currentHabitIds.has(task.id)
+      );
+
+      if (currentTasks.length === 0) {
+        return {
+          source: "none",
+          completedTasks: 0,
+          pendingTasks: 0,
+          totalMinutes: 0,
+          modeStats: null,
+          categoryBreakdown: null,
+          topCategory: null,
+          list: [],
+        };
+      }
+
+      const detailList = currentTasks.map((task) => {
         const minutes = normalizeMinutes(task.minutes);
         const category = (task.category || "General").trim() || "General";
 
@@ -1971,39 +1992,159 @@ export default function Reports() {
         5.5
       );
     } else {
-      // Summary table
+      const completedMinutes = timerAnalysis.list
+        .filter(t => t.completed)
+        .reduce((sum, t) => sum + t.duration, 0);
+      
+      const totalPlannedMinutes = timerAnalysis.list.reduce(
+        (sum, t) => sum + t.duration,
+        0
+      );
+      
+      const completionRate = totalPlannedMinutes > 0 
+        ? Math.round((completedMinutes / totalPlannedMinutes) * 100)
+        : 0;
+
       const summaryRows = [
         ["Metric", "Value"],
+        ["Total Tasks", `${timerAnalysis.list.length}`],
         ["Completed Tasks", `${timerAnalysis.completedTasks}`],
-        ["Pending Tasks", `${timerAnalysis.pendingTasks}`],
-        ["Total Focus Time", formatFocusMinutes(timerAnalysis.totalMinutes)],
+        ["In Progress", `${timerAnalysis.pendingTasks}`],
+        ["Focus Time (Completed)", formatFocusMinutes(completedMinutes)],
+        ["Total Planned Time", formatFocusMinutes(totalPlannedMinutes)],
+        ["Completion Rate", `${completionRate}%`],
       ];
 
-      drawTable(summaryRows, [70, 50]);
+      drawTable(summaryRows, [80, 60]);
 
-      addSubHeader("Task List Status");
-      const detailRows = [["Task", "Category", "Planned Duration", "Status"]];
+      if (timerAnalysis.modeStats && timerAnalysis.source === "sessions") {
+        addSubHeader("Time Distribution by Mode");
+        
+        const { pomodoro, regular, break: breakTime } = timerAnalysis.modeStats;
+        const totalModeMinutes = pomodoro + regular + breakTime;
+        
+        if (totalModeMinutes > 0) {
+          const modeRows = [
+            ["Mode", "Time Spent", "Percentage"],
+            ["Pomodoro (Work)", formatFocusMinutes(pomodoro), `${Math.round((pomodoro / totalModeMinutes) * 100)}%`],
+            ["Regular Timer", formatFocusMinutes(regular), `${Math.round((regular / totalModeMinutes) * 100)}%`],
+            ["Breaks", formatFocusMinutes(breakTime), `${Math.round((breakTime / totalModeMinutes) * 100)}%`],
+          ];
+          
+          drawTable(modeRows, [60, 50, 40]);
+          
+          addText(
+            `You spent ${formatFocusMinutes(pomodoro + regular)} in focused work and ${formatFocusMinutes(breakTime)} in breaks. ${
+              breakTime > 0 && (pomodoro + regular) > 0
+                ? `Your break-to-work ratio is ${Math.round((breakTime / (pomodoro + regular)) * 100)}%.`
+                : ""
+            }`,
+            9,
+            0,
+            5.5
+          );
+        }
+      }
+
+      if (timerAnalysis.categoryBreakdown && timerAnalysis.categoryBreakdown.length > 0) {
+        addSubHeader("Focus Time by Category");
+        
+        const categoryRows = [
+          ["Category", "Time Spent", "Share"]
+        ];
+        
+        const totalCategoryMinutes = timerAnalysis.categoryBreakdown.reduce(
+          (sum, c) => sum + c.minutes,
+          0
+        );
+        
+        timerAnalysis.categoryBreakdown.forEach(cat => {
+          const share = totalCategoryMinutes > 0 
+            ? Math.round((cat.minutes / totalCategoryMinutes) * 100)
+            : 0;
+          categoryRows.push([
+            cat.name,
+            formatFocusMinutes(cat.minutes),
+            `${share}%`
+          ]);
+        });
+        
+        drawTable(categoryRows, [70, 50, 30]);
+        
+        if (timerAnalysis.topCategory) {
+          addText(
+            `Your top focus category was "${timerAnalysis.topCategory.name}" with ${formatFocusMinutes(timerAnalysis.topCategory.minutes)} of dedicated time.`,
+            9,
+            0,
+            5.5
+          );
+        }
+      }
+
+      addSubHeader("Task Completion Details");
+      
+      const detailRows = [["Task", "Category", "Progress", "Status"]];
       const sortedTasks = [...timerAnalysis.list].sort(
         (a, b) => Number(b.completed) - Number(a.completed)
       );
 
       sortedTasks.forEach((t) => {
-        const durText = t.minutes ? `${t.minutes} min` : "—";
+        const durText = t.duration ? `${t.duration} min` : "—";
+        
+        let progressText = "—";
+        if (t.completed) {
+          progressText = `${durText} (100%)`;
+        } else if (t.duration > 0) {
+          progressText = `0 / ${durText} (0%)`;
+        }
+        
         detailRows.push([
-          t.name,
+          t.name.length > 40 ? t.name.slice(0, 37) + "..." : t.name,
           t.category,
-          durText,
+          progressText,
           t.completed ? "Completed" : "In Progress",
         ]);
       });
-      drawTable(detailRows, [60, 40, 40, 30]);
+      
+      drawTable(detailRows, [70, 40, 50, 30]);
+      
+      addSubHeader("Timer Insights");
+      
+      const insights = [];
+      
+      if (timerAnalysis.completedTasks === 0) {
+        insights.push(
+          "No tasks completed yet. Start a timer session to build your focus time."
+        );
+      } else if (completionRate >= 80) {
+        insights.push(
+          `Excellent completion rate of ${completionRate}%! You're consistently following through on your planned work.`
+        );
+      } else if (completionRate >= 50) {
+        insights.push(
+          `Your completion rate is ${completionRate}%. Consider reviewing incomplete tasks to understand what prevented completion.`
+        );
+      } else {
+        insights.push(
+          `Completion rate is ${completionRate}%. Try breaking tasks into smaller chunks or reducing planned durations to improve follow-through.`
+        );
+      }
+      
+      if (timerAnalysis.pendingTasks > 0) {
+        insights.push(
+          `You have ${timerAnalysis.pendingTasks} task${timerAnalysis.pendingTasks > 1 ? 's' : ''} in progress. Focus on completing these before adding new ones.`
+        );
+      }
+      
+      if (timerAnalysis.totalMinutes >= 120) {
+        insights.push(
+          `You've accumulated ${formatFocusMinutes(timerAnalysis.totalMinutes)} of focus time. Great dedication!`
+        );
+      }
 
-      addText(
-        "Each row represents a habit linked to your timer. Completed items indicate where you protected focused time during this period, while in-progress items show habits that still need attention.",
-        9,
-        0,
-        5.5
-      );
+      insights.forEach(insight => {
+        addText("• " + insight, 9, 3, 5.5);
+      });
     }
 
     nextPage();
@@ -2014,12 +2155,12 @@ export default function Reports() {
     addSubHeader("Overall Performance");
     const conclusion =
       avgCompletion >= 80
-        ? `Performance at ${avgCompletion}% indicates excellent consistency and dedication to your habits. Maintain this level and consider gradually introducing more challenging goals.`
+        ? `   Performance at ${avgCompletion}% indicates excellent consistency and dedication to your habits. Maintain this level and consider gradually introducing more challenging goals.`
         : avgCompletion >= 60
-        ? `Performance at ${avgCompletion}% shows that you are building strong habits. Focus on maintaining this level while improving weaker days.`
+        ? `   Performance at ${avgCompletion}% shows that you are building strong habits. Focus on maintaining this level while improving weaker days.`
         : avgCompletion >= 40
-        ? `Performance at ${avgCompletion}% suggests that your habits are developing but not yet stable. Identify what works on your best days and replicate those conditions more often.`
-        : `Current performance is ${avgCompletion}%. Focus on building a foundation with smaller, more achievable habits and aim for daily completion, even with minimal effort.`;
+        ? `   Performance at ${avgCompletion}% suggests that your habits are developing but not yet stable. Identify what works on your best days and replicate those conditions more often.`
+        : `   Current performance is ${avgCompletion}%. Focus on building a foundation with smaller, more achievable habits and aim for daily completion, even with minimal effort.`;
     addText(conclusion, 10, 0, 6);
 
     addSubHeader("Key Insights");
