@@ -415,10 +415,23 @@ const MoodShareCard = ({ moodData, weekLabel, moodScore }) => {
   );
 };
 
-const NewHabitStatShareCard = ({ habits = [] }) => {
-  const mostRecentHabit = getMostRecentHabit(habits);
+const NewHabitStatShareCard = ({ habits = [], weeklyNewHabit = null }) => {
+  // Priority: use backend data if available, fallback to habits array
+  let habitToDisplay = weeklyNewHabit;
+  
+  if (!habitToDisplay) {
+    // Fallback: find most recent habit from habits array
+    const mostRecentHabit = habits.length > 0 
+      ? habits.reduce((mostRecent, current) => {
+          const currentDate = new Date(current.created_at || 0);
+          const mostRecentDate = new Date(mostRecent.created_at || 0);
+          return currentDate > mostRecentDate ? current : mostRecent;
+        })
+      : null;
+    habitToDisplay = mostRecentHabit;
+  }
 
-  if (!mostRecentHabit) {
+  if (!habitToDisplay) {
     return (
       <>
         <div className="new-habit-emoji-container">
@@ -440,15 +453,15 @@ const NewHabitStatShareCard = ({ habits = [] }) => {
     );
   }
 
-  const completionRate = calculateWeeklyCompletionRate(mostRecentHabit);
-  const habitIcon = mostRecentHabit.icon || "📚";
-  const habitName = mostRecentHabit.name || "New Habit";
+  const completionRate = calculateWeeklyCompletionRate(habitToDisplay);
+  const habitEmoji = habitToDisplay.emoji || habitToDisplay.icon || "📚";
+  const habitName = habitToDisplay.habit_name || habitToDisplay.name || "New Habit";
 
   return (
     <>
       <div className="new-habit-emoji-container">
         <div className="new-habit-emoji">
-          {habitIcon}
+          {habitEmoji}
         </div>
       </div>
       
@@ -492,18 +505,17 @@ const WeeklyProgressComparisonCard = ({ progressData }) => {
   );
 };
 
-const HighestProgressHabitShareCard = ({ highestProgressHabit, weeklyAvgCompletionRate }) => {
-  const habitIcon = highestProgressHabit?.emoji || highestProgressHabit?.icon || highestProgressHabit?.habitIcon || "📚";
-  const habitName = highestProgressHabit?.habit_name || highestProgressHabit?.habitName || "N/A";
-  const progressPercentage = weeklyAvgCompletionRate || 
-                             highestProgressHabit?.progressPercentage || 
-                             highestProgressHabit?.completionRate || 0;
+const HighestProgressHabitShareCard = ({ highestProgressHabit = {} }) => {
+  // Use data directly from backend response
+  const habitEmoji = highestProgressHabit.emoji || "📚";
+  const habitName = highestProgressHabit.habit_name || "N/A";
+  const progressPercentage = highestProgressHabit.progressPercentage || 0;
 
   return (
     <>
       <div className="best-task-badge-container">
         <div className="best-task-badge-circle">
-          <div className="best-task-icon">{habitIcon}</div>
+          <div className="best-task-icon">{habitEmoji}</div>
         </div>
         <div className="best-task-ribbon-left"></div>
         <div className="best-task-ribbon-right"></div>
@@ -838,7 +850,7 @@ export default function ProfilePage() {
     });
   };
 
-  const generateShareCardsConfig = () => {
+  const generateShareCardsConfig = (shareableStats) => {
     const cardsConfig = [];
 
     const hasEarnedAchievements = earnedAchievementsList.length > 0;
@@ -885,34 +897,40 @@ export default function ProfilePage() {
       });
     }
 
-    cardsConfig.push(
-      {
-        type: "new_habit_stat",
-        content: <NewHabitStatShareCard habits={allHabits} />,
-        theme: 'theme-new-habit',
-      },
-      {
-        type: "weekly_progress_comparison",
-        content: <WeeklyProgressComparisonCard
+
+  cardsConfig.push(
+    {
+      type: "new_habit_stat",
+      content: (
+        <NewHabitStatShareCard 
+          habits={allHabits}
+          weeklyNewHabit={shareableStats?.weeklyNewHabit}
+        />
+      ),
+      theme: 'theme-new-habit',
+    },
+    {
+      type: "weekly_progress_comparison",
+      content: (
+        <WeeklyProgressComparisonCard
           progressData={{
-            lastWeekProgress: reportStats.lastWeekProgress || 0,
-            thisWeekProgress: reportStats.thisWeekProgress || 0,
-            percentageChange: reportStats.percentageChange || 0
+            lastWeekProgress: shareableStats?.lastWeekProgress || 0,
+            thisWeekProgress: shareableStats?.thisWeekProgress || 0,
+            percentageChange: shareableStats?.percentageChange || 0
           }}
-        />,
-        theme: 'theme-review',
-      },
-      {
-        type: "highest_progress_habit",
-        content: <HighestProgressHabitShareCard
-          highestProgressHabit={{
-            habitName: reportStats.highestProgressHabit?.habitName || "N/A",
-            progressPercentage: reportStats.highestProgressHabit?.progressPercentage || 0,
-            habitIcon: reportStats.highestProgressHabit?.icon || "📚" 
-          }}
-        />,
-        theme: 'theme-progress',
-      },
+        />
+      ),
+      theme: 'theme-review',
+    },
+    {
+      type: "highest_progress_habit",
+      content: (
+        <HighestProgressHabitShareCard
+          highestProgressHabit={shareableStats?.highestProgressHabit || {}}
+        />
+      ),
+      theme: 'theme-progress',
+    },
       {
         type: "overall_streak",
         content: <OverallStreakShareCard

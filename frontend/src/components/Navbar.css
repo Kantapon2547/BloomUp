@@ -193,39 +193,69 @@
   }
 }
 
-/* ===== Color-coded Links ===== */
-.nav-link[href="/home"]:hover { color: #84cdfd; }
+/* ===== Color-coded Active Links ===== */
+/* Desktop - border-bottom colors */
 .nav-link[href="/home"].active { 
   color: #84cdfd; 
-  border-left-color: #84cdfd; 
+  border-bottom-color: #84cdfd; 
 }
 
-.nav-link[href="/gratitude"]:hover { color: #5b7ac8; }
 .nav-link[href="/gratitude"].active { 
   color: #516087; 
-  border-left-color: #516087; 
+  border-bottom-color: #516087; 
 }
 
-.nav-link[href="/calendar"]:hover { color: #ffd104; }
 .nav-link[href="/calendar"].active { 
   color: #ffd104; 
-  border-left-color: #ffd104; 
+  border-bottom-color: #ffd104; 
 }
 
-.nav-link[href="/reports"]:hover { color: #7ed267; }
-.nav-link[href="/reports"].active { 
-  color: #7ed267; 
-  border-left-color: #7ed267; 
-}
-
-.nav-link[href="/habits"]:hover { color: #ac7cf9; }
 .nav-link[href="/habits"].active { 
   color: #ac7cf9; 
-  border-left-color: #ac7cf9; 
+  border-bottom-color: #ac7cf9; 
 }
 
-.nav-link[href="/profile"]:hover { color: #f4a4dd; }
+.nav-link[href="/reports"].active { 
+  color: #7ed267; 
+  border-bottom-color: #7ed267; 
+}
+
 .nav-link[href="/profile"].active { 
   color: #f4a4dd; 
-  border-left-color: #f4a4dd; 
+  border-bottom-color: #f4a4dd; 
 }
+
+/* Mobile - border-left colors */
+@media (max-width: 768px) {
+  .nav-link[href="/home"].active { 
+    border-left-color: #84cdfd; 
+  }
+
+  .nav-link[href="/gratitude"].active { 
+    border-left-color: #516087; 
+  }
+
+  .nav-link[href="/calendar"].active { 
+    border-left-color: #ffd104; 
+  }
+
+  .nav-link[href="/habits"].active { 
+    border-left-color: #ac7cf9; 
+  }
+
+  .nav-link[href="/reports"].active { 
+    border-left-color: #7ed267; 
+  }
+
+  .nav-link[href="/profile"].active { 
+    border-left-color: #f4a4dd; 
+  }
+}
+
+/* ===== Color-coded Hover States ===== */
+.nav-link[href="/home"]:hover { color: #84cdfd; }
+.nav-link[href="/gratitude"]:hover { color: #5b7ac8; }
+.nav-link[href="/calendar"]:hover { color: #ffd104; }
+.nav-link[href="/reports"]:hover { color: #7ed267; }
+.nav-link[href="/habits"]:hover { color: #ac7cf9; }
+.nav-link[href="/profile"]:hover { color: #f4a4dd; }

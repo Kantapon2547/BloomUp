@@ -60,11 +60,11 @@
   border-radius: 16px 16px 0 0;
 }
 
-.card-head-only {
+.mood-card-head-only {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 15px 20px;
+  padding: 15px 0px;
   border-bottom: none;
   margin: 0;
   text-align: center;
@@ -180,7 +180,7 @@
 }
 
 .day-emoji {
-  font-size: 1.3rem;
+  font-size: 2.4rem;
   margin-top: 8px;
 }
 
@@ -307,8 +307,9 @@
   margin-top: 2px;
 }
 
-.insights-card {
+.insights-card, .summary-card {
   margin-top: 0;
+  padding: 2rem 2rem;
 }
 
 .kv {
