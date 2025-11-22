@@ -193,26 +193,14 @@
   vertical-align: middle;
 }
 
-/* Motto */
-.rp-motto {
-  text-align: center;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--primary-green-dark);
-  margin: 2rem 0;
-  padding: 1rem;
-  background: linear-gradient(135deg, rgba(168, 213, 186, 0.2), rgba(126, 187, 143, 0.1));
-  border-radius: 16px;
-  border: 2px solid var(--border-color);
-}
-
 /* KPI Cards */
 .rp-kcard {
   background: var(--card);
   border: 1px solid var(--green-100);
   border-radius: 18px;
   padding: 20px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(0);
   transition: all 0.3s ease;
   width: 250px; 
   display: flex;
@@ -223,8 +211,8 @@
 }
 
 .rp-kcard:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-hover);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: var(--shadow-xl);
 }
 
 .rp-kpi {
@@ -637,18 +625,6 @@
   font-size: 16px;
 }
 
-/* Summary */
-.rp-summary {
-  text-align: center;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--primary-green-dark);
-  padding: 2rem;
-  background: linear-gradient(135deg, rgba(168, 213, 186, 0.15), rgba(126, 187, 143, 0.08));
-  border-radius: 16px;
-  border: 2px solid var(--border-color);
-  margin-top: 2rem;
-}
 
 /* Responsive Design */
 @media (max-width: 768px) {
