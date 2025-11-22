@@ -329,3 +329,48 @@
   color: #1f2937;
   text-align: right;
 }
+
+.day-cell {
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .cal-content {
+    padding: 1rem;
+  }
+
+  .day-cell {
+    min-height: 60px;
+    border-radius: 8px;
+  }
+
+  .day-number {
+    font-size: 0.75rem;
+    top: 2px;
+    left: 4px;
+  }
+
+  .day-emoji {
+    font-size: 1.1rem;
+    margin-top: 12px;
+  }
+
+  .cal-title {
+    font-size: 1.8rem;
+  }
+
+  .week-name {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .day-cell {
+    min-height: 50px;
+  }
+
+  .day-emoji {
+    font-size: 1rem;
+    margin-top: 10px;
+  }
+}

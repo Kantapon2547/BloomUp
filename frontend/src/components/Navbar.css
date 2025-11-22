@@ -42,17 +42,21 @@
   font-size: 0.95rem;
   font-weight: 500;
   transition: color 0.2s, transform 0.2s;
+  display: flex;
+  align-items: center;
 }
 
 .nav-link:hover {
   color: #7b5ce1;
   transform: translateY(-2px);
 }
+
 .nav-link.active {
   color: #7b5ce1;
   font-weight: 700;
   border-bottom: 2px solid #7b5ce1;
 }
+
 /* ===== Right Side ===== */
 .navbar-right {
   display: flex;
@@ -80,50 +84,148 @@
   color: #ff6b6b;
 }
 
+/* ===== Hamburger Menu ===== */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  background: none;
+  border: none;
+  cursor: pointer;
+  gap: 6px;
+  z-index: 1001;
+}
 
-/* ===== Responsive ===== */
+.hamburger-line {
+  width: 25px;
+  height: 3px;
+  background: #7b5ce1;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.hamburger-line.open:nth-child(1) {
+  transform: rotate(45deg) translate(10px, 10px);
+}
+
+.hamburger-line.open:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-line.open:nth-child(3) {
+  transform: rotate(-45deg) translate(3px, -3px);
+}
+
+/* ===== Responsive Design ===== */
 @media (max-width: 768px) {
-  .navbar-center {
-    display: none;
+  .navbar {
+    padding: 1rem 1.5rem;
+  }
+
+  .hamburger {
+    display: flex;
   }
 
   .navbar-right {
-    gap: 0.5rem;
+    position: absolute;
+    top: 70px;
+    left: 0;
+    width: 100%;
+    background: #ffffff;
+    flex-direction: column;
+    gap: 0;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .navbar-right.active {
+    max-height: 400px;
+  }
+
+  .navbar-center {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+  }
+
+  .nav-link {
+    padding: 1rem 2rem;
+    border-bottom: 1px solid #f0f0f0;
+    border-bottom: none;
+    transform: none;
+  }
+
+  .nav-link:hover {
+    background: #f8f8f8;
+    transform: none;
+  }
+
+  .nav-link.active {
+    background: #f3f0ff;
+    border-bottom: none;
+    border-left: 4px solid #7b5ce1;
+    padding-left: calc(2rem - 4px);
+  }
+
+  .navbar-title {
+    font-size: 1.2rem;
   }
 }
 
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0.8rem 1rem;
+  }
+
+  .navbar-title {
+    font-size: 1.1rem;
+  }
+
+  .nav-link {
+    padding: 0.8rem 1.5rem;
+    font-size: 0.9rem;
+  }
+
+  .hamburger-line {
+    width: 20px;
+  }
+}
+
+/* ===== Color-coded Links ===== */
 .nav-link[href="/home"]:hover { color: #84cdfd; }
 .nav-link[href="/home"].active { 
   color: #84cdfd; 
-  border-bottom-color: #84cdfd; 
+  border-left-color: #84cdfd; 
 }
 
 .nav-link[href="/gratitude"]:hover { color: #5b7ac8; }
 .nav-link[href="/gratitude"].active { 
   color: #516087; 
-  border-bottom-color: #516087; 
+  border-left-color: #516087; 
 }
 
 .nav-link[href="/calendar"]:hover { color: #ffd104; }
 .nav-link[href="/calendar"].active { 
   color: #ffd104; 
-  border-bottom-color: #ffd104; 
+  border-left-color: #ffd104; 
 }
 
 .nav-link[href="/reports"]:hover { color: #7ed267; }
 .nav-link[href="/reports"].active { 
   color: #7ed267; 
-  border-bottom-color: #7ed267; 
+  border-left-color: #7ed267; 
 }
 
 .nav-link[href="/habits"]:hover { color: #ac7cf9; }
 .nav-link[href="/habits"].active { 
   color: #ac7cf9; 
-  border-bottom-color: #ac7cf9; 
+  border-left-color: #ac7cf9; 
 }
 
 .nav-link[href="/profile"]:hover { color: #f4a4dd; }
 .nav-link[href="/profile"].active { 
   color: #f4a4dd; 
-  border-bottom-color: #f4a4dd; 
+  border-left-color: #f4a4dd; 
 }
