@@ -347,8 +347,9 @@ function durationToMins(raw) {
 
 function formatDuration(mins) {
   if (typeof mins !== "number" || isNaN(mins)) return "";
+  
   if (mins < 60) {
-    return `${mins} mins`;
+    return `${mins} min${mins === 1 ? "" : "s"}`;
   }
 
   if (mins % 60 === 0) {
@@ -358,7 +359,9 @@ function formatDuration(mins) {
 
   const hrs = Math.floor(mins / 60);
   const rem = mins % 60;
-  return `${hrs}h ${rem}m`;
+  const hrText = `${hrs} hour${hrs === 1 ? "" : "s"}`;
+  const remText = `${rem} min${rem === 1 ? "" : "s"}`;
+  return `${hrText} ${remText}`;
 }
 
 function Dropdown({ value, items, onChange, label }) {
