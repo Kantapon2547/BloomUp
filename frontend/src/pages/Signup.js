@@ -38,6 +38,8 @@ export function Signup() {
 
     try {
       setSubmitting(true);
+      
+      // Sign up first
       const res = await fetch(`${API}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -51,8 +53,49 @@ export function Signup() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.detail || "Sign up failed");
 
-      navigate("/login", { state: { email: data.email || form.email } });
+      console.log("Signup successful:", data);
+
+      // Auto-login after signup
+      const loginRes = await fetch(`${API}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+        }),
+      });
+
+      const loginData = await loginRes.json();
+      if (!loginRes.ok) throw new Error(loginData?.detail || "Login after signup failed");
+
+      console.log("Auto-login after signup successful");
+
+      // Store token (matches Calendar.js)
+      if (loginData.token) {
+        localStorage.setItem("token", loginData.token);
+        console.log("Token stored:", loginData.token.substring(0, 20) + "...");
+      } else {
+        throw new Error("No token received from server");
+      }
+
+      // Store complete user data
+      const loggedInUser = {
+        user_id: loginData.user_id || null,
+        email: loginData.email || form.email,
+        name: loginData.name || form.full_name,
+        bio: loginData.bio || null,
+        profile_picture: loginData.profile_picture || null,
+        created_at: loginData.created_at || new Date().toISOString(),
+      };
+      localStorage.setItem("user", JSON.stringify(loggedInUser));
+      console.log("User stored:", loggedInUser);
+
+      // Wait before navigation
+      setTimeout(() => {
+        navigate("/home", { replace: true });
+      }, 100);
     } catch (err) {
+      console.error("Signup error:", err);
       setError(err.message || "Something went wrong.");
     } finally {
       setSubmitting(false);
@@ -61,7 +104,7 @@ export function Signup() {
 
   return (
     <div className="signup-page-wrapper">
-      {/* 🌸 Left Section */}
+      {/* Left Section */}
       <div className="signup-left-section">
         <div className="back-arrow" onClick={() => navigate("/login")}>
           <ArrowLeft size={26} color="black" />
@@ -77,7 +120,7 @@ export function Signup() {
         </div>
       </div>
 
-      {/* 🧾 Right Section */}
+      {/* Right Section */}
       <div className="signup-right-section">
         <div className="signup-card">
           <div className="signup-logo-section">
@@ -148,7 +191,7 @@ export function Signup() {
             </button>
           </form>
 
-          {/* 👇 Already have an account */}
+          {/* Already have an account */}
           <div className="signin-link">
             <p>
               Already have an account?{" "}

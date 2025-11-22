@@ -99,7 +99,23 @@ export default function Home({ user }) {
   // Fetch user data from backend
   const fetchHomeUserData = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
+      const getToken = () => {
+        const token = localStorage.getItem("token");
+        console.log("Home.js Token:", token ? token.substring(0, 20) + "..." : "null");
+        
+        if (!token || token === "null" || token === "undefined") {
+          return null;
+        }
+        
+        if (token.startsWith("eyJ") && !token.startsWith("Bearer ")) {
+          return `Bearer ${token}`;
+        }
+        
+        return token;
+      };
+
+      // Then use it:
+      const token = getToken();
       if (!token) {
         console.warn("No token found, using fallback user data");
         return;

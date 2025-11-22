@@ -18,7 +18,6 @@ function BackgroundHandler() {
   const location = useLocation();
 
   useEffect(() => {
-    // Clear all background classes
     document.body.className = "";
 
     if (location.pathname === "/home") {
@@ -34,7 +33,6 @@ function BackgroundHandler() {
     } else if (location.pathname === "/profile") {
       document.body.classList.add("profile-bg");
     } else if (location.pathname === "/timer") {
-      // set timer-bg as base
       document.body.classList.add("timer-bg");
     } else {
       document.body.classList.add("default-bg");
@@ -44,7 +42,19 @@ function BackgroundHandler() {
   return null; 
 }
 
-// wrapper component to use useNavigate inside Routes
+// Prevents component render until auth is ready
+function ProtectedRoute({ isAuthenticated, isLoading, children }) {
+  if (isLoading) {
+    return <div style={{ textAlign: "center", marginTop: "30vh" }}>Loading...</div>;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <Layout>{children}</Layout>;
+}
+
 function HabitsWithNav() {
   const navigate = useNavigate();
   return <Habits onNavigateToTimer={() => navigate('/timer')} />;
@@ -52,15 +62,56 @@ function HabitsWithNav() {
 
 function App() {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
 
+  // Check auth on mount only
   useEffect(() => {
+    const token = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
-    if (savedUser) setUser(JSON.parse(savedUser));
-    setLoading(false);
+    
+    console.log("=== APP INIT ===");
+    console.log("Token in storage:", !!token);
+    console.log("User in storage:", !!savedUser);
+    
+    if (token && savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        console.log("User authenticated:", parsedUser.email);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error("Failed to parse user:", error);
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
+    }
+    
+    // Mark auth check as complete
+    setIsAuthChecked(true);
+    setIsLoading(false);
   }, []);
 
-  if (loading) {
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const token = localStorage.getItem("token");
+      const savedUser = localStorage.getItem("user");
+      
+      if (token && savedUser) {
+        try {
+          const parsedUser = JSON.parse(savedUser);
+          setUser(parsedUser);
+          console.log("Auth state updated from storage:", parsedUser.email);
+        } catch (error) {
+          console.error("Failed to parse user on storage change:", error);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  if (!isAuthChecked) {
     return <div style={{ textAlign: "center", marginTop: "30vh" }}>Loading...</div>;
   }
 
@@ -71,97 +122,75 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<DemoDashboard user={user} setUser={setUser} />} />
-          <Route path="/login" element={<Login onLoginSuccess={setUser} />} />
+          <Route 
+            path="/login" 
+            element={<Login onLoginSuccess={(newUser) => {
+              console.log("Login callback triggered");
+              setUser(newUser);
+            }} />} 
+          />
           <Route path="/signup" element={<Signup />} />
 
-        {/* Protected routes */}
-        <Route
-          path="/home"
-          element={
-            user ? (
-              <Layout>
+          {/* Protected routes with guard */}
+          <Route
+            path="/home"
+            element={
+              <ProtectedRoute isAuthenticated={!!user} isLoading={isLoading}>
                 <Home user={user} />
-              </Layout>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
-        <Route
-          path="/habits"
-          element={
-            user ? (
-              <Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/habits"
+            element={
+              <ProtectedRoute isAuthenticated={!!user} isLoading={isLoading}>
                 <HabitsWithNav />
-              </Layout>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
-        <Route
-          path="/reports"
-          element={
-            user ? (
-              <Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute isAuthenticated={!!user} isLoading={isLoading}>
                 <Reports />
-              </Layout>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
-        <Route
-          path="/timer"
-          element={
-            user ? (
-              <Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/timer"
+            element={
+              <ProtectedRoute isAuthenticated={!!user} isLoading={isLoading}>
                 <Timer />
-              </Layout>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
-        <Route
-          path="/gratitude"
-          element={
-            user ? (
-              <Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gratitude"
+            element={
+              <ProtectedRoute isAuthenticated={!!user} isLoading={isLoading}>
                 <GratitudeJar />
-              </Layout>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
-        <Route
-          path="/calendar"
-          element={
-            user ? (
-              <Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/calendar"
+            element={
+              <ProtectedRoute isAuthenticated={!!user} isLoading={isLoading}>
                 <Calendar />
-              </Layout>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            user ? (
-              <Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute isAuthenticated={!!user} isLoading={isLoading}>
                 <Profile />
-              </Layout>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </TaskProvider>
     </Router>

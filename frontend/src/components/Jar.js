@@ -65,7 +65,23 @@ function GratitudeJar() {
   useEffect(() => {
     const fetchGratitudes = async () => {
       try {
+        const getToken = () => {
         const token = localStorage.getItem("token");
+        console.log("🔍 Jar.js Token:", token ? token.substring(0, 20) + "..." : "null");
+        
+        if (!token || token === "null" || token === "undefined") {
+          return null;
+        }
+        
+        if (token.startsWith("eyJ") && !token.startsWith("Bearer ")) {
+          return `Bearer ${token}`;
+        }
+        
+        return token;
+      };
+
+      // Then use it:
+      const token = getToken();
         const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
         
         console.log("Token:", token);
