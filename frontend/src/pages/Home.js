@@ -159,12 +159,38 @@ async function apiFetch(path, options = {}) {
   return res.json();
 }
 
+// Add these helper functions at the top (after the constants)
+const getHabitCompletion = () => {
+  try {
+    return JSON.parse(localStorage.getItem('habit-completion') || '{}');
+  } catch {
+    return {};
+  }
+};
+
+const setHabitCompletion = (completionData) => {
+  localStorage.setItem('habit-completion', JSON.stringify(completionData));
+};
+
+// Helper: Calculate time until midnight Bangkok time
+const getTimeUntilMidnightBangkok = () => {
+  const now = new Date();
+  const bangkokTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
+  
+  const midnight = new Date(bangkokTime);
+  midnight.setHours(24, 0, 0, 0);
+  
+  const timeUntil = midnight - bangkokTime;
+  return Math.max(0, timeUntil);
+};
+
 export default function Home({ user, onNavigate }) {
   const homeTodayStr = getHomeTodayString();
 
   // Refs
   const homeHeaderRef = useRef(null);
   const homeProgressFillRef = useRef(null);
+  const midnightRefreshTimeoutRef = useRef(null);
 
   // State
   const [homeHabits, setHomeHabits] = useState([]);
@@ -184,6 +210,31 @@ export default function Home({ user, onNavigate }) {
   const homeTotalHabits = homeHabits.length;
   const homeProgressPercentage = homeTotalHabits ? (homeCompletedHabits / homeTotalHabits) * 100 : 0;
   const homeDisplayName = homeUserName || user?.name?.trim() || user?.email?.split("@")[0] || "User";
+
+  // Add this useEffect to listen for changes from Habits page
+  useEffect(() => {
+    const handleHabitToggled = (event) => {
+      const { habitId, completed, source } = event.detail;
+      
+      // Only process events from habits page to avoid loops
+      if (source === 'habits') {
+        const habitIndex = homeHabits.findIndex(h => h.id === habitId);
+        if (habitIndex !== -1) {
+          const newCompleted = [...homeCompleted];
+          newCompleted[habitIndex] = completed;
+          setHomeCompleted(newCompleted);
+          
+          // Update localStorage to stay in sync
+          const completionData = getHabitCompletion();
+          completionData[habitId] = completed;
+          setHabitCompletion(completionData);
+        }
+      }
+    };
+
+    window.addEventListener('habitToggled', handleHabitToggled);
+    return () => window.removeEventListener('habitToggled', handleHabitToggled);
+  }, [homeHabits, homeCompleted]);
 
   // Fetch user data from backend
   const fetchHomeUserData = useCallback(async () => {
@@ -217,8 +268,12 @@ export default function Home({ user, onNavigate }) {
 
         setHomeHabits(processedHabits);
         
-        // Set completed for today
-        const completedToday = processedHabits.map(h => !!h.history[homeTodayStr]);
+        // Set completed from localStorage (for sync) or API history
+        const completionData = getHabitCompletion();
+        const completedToday = processedHabits.map(h => {
+          // Prefer localStorage sync, fallback to API data
+          return completionData[h.id] !== undefined ? completionData[h.id] : !!h.history[homeTodayStr];
+        });
         setHomeCompleted(completedToday);
       }
     } catch (error) {
@@ -244,12 +299,20 @@ export default function Home({ user, onNavigate }) {
     newCompleted[index] = newDone;
     setHomeCompleted(newCompleted);
 
+    // Update localStorage for sync with Habits page
+    const completionData = getHabitCompletion();
+    completionData[habitId] = newDone;
+    setHabitCompletion(completionData);
+
+    // Emit custom event for real-time sync
+    window.dispatchEvent(new CustomEvent('habitToggled', { 
+      detail: { habitId: habitId, completed: newDone, source: 'home' }
+    }));
+
     // API call
     (async () => {
       try {
-        const endpoint = newDone 
-          ? `/habits/${habitId}/complete?on=${homeTodayStr}`
-          : `/habits/${habitId}/complete?on=${homeTodayStr}`;
+        const endpoint = `/habits/${habitId}/complete?on=${homeTodayStr}`;
         
         await apiFetch(endpoint, {
           method: newDone ? "POST" : "DELETE",
@@ -276,6 +339,16 @@ export default function Home({ user, onNavigate }) {
         const revertedCompleted = [...homeCompleted];
         revertedCompleted[index] = isCurrentlyDone;
         setHomeCompleted(revertedCompleted);
+        
+        // Revert localStorage
+        const completionData = getHabitCompletion();
+        completionData[habitId] = isCurrentlyDone;
+        setHabitCompletion(completionData);
+        
+        // Emit revert event
+        window.dispatchEvent(new CustomEvent('habitToggled', { 
+          detail: { habitId, completed: isCurrentlyDone, source: 'home' }
+        }));
       }
     })();
   }, [homeCompleted, homeHabits, homeTodayStr]);
@@ -387,6 +460,33 @@ export default function Home({ user, onNavigate }) {
     }
   }, []);
 
+  // Refresh all data at midnight Bangkok time
+  const scheduleNextMidnightRefresh = useCallback(() => {
+    // Clear any existing timeout
+    if (midnightRefreshTimeoutRef.current) {
+      clearTimeout(midnightRefreshTimeoutRef.current);
+    }
+
+    const timeUntilMidnight = getTimeUntilMidnightBangkok();
+    console.log(`Next refresh scheduled in ${Math.round(timeUntilMidnight / 1000 / 60)} minutes`);
+
+    midnightRefreshTimeoutRef.current = setTimeout(() => {
+      console.log("Midnight refresh triggered!");
+      
+      // Clear local completion data for new day
+      setHabitCompletion({});
+      
+      // Refresh all data
+      fetchHomeHabitsFromDB();
+      checkAndResetHomeMood();
+      fetchHomeGratitude();
+      fetchHomeUserData();
+      
+      // Schedule next refresh
+      scheduleNextMidnightRefresh();
+    }, timeUntilMidnight);
+  }, [fetchHomeHabitsFromDB, checkAndResetHomeMood, fetchHomeGratitude, fetchHomeUserData]);
+
   // Listen for profile updates
   useEffect(() => {
     const handleProfileUpdate = () => {
@@ -438,6 +538,7 @@ export default function Home({ user, onNavigate }) {
     fetchHomeUserData();
     checkAndResetHomeMood();
     fetchHomeGratitude();
+    scheduleNextMidnightRefresh();
 
     const handleHomeFocus = () => {
       fetchHomeHabitsFromDB();
@@ -445,8 +546,14 @@ export default function Home({ user, onNavigate }) {
     };
 
     window.addEventListener("focus", handleHomeFocus);
-    return () => window.removeEventListener("focus", handleHomeFocus);
-  }, [fetchHomeHabitsFromDB, fetchHomeUserData, checkAndResetHomeMood, fetchHomeGratitude]);
+    
+    return () => {
+      window.removeEventListener("focus", handleHomeFocus);
+      if (midnightRefreshTimeoutRef.current) {
+        clearTimeout(midnightRefreshTimeoutRef.current);
+      }
+    };
+  }, [fetchHomeHabitsFromDB, fetchHomeUserData, checkAndResetHomeMood, fetchHomeGratitude, scheduleNextMidnightRefresh]);
 
   // Animations
   useEffect(() => {

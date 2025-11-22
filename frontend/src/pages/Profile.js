@@ -5,6 +5,7 @@ import { getMyProfile, updateProfile, uploadAvatar } from "../services/userServi
 import { getUserAchievements, getEarnedAchievements } from "../services/achievementService";
 import { getWeeklyMoodSummary, shouldRefreshWeeklyData } from "../services/moodService";
 import { getShareableStats } from "../services/statsService";
+import { createStorage } from "../services/habitStorage";
 import barCard from "../assets/bar_card.png";
 import "./style/Profile.css";
 import "./style/ShareCard.css";
@@ -55,48 +56,61 @@ const formatAchievementRequirement = (achievement) => {
   return achievement.description;
 };
 
-// Helper function to calculate weekly average completion rate
+// IMPROVED Helper function to calculate weekly average completion rate
 const calculateWeeklyCompletionRate = (habit, targetDate = new Date()) => {
   if (!habit || !habit.history) return 0;
 
-  // Determine the start of the current week (Sunday)
-  const today = new Date(targetDate);
-  const dayOfWeek = today.getDay();
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - dayOfWeek);
-  startOfWeek.setHours(0, 0, 0, 0);
+  try {
+    const today = new Date(targetDate);
+    const dayOfWeek = today.getDay();
+    
+    // Get start of week (Sunday)
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
 
-  // Determine the end of the current week (Saturday)
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
-  endOfWeek.setHours(23, 59, 59, 999);
+    // Count completed days in this week
+    let completedDays = 0;
+    const daysInWeek = 7;
 
-  // Count completed days in this week
-  let completedDays = 0;
-  const daysInWeek = 7;
+    for (let i = 0; i < daysInWeek; i++) {
+      const checkDate = new Date(startOfWeek);
+      checkDate.setDate(startOfWeek.getDate() + i);
+      const dateStr = checkDate.toISOString().split('T')[0];
 
-  for (let i = 0; i < daysInWeek; i++) {
-    const checkDate = new Date(startOfWeek);
-    checkDate.setDate(startOfWeek.getDate() + i);
-    const dateStr = checkDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-
-    if (habit.history[dateStr]) {
-      completedDays++;
+      // Check if habit has completion for this date
+      if (habit.history && habit.history[dateStr]) {
+        completedDays++;
+      }
     }
-  }
 
-  const completionRate = Math.round((completedDays / daysInWeek) * 100);
-  return completionRate;
+    const completionRate = Math.round((completedDays / daysInWeek) * 100);
+    return completionRate;
+  } catch (error) {
+    console.error('Error calculating weekly completion rate:', error);
+    return 0;
+  }
 };
 
-// Helper function to get the most recently created habit
+// IMPROVED Helper function to get the most recently created habit
 const getMostRecentHabit = (habits) => {
   if (!habits || habits.length === 0) return null;
-
+  
   return habits.reduce((mostRecent, current) => {
-    const currentDate = new Date(current.createdAt || 0);
-    const mostRecentDate = new Date(mostRecent.createdAt || 0);
+    const currentDate = new Date(current.created_at || current.createdAt || 0);
+    const mostRecentDate = new Date(mostRecent.created_at || mostRecent.createdAt || 0);
     return currentDate > mostRecentDate ? current : mostRecent;
+  });
+};
+
+// NEW: Helper function to calculate highest progress habit
+const calculateHighestProgressHabit = (habits) => {
+  if (!habits || habits.length === 0) return null;
+  
+  return habits.reduce((highest, current) => {
+    const currentProgress = calculateWeeklyCompletionRate(current);
+    const highestProgress = calculateWeeklyCompletionRate(highest);
+    return currentProgress > highestProgress ? current : highest;
   });
 };
 
@@ -415,20 +429,14 @@ const MoodShareCard = ({ moodData, weekLabel, moodScore }) => {
   );
 };
 
+// FIXED: NewHabitStatShareCard component
 const NewHabitStatShareCard = ({ habits = [], weeklyNewHabit = null }) => {
   // Priority: use backend data if available, fallback to habits array
   let habitToDisplay = weeklyNewHabit;
   
-  if (!habitToDisplay) {
+  if (!habitToDisplay && habits.length > 0) {
     // Fallback: find most recent habit from habits array
-    const mostRecentHabit = habits.length > 0 
-      ? habits.reduce((mostRecent, current) => {
-          const currentDate = new Date(current.created_at || 0);
-          const mostRecentDate = new Date(mostRecent.created_at || 0);
-          return currentDate > mostRecentDate ? current : mostRecent;
-        })
-      : null;
-    habitToDisplay = mostRecentHabit;
+    habitToDisplay = getMostRecentHabit(habits);
   }
 
   if (!habitToDisplay) {
@@ -505,11 +513,43 @@ const WeeklyProgressComparisonCard = ({ progressData }) => {
   );
 };
 
-const HighestProgressHabitShareCard = ({ highestProgressHabit = {} }) => {
-  // Use data directly from backend response
-  const habitEmoji = highestProgressHabit.emoji || "📚";
-  const habitName = highestProgressHabit.habit_name || "N/A";
-  const progressPercentage = highestProgressHabit.progressPercentage || 0;
+// FIXED: HighestProgressHabitShareCard component
+const HighestProgressHabitShareCard = ({ highestProgressHabit = {}, allHabits = [] }) => {
+  // Use data directly from backend response if available, otherwise calculate from habits
+  let habitToDisplay = highestProgressHabit;
+  
+  if ((!habitToDisplay || !habitToDisplay.habit_name) && allHabits.length > 0) {
+    habitToDisplay = calculateHighestProgressHabit(allHabits);
+  }
+
+  if (!habitToDisplay) {
+    return (
+      <>
+        <div className="best-task-badge-container">
+          <div className="best-task-badge-circle">
+            <div className="best-task-icon">📚</div>
+          </div>
+          <div className="best-task-ribbon-left"></div>
+          <div className="best-task-ribbon-right"></div>
+        </div>
+        
+        <div className="best-task-content">
+          <div className="best-task-header">Weekly Best Habit</div>
+          
+          <div className="best-task-percentage">
+            0<span className="best-task-percent-symbol">%</span>
+          </div>
+          
+          <div className="best-task-name">"No habits"</div>
+          <div className="best-task-status">COMPLETED</div>
+        </div>
+      </>
+    );
+  }
+
+  const habitEmoji = habitToDisplay.emoji || habitToDisplay.icon || "📚";
+  const habitName = habitToDisplay.habit_name || habitToDisplay.name || "Best Habit";
+  const progressPercentage = habitToDisplay.progressPercentage || calculateWeeklyCompletionRate(habitToDisplay);
 
   return (
     <>
@@ -720,6 +760,7 @@ export default function ProfilePage() {
   useEffect(() => {
     loadUserProfileData();
   }, []);
+ 
  // --- Generate Dynamic Activity ---
   useEffect(() => {
     if (!reportStats || !earnedAchievementsList) return;
@@ -754,7 +795,19 @@ export default function ProfilePage() {
       });
     }
 
-    // 4. Fallback
+    // 4. Habits activity
+    if (allHabits.length > 0) {
+      const recentHabit = getMostRecentHabit(allHabits);
+      if (recentHabit) {
+        activities.push({
+          icon: recentHabit.emoji || "📚",
+          text: `Created habit: ${recentHabit.habit_name || recentHabit.name}`,
+          time: "Recently"
+        });
+      }
+    }
+
+    // 5. Fallback
     if (activities.length === 0) {
       activities.push({
         icon: "👋",
@@ -764,14 +817,20 @@ export default function ProfilePage() {
     }
 
     setRecentActivities(activities);
-  }, [reportStats, earnedAchievementsList, moodSummary]); // Re-run when these change
+  }, [reportStats, earnedAchievementsList, moodSummary, allHabits]); // Re-run when these change
 
+  // FIXED: Added habits data fetching
   const loadUserProfileData = async () => {
     setIsLoading(true);
     try {
       const profile = await getMyProfile();
       setUserProfile(profile);
       setTemporaryProfileData(profile);
+      
+      // Fetch habits data
+      const habitStorage = createStorage();
+      const habits = await habitStorage.list();
+      setAllHabits(habits);
       
       const [allAch, earnedAch, shareableData, weeklyMood] = await Promise.all([
         getUserAchievements(),
@@ -784,6 +843,10 @@ export default function ProfilePage() {
       setEarnedAchievementsList(earnedAch);
       setReportStats(shareableData);
       setMoodSummary(weeklyMood);
+
+      // Debug logging
+      console.log('Loaded habits:', habits);
+      console.log('Shareable stats:', shareableData);
 
     } catch (error) {
       console.error("Failed to load profile data:", error);
@@ -850,7 +913,8 @@ export default function ProfilePage() {
     });
   };
 
-  const generateShareCardsConfig = (shareableStats) => {
+  // FIXED: generateShareCardsConfig now uses allHabits
+  const generateShareCardsConfig = () => {
     const cardsConfig = [];
 
     const hasEarnedAchievements = earnedAchievementsList.length > 0;
@@ -897,45 +961,51 @@ export default function ProfilePage() {
       });
     }
 
+    // Only show habit-related cards if we have habits
+    if (allHabits.length > 0) {
+      cardsConfig.push(
+        {
+          type: "new_habit_stat",
+          content: (
+            <NewHabitStatShareCard 
+              habits={allHabits}
+              weeklyNewHabit={reportStats?.weeklyNewHabit}
+            />
+          ),
+          theme: 'theme-new-habit',
+        },
+        {
+          type: "highest_progress_habit",
+          content: (
+            <HighestProgressHabitShareCard
+              highestProgressHabit={reportStats?.highestProgressHabit || {}}
+              allHabits={allHabits}
+            />
+          ),
+          theme: 'theme-progress',
+        }
+      );
+    }
 
-  cardsConfig.push(
-    {
-      type: "new_habit_stat",
-      content: (
-        <NewHabitStatShareCard 
-          habits={allHabits}
-          weeklyNewHabit={shareableStats?.weeklyNewHabit}
-        />
-      ),
-      theme: 'theme-new-habit',
-    },
-    {
-      type: "weekly_progress_comparison",
-      content: (
-        <WeeklyProgressComparisonCard
-          progressData={{
-            lastWeekProgress: shareableStats?.lastWeekProgress || 0,
-            thisWeekProgress: shareableStats?.thisWeekProgress || 0,
-            percentageChange: shareableStats?.percentageChange || 0
-          }}
-        />
-      ),
-      theme: 'theme-review',
-    },
-    {
-      type: "highest_progress_habit",
-      content: (
-        <HighestProgressHabitShareCard
-          highestProgressHabit={shareableStats?.highestProgressHabit || {}}
-        />
-      ),
-      theme: 'theme-progress',
-    },
+    cardsConfig.push(
+      {
+        type: "weekly_progress_comparison",
+        content: (
+          <WeeklyProgressComparisonCard
+            progressData={{
+              lastWeekProgress: reportStats?.lastWeekProgress || 0,
+              thisWeekProgress: reportStats?.thisWeekProgress || 0,
+              percentageChange: reportStats?.percentageChange || 0
+            }}
+          />
+        ),
+        theme: 'theme-review',
+      },
       {
         type: "overall_streak",
         content: <OverallStreakShareCard
           overallStreak={{
-            longestOverallStreak: reportStats.longestOverallStreak
+            longestOverallStreak: reportStats?.longestOverallStreak || 0
           }}
         />,
         theme: 'theme-streak',
@@ -969,7 +1039,7 @@ export default function ProfilePage() {
 
   const shareCardsConfig = generateShareCardsConfig();
   const displayStats = {
-    activeHabits: reportStats.activeHabits,
+    activeHabits: reportStats.activeHabits || allHabits.filter(h => h.is_active !== false).length,
     longestStreak: reportStats.longestOverallStreak,
     gratitudeEntries: reportStats.gratitudeEntries,
     daysTracked: reportStats.daysTracked,
