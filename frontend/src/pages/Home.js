@@ -3,7 +3,7 @@ import { gsap } from "gsap";
 import "./style/Home.css";
 
 // Constants
-const HOME_MOOD_EMOJIS = ["😭", "😐", "🙂", "😊", "😁"];
+const HOME_MOOD_EMOJIS = ["😭", "😕", "🙂", "😊", "😄"];
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 // Helper: Get Bangkok time today

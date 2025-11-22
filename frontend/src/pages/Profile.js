@@ -3,8 +3,8 @@ import React, { useState, useEffect, useRef } from "react";
 import html2canvas from 'html2canvas';
 import { getMyProfile, updateProfile, uploadAvatar } from "../services/userService";
 import { getUserAchievements, getEarnedAchievements } from "../services/achievementService";
-import { getWeeklyMoodSummary, shouldRefreshWeeklyData } from "../services/moodService";
-import { getShareableStats } from "../services/statsService";
+import { getWeeklyMoodSummary, shouldRefreshWeeklyData, isMoodCardVisible } from "../services/moodService";
+  import { getShareableStats } from "../services/statsService";
 import { createStorage } from "../services/habitStorage";
 import barCard from "../assets/bar_card.png";
 import "./style/Profile.css";
@@ -245,7 +245,7 @@ const AchievementModalItem = ({ achievement }) => (
       </p>
       {achievement.is_earned && achievement.earned_date && (
         <div className="achievement-date">
-          Earned {new Date(achievement.earned_date).toLocaleDateString()}
+          Earned {new Date(achievement.earned_date).toLocaleDateString('en-GB')}
         </div>
       )}
     </div>
@@ -352,7 +352,7 @@ const AchievementShareCard = ({ earnedCount, totalCount, latestAchievement }) =>
 
   const formatEarnedDate = (dateString) => {
     if (!dateString) return "Recently";
-    return new Date(dateString).toLocaleDateString('en-US', { 
+    return new Date(dateString).toLocaleDateString('en-GB', { 
       month: 'numeric', 
       day: 'numeric', 
       year: 'numeric' 
@@ -741,7 +741,7 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [allAchievementsList, setAllAchievementsList] = useState([]);
   const [earnedAchievementsList, setEarnedAchievementsList] = useState([]);
-  const [recentActivities, setRecentActivities] = useState([]); // Dynamic Activities State
+  const [recentActivities, setRecentActivities] = useState([]);
   
   const [showAchievementsModal, setShowAchievementsModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -773,7 +773,7 @@ export default function ProfilePage() {
       activities.push({
         icon: "🏆",
         text: `Unlocked: ${ach.title}`,
-        time: ach.earned_date ? new Date(ach.earned_date).toLocaleDateString() : "Recently"
+        time: ach.earned_date ? new Date(ach.earned_date).toLocaleDateString('en-GB') : "Recently"
       });
     });
 
@@ -913,7 +913,6 @@ export default function ProfilePage() {
     });
   };
 
-  // FIXED: generateShareCardsConfig now uses allHabits
   const generateShareCardsConfig = () => {
     const cardsConfig = [];
 
@@ -936,30 +935,31 @@ export default function ProfilePage() {
       });
     }
 
-    if (moodSummary?.hasHistory) {
-      const mood = scoreToMoodDisplay(moodSummary.most_common_mood);
-      const moodColors = getMoodColors(moodSummary.most_common_mood);
-      
-      cardsConfig.push({
-        type: "mood",
-        content: (
-          <MoodShareCard
-            moodData={{
-              moodImage: mood.image,
-              moodEmoji: mood.emoji,
-              moodDescription: mood.description,
-            }}
-            weekLabel={moodSummary.weekLabel || "Previous Week"}
-            moodScore={moodSummary.most_common_mood}
-          />
-        ),
-        theme: 'theme-mood-custom',
-        customStyle: {
-          background: moodColors.background,
-          color: moodColors.text
-        }
-      });
-    }
+    if (moodSummary?.hasHistory && isMoodCardVisible()) {
+    const mood = scoreToMoodDisplay(moodSummary.most_common_mood);
+    const moodColors = getMoodColors(moodSummary.most_common_mood);
+    
+    cardsConfig.push({
+      type: "mood",
+      content: (
+        <MoodShareCard
+          moodData={{
+            moodImage: mood.image,
+            moodEmoji: mood.emoji,
+            moodDescription: mood.description,
+          }}
+          weekLabel={moodSummary.weekLabel || "Previous Week"}
+          moodScore={moodSummary.most_common_mood}
+        />
+      ),
+      theme: 'theme-mood-custom',
+      customStyle: {
+        background: moodColors.background,
+        color: moodColors.text
+      }
+    });
+  }
+
 
     // Only show habit-related cards if we have habits
     if (allHabits.length > 0) {
