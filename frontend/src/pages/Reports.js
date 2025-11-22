@@ -894,6 +894,7 @@ export default function Reports() {
           if (Array.isArray(parsed)) sessions = parsed;
         }
       } catch {
+        /* ignore */
       }
     }
 
@@ -908,10 +909,12 @@ export default function Reports() {
       return d >= start && d <= new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
     };
 
-    const currentHabitIds = new Set(habits.map(h => h.id));
+    const currentHabitIds = new Set(habits.map((h) => h.id));
 
     const filteredSessions = sessions.filter((s) => {
-      return inPeriod(s.completedAt) && currentHabitIds.has(s.habitId);
+      if (!inPeriod(s.completedAt)) return false;
+      if (!s.habitId) return true;              
+      return currentHabitIds.has(s.habitId);    
     });
 
     if (filteredSessions.length > 0) {
@@ -922,13 +925,10 @@ export default function Reports() {
       };
 
       const categoryMap = new Map();
+      const detailList = [];
 
-      const detailList = filteredSessions.map((s) => {
-        const minutes = normalizeMinutes(
-          s.actualMinutes ?? s.minutes ?? s.plannedMinutes ?? s.duration
-        );
-
-        let rawMode = (s.mode || "pomodoro").toLowerCase();
+      filteredSessions.forEach((s) => {
+        const rawMode = (s.mode || "pomodoro").toLowerCase();
         let bucket = "pomodoro";
         if (rawMode === "regular") {
           bucket = "regular";
@@ -940,12 +940,34 @@ export default function Reports() {
           bucket = "break";
         }
 
-        modeStats[bucket] += minutes;
+        const plannedMinutes = normalizeMinutes(s.plannedMinutes);
+        const actualMinutes = normalizeMinutes(
+          s.actualMinutes ?? s.minutes ?? s.duration
+        );
 
-        const category = (s.category || "General").trim() || "General";
-        categoryMap.set(category, (categoryMap.get(category) || 0) + minutes);
+        const minutesForStats = actualMinutes || plannedMinutes;
+        modeStats[bucket] += minutesForStats;
 
-        return {
+        const category =
+          (s.category || (bucket === "break" ? "Break" : "General")).trim() ||
+          (bucket === "break" ? "Break" : "General");
+
+        if (bucket !== "break") {
+          categoryMap.set(
+            category,
+            (categoryMap.get(category) || 0) + minutesForStats
+          );
+        }
+
+        if (!s.habitId || bucket === "break") return;
+
+        const planned = plannedMinutes || minutesForStats;
+        const actual = actualMinutes;
+        const completedFlag =
+          s.status === "done" ||
+          (planned > 0 && actual >= planned);
+
+        detailList.push({
           name: s.taskName || s.taskTitle || s.name || "Unnamed task",
           category,
           mode: bucket,
@@ -955,9 +977,11 @@ export default function Reports() {
               : bucket === "regular"
               ? "Regular"
               : "Break",
-          duration: minutes,
-          completed: true,
-        };
+          duration: actual,          
+          actualMinutes: actual,
+          plannedMinutes: planned,
+          completed: completedFlag,
+        });
       });
 
       const categoryBreakdown = Array.from(categoryMap.entries()).map(
@@ -967,14 +991,17 @@ export default function Reports() {
       const topCategory = categoryBreakdown[0] || null;
 
       const totalMinutes = detailList.reduce(
-        (sum, t) => sum + t.duration,
+        (sum, t) => sum + (t.actualMinutes ?? t.duration ?? 0),
         0
       );
 
+      const completedTasks = detailList.filter((t) => t.completed).length;
+      const pendingTasks = detailList.length - completedTasks;
+
       return {
         source: "sessions",
-        completedTasks: detailList.length,
-        pendingTasks: 0,
+        completedTasks,
+        pendingTasks,
         totalMinutes,
         modeStats,
         categoryBreakdown,
@@ -984,7 +1011,7 @@ export default function Reports() {
     }
 
     if (timerTasksFromShared && timerTasksFromShared.length > 0) {
-      const currentTasks = timerTasksFromShared.filter(task => 
+      const currentTasks = timerTasksFromShared.filter((task) =>
         currentHabitIds.has(task.id)
       );
 
@@ -1004,6 +1031,7 @@ export default function Reports() {
       const detailList = currentTasks.map((task) => {
         const minutes = normalizeMinutes(task.minutes);
         const category = (task.category || "General").trim() || "General";
+        const completed = !!task.completed;
 
         return {
           name: task.name,
@@ -1011,7 +1039,9 @@ export default function Reports() {
           mode: "task",
           modeLabel: "Task",
           duration: minutes,
-          completed: !!task.completed,
+          actualMinutes: completed ? minutes : 0,
+          plannedMinutes: minutes,
+          completed,
         };
       });
 
@@ -1021,7 +1051,10 @@ export default function Reports() {
       const categoryMap = new Map();
       detailList.forEach((t) => {
         if (!t.completed) return;
-        categoryMap.set(t.category, (categoryMap.get(t.category) || 0) + t.duration);
+        categoryMap.set(
+          t.category,
+          (categoryMap.get(t.category) || 0) + t.actualMinutes
+        );
       });
 
       const categoryBreakdown = Array.from(categoryMap.entries()).map(
@@ -1031,7 +1064,7 @@ export default function Reports() {
       const topCategory = categoryBreakdown[0] || null;
 
       const totalMinutes = detailList.reduce(
-        (sum, t) => sum + (t.completed ? t.duration : 0),
+        (sum, t) => sum + t.actualMinutes,
         0
       );
 
@@ -1082,6 +1115,8 @@ export default function Reports() {
       gradient1: [126, 187, 143],     
       gradient2: [168, 213, 186]
     };
+
+    pdf.setLineHeightFactor(1.4);
 
     const fmtDisplayDate = (d) =>
       d.toLocaleDateString("en-GB", {
@@ -1137,12 +1172,21 @@ export default function Reports() {
     const setDrawColor = (c) => pdf.setDrawColor(...c);
 
     const formatFocusMinutes = (minutes) => {
-      if (!minutes || minutes <= 0) return "0 min";
+      if (!minutes || minutes <= 0) return "0 mins";
+
       const hrs = Math.floor(minutes / 60);
       const mins = minutes % 60;
-      if (hrs === 0) return `${mins} min`;
-      if (mins === 0) return `${hrs} h`;
-      return `${hrs} h ${mins} min`;
+
+      const parts = [];
+
+      if (hrs > 0) {
+        parts.push(`${hrs} hr${hrs === 1 ? "" : "s"}`);
+      }
+      if (mins > 0) {
+        parts.push(`${mins} min${mins === 1 ? "" : "s"}`);
+      }
+
+      return parts.join(" ");
     };
 
     const addSectionHeader = (title, gapTop = true) => {
@@ -1174,13 +1218,22 @@ export default function Reports() {
       pdf.setFont(undefined, "normal");
     };
 
-    const addText = (text, size = 10, indent = 0, lineHeight = 5.5) => {
+    const addText = (text, size = 10, indent = 0, lineHeight = 7.5) => {
       pdf.setFontSize(size);
       pdf.setFont(undefined, "normal");
       setColor(colors.textLight);
-      const lines = pdf.splitTextToSize(text, contentWidth - indent);
-      pdf.text(lines, margin + indent, y);
-      y += lines.length * lineHeight + 3;
+
+      const maxWidth = contentWidth - indent;
+      const lines = pdf.splitTextToSize(text, maxWidth);
+
+      const lhFactor = 1.4; 
+      pdf.text(lines, margin + indent, y, {
+        maxWidth,
+        lineHeightFactor: lhFactor,
+      });
+
+      const effectiveLineHeight = lineHeight * lhFactor;
+      y += lines.length * effectiveLineHeight + 3;
     };
 
     const drawTable = (rows, colUnits) => {
@@ -1992,18 +2045,25 @@ export default function Reports() {
         5.5
       );
     } else {
-      const completedMinutes = timerAnalysis.list
-        .filter(t => t.completed)
-        .reduce((sum, t) => sum + t.duration, 0);
-      
-      const totalPlannedMinutes = timerAnalysis.list.reduce(
-        (sum, t) => sum + t.duration,
+      const completedMinutes = timerAnalysis.list.reduce(
+        (sum, t) => sum + (t.actualMinutes ?? t.duration ?? 0),
         0
       );
-      
-      const completionRate = totalPlannedMinutes > 0 
-        ? Math.round((completedMinutes / totalPlannedMinutes) * 100)
-        : 0;
+
+      const totalPlannedMinutes = timerAnalysis.list.reduce(
+        (sum, t) =>
+          sum +
+          (t.plannedMinutes ??
+            t.actualMinutes ??
+            t.duration ??
+            0),
+        0
+      );
+
+      const completionRate =
+        totalPlannedMinutes > 0
+          ? Math.round((completedMinutes / totalPlannedMinutes) * 100)
+          : 0;
 
       const summaryRows = [
         ["Metric", "Value"],
@@ -2019,24 +2079,43 @@ export default function Reports() {
 
       if (timerAnalysis.modeStats && timerAnalysis.source === "sessions") {
         addSubHeader("Time Distribution by Mode");
-        
-        const { pomodoro, regular, break: breakTime } = timerAnalysis.modeStats;
+
+        const { pomodoro, regular, break: breakTime } =
+          timerAnalysis.modeStats;
         const totalModeMinutes = pomodoro + regular + breakTime;
-        
+
         if (totalModeMinutes > 0) {
           const modeRows = [
             ["Mode", "Time Spent", "Percentage"],
-            ["Pomodoro (Work)", formatFocusMinutes(pomodoro), `${Math.round((pomodoro / totalModeMinutes) * 100)}%`],
-            ["Regular Timer", formatFocusMinutes(regular), `${Math.round((regular / totalModeMinutes) * 100)}%`],
-            ["Breaks", formatFocusMinutes(breakTime), `${Math.round((breakTime / totalModeMinutes) * 100)}%`],
+            [
+              "Pomodoro (Work)",
+              formatFocusMinutes(pomodoro),
+              `${Math.round((pomodoro / totalModeMinutes) * 100)}%`,
+            ],
+            [
+              "Regular Timer",
+              formatFocusMinutes(regular),
+              `${Math.round((regular / totalModeMinutes) * 100)}%`,
+            ],
+            [
+              "Breaks",
+              formatFocusMinutes(breakTime),
+              `${Math.round((breakTime / totalModeMinutes) * 100)}%`,
+            ],
           ];
-          
+
           drawTable(modeRows, [60, 50, 40]);
-          
+
           addText(
-            `You spent ${formatFocusMinutes(pomodoro + regular)} in focused work and ${formatFocusMinutes(breakTime)} in breaks. ${
-              breakTime > 0 && (pomodoro + regular) > 0
-                ? `Your break-to-work ratio is ${Math.round((breakTime / (pomodoro + regular)) * 100)}%.`
+            `You spent ${formatFocusMinutes(
+              pomodoro + regular
+            )} in focused work and ${formatFocusMinutes(
+              breakTime
+            )} in breaks. ${
+              breakTime > 0 && pomodoro + regular > 0
+                ? `Your break-to-work ratio is ${Math.round(
+                    (breakTime / (pomodoro + regular)) * 100
+                  )}%.`
                 : ""
             }`,
             9,
@@ -2046,34 +2125,38 @@ export default function Reports() {
         }
       }
 
-      if (timerAnalysis.categoryBreakdown && timerAnalysis.categoryBreakdown.length > 0) {
+      if (
+        timerAnalysis.categoryBreakdown &&
+        timerAnalysis.categoryBreakdown.length > 0
+      ) {
         addSubHeader("Focus Time by Category");
-        
-        const categoryRows = [
-          ["Category", "Time Spent", "Share"]
-        ];
-        
+
+        const categoryRows = [["Category", "Time Spent", "Share"]];
+
         const totalCategoryMinutes = timerAnalysis.categoryBreakdown.reduce(
           (sum, c) => sum + c.minutes,
           0
         );
-        
-        timerAnalysis.categoryBreakdown.forEach(cat => {
-          const share = totalCategoryMinutes > 0 
-            ? Math.round((cat.minutes / totalCategoryMinutes) * 100)
-            : 0;
+
+        timerAnalysis.categoryBreakdown.forEach((cat) => {
+          const share =
+            totalCategoryMinutes > 0
+              ? Math.round((cat.minutes / totalCategoryMinutes) * 100)
+              : 0;
           categoryRows.push([
             cat.name,
             formatFocusMinutes(cat.minutes),
-            `${share}%`
+            `${share}%`,
           ]);
         });
-        
+
         drawTable(categoryRows, [70, 50, 30]);
-        
+
         if (timerAnalysis.topCategory) {
           addText(
-            `Your top focus category was "${timerAnalysis.topCategory.name}" with ${formatFocusMinutes(timerAnalysis.topCategory.minutes)} of dedicated time.`,
+            `Your top focus category was "${timerAnalysis.topCategory.name}" with ${formatFocusMinutes(
+              timerAnalysis.topCategory.minutes
+            )} of dedicated time.`,
             9,
             0,
             5.5
@@ -2082,36 +2165,52 @@ export default function Reports() {
       }
 
       addSubHeader("Task Completion Details");
-      
+
       const detailRows = [["Task", "Category", "Progress", "Status"]];
       const sortedTasks = [...timerAnalysis.list].sort(
         (a, b) => Number(b.completed) - Number(a.completed)
       );
 
       sortedTasks.forEach((t) => {
-        const durText = t.duration ? `${t.duration} min` : "—";
-        
+        const actual = t.actualMinutes ?? t.duration ?? 0;
+        const planned = t.plannedMinutes ?? actual;
+
+        const actualText = formatFocusMinutes(actual);
+        const plannedText = planned
+          ? formatFocusMinutes(planned)
+          : "—";
+
         let progressText = "—";
-        if (t.completed) {
-          progressText = `${durText} (100%)`;
-        } else if (t.duration > 0) {
-          progressText = `0 / ${durText} (0%)`;
+        if (planned > 0) {
+          const pct = Math.round((actual / planned) * 100);
+          progressText = `${actualText} / ${plannedText} (${Math.min(
+            pct,
+            100
+          )}%)`;
+        } else {
+          progressText = actualText;
         }
-        
+
+        const status = t.completed
+          ? "Completed"
+          : actual > 0
+          ? "In Progress"
+          : "Planned";
+
         detailRows.push([
           t.name.length > 40 ? t.name.slice(0, 37) + "..." : t.name,
           t.category,
           progressText,
-          t.completed ? "Completed" : "In Progress",
+          status,
         ]);
       });
-      
+
       drawTable(detailRows, [70, 40, 50, 30]);
-      
+
       addSubHeader("Timer Insights");
-      
+
       const insights = [];
-      
+
       if (timerAnalysis.completedTasks === 0) {
         insights.push(
           "No tasks completed yet. Start a timer session to build your focus time."
@@ -2129,24 +2228,27 @@ export default function Reports() {
           `Completion rate is ${completionRate}%. Try breaking tasks into smaller chunks or reducing planned durations to improve follow-through.`
         );
       }
-      
+
       if (timerAnalysis.pendingTasks > 0) {
         insights.push(
-          `You have ${timerAnalysis.pendingTasks} task${timerAnalysis.pendingTasks > 1 ? 's' : ''} in progress. Focus on completing these before adding new ones.`
-        );
-      }
-      
-      if (timerAnalysis.totalMinutes >= 120) {
-        insights.push(
-          `You've accumulated ${formatFocusMinutes(timerAnalysis.totalMinutes)} of focus time. Great dedication!`
+          `You have ${timerAnalysis.pendingTasks} task${
+            timerAnalysis.pendingTasks > 1 ? "s" : ""
+          } in progress. Focus on completing these before adding new ones.`
         );
       }
 
-      insights.forEach(insight => {
+      if (timerAnalysis.totalMinutes >= 120) {
+        insights.push(
+          `You've accumulated ${formatFocusMinutes(
+            timerAnalysis.totalMinutes
+          )} of focus time. Great dedication!`
+        );
+      }
+
+      insights.forEach((insight) => {
         addText("• " + insight, 9, 3, 5.5);
       });
     }
-
     nextPage();
 
     // ===== conclusion =====
@@ -2155,13 +2257,14 @@ export default function Reports() {
     addSubHeader("Overall Performance");
     const conclusion =
       avgCompletion >= 80
-        ? `   Performance at ${avgCompletion}% indicates excellent consistency and dedication to your habits. Maintain this level and consider gradually introducing more challenging goals.`
+        ? `Performance at ${avgCompletion}% indicates excellent consistency and dedication to your habits. Maintain this level and consider gradually introducing more challenging goals.`
         : avgCompletion >= 60
-        ? `   Performance at ${avgCompletion}% shows that you are building strong habits. Focus on maintaining this level while improving weaker days.`
+        ? `Performance at ${avgCompletion}% shows that you are building strong habits. Focus on maintaining this level while improving weaker days.`
         : avgCompletion >= 40
-        ? `   Performance at ${avgCompletion}% suggests that your habits are developing but not yet stable. Identify what works on your best days and replicate those conditions more often.`
-        : `   Current performance is ${avgCompletion}%. Focus on building a foundation with smaller, more achievable habits and aim for daily completion, even with minimal effort.`;
-    addText(conclusion, 10, 0, 6);
+        ? `Performance at ${avgCompletion}% suggests that your habits are developing but not yet stable. Identify what works on your best days and replicate those conditions more often.`
+        : `Current performance is ${avgCompletion}%. Focus on building a foundation with smaller, more achievable habits and aim for daily completion, even with minimal effort.`;
+    addText(conclusion, 9, 0, 6.8);
+
 
     addSubHeader("Key Insights");
     const insights = [];
@@ -2211,9 +2314,10 @@ export default function Reports() {
       );
     }
 
-    y += 3;
+    y += 3; 
     pdf.setFontSize(9);
     setColor(colors.textLight);
+
     insights.forEach((insight) => {
       const lines = pdf.splitTextToSize(insight, contentWidth - 5);
       pdf.text(lines, margin + 3, y);
@@ -2229,9 +2333,10 @@ export default function Reports() {
       "5. Acknowledge progress regularly to maintain motivation and momentum."
     ];
 
-    y += 3;
+    y += 5; 
     pdf.setFontSize(9);
     setColor(colors.textLight);
+
     actions.forEach((action) => {
       const lines = pdf.splitTextToSize(action, contentWidth - 5);
       pdf.text(lines, margin + 3, y);

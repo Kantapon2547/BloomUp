@@ -49,7 +49,7 @@ function parseDurationToMinutes(raw) {
 
 const TIMER_SESSION_KEY = "bloomup_timer_sessions";
 
-function saveSessionSummary({ habitId, task, status, actualSeconds }) {
+function saveSessionSummary({ habitId, task, status, actualSeconds, mode }) {
   try {
     const raw = localStorage.getItem(TIMER_SESSION_KEY);
     const list = raw ? JSON.parse(raw) : [];
@@ -60,13 +60,13 @@ function saveSessionSummary({ habitId, task, status, actualSeconds }) {
     const plannedMinutes = task.minutes || 0;
     const actualMinutes = Math.round(Math.max(0, actualSeconds) / 60);
 
-    const entry = {
+    const baseEntry = {
       key,
       habitId,
       taskId: task.id,
       taskName: task.name,
       category: task.category || "General",
-      mode: "regular",
+      mode: mode || "regular",
       plannedMinutes,
       actualMinutes,
       minutes: actualMinutes,
@@ -75,10 +75,28 @@ function saveSessionSummary({ habitId, task, status, actualSeconds }) {
     };
 
     const idx = list.findIndex((s) => s.key === key);
+
     if (idx >= 0) {
-      list[idx] = { ...list[idx], ...entry };
+      const prev = list[idx];
+      const updatedPlanned = Math.max(
+        prev.plannedMinutes || 0,
+        plannedMinutes
+      );
+      const updatedActual = (prev.actualMinutes || 0) + actualMinutes;
+
+      const completedFlag =
+        status === "done" || updatedActual >= updatedPlanned;
+
+      list[idx] = {
+        ...prev,
+        ...baseEntry,
+        plannedMinutes: updatedPlanned,
+        actualMinutes: updatedActual,
+        minutes: updatedActual,
+        status: completedFlag ? "done" : status,
+      };
     } else {
-      list.push(entry);
+      list.push(baseEntry);
     }
 
     localStorage.setItem(TIMER_SESSION_KEY, JSON.stringify(list));
@@ -99,13 +117,16 @@ async function markHabitCompleteAPI(habitId, date) {
 
     console.log(`Marking habit ${habitId} complete for date ${date}`);
 
-    const response = await fetch(`${API_URL}/habits/${habitId}/complete?on=${date}`, {
-      method: "POST",
-      headers: {
-        Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await fetch(
+      `${API_URL}/habits/${habitId}/complete?on=${date}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     if (response.status === 401) {
       console.error("401 Unauthorized - Token is invalid");
@@ -117,7 +138,10 @@ async function markHabitCompleteAPI(habitId, date) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Failed to mark habit complete: ${response.status}`, errorText);
+      console.error(
+        `Failed to mark habit complete: ${response.status}`,
+        errorText
+      );
       return false;
     }
 
@@ -129,16 +153,14 @@ async function markHabitCompleteAPI(habitId, date) {
   }
 }
 
+
 /* ---------- main component ---------- */
-
 export default function Timer() {
-  const { habits, refreshHabits } = useSharedTasks();
-
+  const { tasks, setTasks, habits, refreshHabits, completeTask } = useSharedTasks();
   const [mode, setMode] = useState("pomodoro");
   const [pomodoroType, setPomodoroType] = useState("work");
   const [isRunning, setIsRunning] = useState(false);
   const [timeLeft, setTimeLeft] = useState(25 * 60);
-  const [tasks, setTasks] = useState([]);
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [workSessionsCompleted, setWorkSessionsCompleted] = useState(0);
   const [draggedItem, setDraggedItem] = useState(null);
@@ -224,28 +246,34 @@ export default function Timer() {
 
       if (currentTaskIndex < tasks.length) {
         const currentTask = tasks[currentTaskIndex];
+
         if (newSessionCount >= currentTask.requiredPomos) {
-          // Mark task as complete
           const updatedTasks = [...tasks];
-          updatedTasks[currentTaskIndex].completed = true;
+          updatedTasks[currentTaskIndex] = {
+            ...updatedTasks[currentTaskIndex],
+            completed: true,
+          };
           setTasks(updatedTasks);
 
-          // Sync with backend
           const today = formatLocalDate(new Date());
           const success = await markHabitCompleteAPI(currentTask.id, today);
 
           if (success) {
-            // Refresh habits to update UI across all components
+            completeTask(currentTask.id);
             await refreshHabits();
-
-            saveSessionSummary({
-              habitId: currentTask.id,
-              task: currentTask,
-              status: "done",
-              actualSeconds: elapsedSeconds || currentTask.minutes * 60,
-            });
+          } else {
+            console.warn("Failed to mark habit complete in backend (pomodoro)");
           }
 
+          saveSessionSummary({
+            habitId: currentTask.id,
+            task: currentTask,
+            status: "done",
+            actualSeconds: currentTask.minutes * 60,
+            mode: "pomodoro",
+          });
+
+          setElapsedSeconds(0);
           setCurrentTaskIndex(currentTaskIndex + 1);
           setWorkSessionsCompleted(0);
 
@@ -265,54 +293,86 @@ export default function Timer() {
           setTimeLeft(5 * 60);
         }
       }
-    } else if (pomodoroType === "short") {
-      alert("Short break complete! Take a long break.");
-      setPomodoroType("long");
-      setTimeLeft(15 * 60);
-    } else if (pomodoroType === "long") {
-      alert("Long break complete! Back to work.");
-      setPomodoroType("work");
-      setTimeLeft(25 * 60);
-    }
-  };
+      } else if (pomodoroType === "short") {
+        saveSessionSummary({
+          habitId: null,
+          task: {
+            id: "short-break",
+            name: "Short Break",
+            minutes: POMODORO_TIMES.short / 60,
+            category: "Break",
+          },
+          status: "done",
+          actualSeconds: POMODORO_TIMES.short,
+          mode: "short_break",
+        });
+
+        alert("Short break complete! Take a long break.");
+        setPomodoroType("long");
+        setTimeLeft(POMODORO_TIMES.long);
+      } else if (pomodoroType === "long") {
+        saveSessionSummary({
+          habitId: null,
+          task: {
+            id: "long-break",
+            name: "Long Break",
+            minutes: POMODORO_TIMES.long / 60,
+            category: "Break",
+          },
+          status: "done",
+          actualSeconds: POMODORO_TIMES.long,
+          mode: "long_break",
+        });
+
+        alert("Long break complete! Back to work.");
+        setPomodoroType("work");
+        setTimeLeft(POMODORO_TIMES.work);
+      }
+    };
 
   const handleRegularComplete = async () => {
-    if (currentTaskIndex < tasks.length) {
-      const currentTask = tasks[currentTaskIndex];
+    if (currentTaskIndex >= tasks.length) return;
 
-      // Save to localStorage for reports
-      saveSessionSummary({
-        habitId: currentTask.id,
-        task: currentTask,
-        status: "done",
-        actualSeconds: elapsedSeconds || currentTask.minutes * 60,
-      });
+    const currentTask = tasks[currentTaskIndex];
+    const today = formatLocalDate(new Date());
 
-      // Mark task as complete locally
+    const plannedSeconds = (currentTask.minutes || 25) * 60;
+
+    const actualSeconds =
+      elapsedSeconds > 0 ? elapsedSeconds : plannedSeconds;
+
+    const success = await markHabitCompleteAPI(currentTask.id, today);
+
+    if (success) {
       const updatedTasks = [...tasks];
-      updatedTasks[currentTaskIndex].completed = true;
+      updatedTasks[currentTaskIndex] = {
+        ...updatedTasks[currentTaskIndex],
+        completed: true,
+      };
       setTasks(updatedTasks);
-
-      // Sync with backend API
-      const today = formatLocalDate(new Date());
-      const success = await markHabitCompleteAPI(currentTask.id, today);
-
-      if (success) {
-        console.log("Habit marked complete in backend");
-        // Refresh habits to update UI across all components
-        await refreshHabits();
-      } else {
-        console.warn("Failed to mark habit complete in backend");
-      }
-
-      setCurrentTaskIndex(currentTaskIndex + 1);
-      setElapsedSeconds(0);
-
-      if (currentTaskIndex + 1 < tasks.length) {
-        setTimeLeft(tasks[currentTaskIndex + 1].minutes * 60);
-      }
+      completeTask(currentTask.id);
+      await refreshHabits();
+    } else {
+      console.warn("Failed to mark habit complete in backend (regular)");
     }
-    alert("Timer complete!");
+
+    saveSessionSummary({
+      habitId: currentTask.id,
+      task: currentTask,
+      status: "done",
+      actualSeconds,
+      mode: "regular",
+    });
+
+    setElapsedSeconds(0);
+    const nextIndex = currentTaskIndex + 1;
+    setCurrentTaskIndex(nextIndex);
+
+    if (nextIndex < tasks.length) {
+      setTimeLeft(tasks[nextIndex].minutes * 60);
+    } else {
+      setTimeLeft(25 * 60);
+    }
   };
 
   /* ---------- UI helpers ---------- */

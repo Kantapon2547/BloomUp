@@ -246,8 +246,8 @@ export const TaskProvider = ({ children }) => {
       .map(h => ({
         id: h.id,
         name: h.name,
-        minutes: h.minutes, // Already a number from transformHabit
-        duration: h.minutes, // Ensure duration is also set
+        minutes: h.minutes, 
+        duration: h.minutes, 
         icon: h.icon,
         category: h.category,
         color: h.color,
