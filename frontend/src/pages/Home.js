@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import "./style/Home.css";
 import Jar from '../components/Jar';
-import DailyMotivationCard from '../components/MotivationCard';
 
 // Home Component Constants
 const HOME_LS_KEY = "habit-tracker@hybrid";
@@ -11,7 +10,6 @@ const HOME_MOOD_EMOJIS = ["😭", "😐", "🙂", "😊", "😁"];
 
 // Home Helper functions
 const getHomeTodayString = () => {
-  // Get current time in Bangkok timezone
   const bangkokTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" });
   return new Date(bangkokTime).toISOString().slice(0, 10);
 };
@@ -44,7 +42,6 @@ const calculateHomeStreak = (habit) => {
 };
 
 const getCategoryColor = (categoryName) => {
-  // Default categories from your Habits page
   const defaultCategories = {
     'General': '#ede9ff',
     'Study': '#fff4cc', 
@@ -53,7 +50,6 @@ const getCategoryColor = (categoryName) => {
     'Personal': '#e6e6f9'
   };
   
-  // Try to get from localStorage first (like Habits page does)
   try {
     const storedCats = JSON.parse(localStorage.getItem("habit-tracker@categories"));
     if (storedCats && Array.isArray(storedCats)) {
@@ -68,8 +64,74 @@ const getCategoryColor = (categoryName) => {
     console.warn('Failed to load categories from storage:', error);
   }
   
-  // Fallback to default colors
   return defaultCategories[categoryName] || '#e6e6f9';
+};
+
+const FEEDBACK_TEMPLATES = {
+  0: {
+    baseMessages: [
+      "You are capable of amazing things.",
+      "Every journey begins with a single step.",
+      "Ready to begin? Just click and you'll immediately beat 0%.",
+      "Every 100% success starts here. Take your first step",
+      "Every big goal starts with a small step — you've got this!"
+    ],
+  },
+  25: {
+    baseMessages: [
+      "Every journey starts with a single step! You've officially begun.",
+      "Great start! Keep that streak going!",
+      "Keep going! The hardest part is starting, and you've already done that. 25% complete!",
+      "Good progress! you're already a quarter of the way there!"
+    ],
+  },
+  50: {
+    baseMessages: [
+      "Halfway there! You're doing great! ",
+      "50% complete today. Keep going!",
+      "Halfway there! The goal is closer than the start.",
+    ],
+  },
+  75: {
+    baseMessages: [
+      "Almost there! You're unstoppable! ",
+      "75% complete! One more push!",
+      "You've come so far. just a little more effort to go!"
+    ],
+  },
+  100: {
+    baseMessages: [
+      "Perfect day! You're a champion!!",
+      "100% complete! Crushed your goals!",
+      "Amazing finish! Keep the streak going — tomorrow's a new opportunity.",
+      "Congratulations! You did it!"
+    ],
+  },
+};
+
+const getProgressTierValue = (percentage) => {
+  if (percentage === 100) return 100;
+  if (percentage >= 75) return 75;
+  if (percentage >= 50) return 50;
+  if (percentage >= 25) return 25;
+  return 0;
+};
+
+const getMotivationMessage = (completed, total, weeklyProgress, improvement) => {
+  const percentage = total ? (completed / total) * 100 : 0;
+  const tier = getProgressTierValue(percentage);
+  const templates = FEEDBACK_TEMPLATES[tier];
+  
+  const baseMessage = templates.baseMessages[Math.floor(Math.random() * templates.baseMessages.length)];
+  
+  let finalMessage = baseMessage;
+  if (improvement > 0) {
+    finalMessage = `${baseMessage} Improved by ${improvement > 0 ? '+' : ''}${improvement}% from last week.`;
+  } else if (weeklyProgress > 0) {
+    finalMessage = `${baseMessage} Weekly progress: ${weeklyProgress}%.`;
+  }
+
+  return finalMessage;
 };
 
 export default function Home({ user }) {
@@ -89,6 +151,8 @@ export default function Home({ user }) {
   const [homeOverallStreak, setHomeOverallStreak] = useState(0);
   const [homeRandomGratitude, setHomeRandomGratitude] = useState(null);
   const [homeUserName, setHomeUserName] = useState("");
+  const [homeWeeklyProgress, setHomeWeeklyProgress] = useState(0);
+  const [homeImprovement, setHomeImprovement] = useState(0);
 
   // Derived state
   const homeCompletedHabits = homeCompleted.filter(Boolean).length;
@@ -181,16 +245,13 @@ export default function Home({ user }) {
         raw[index].history = raw[index].history || {};
         
         if (newCompleted[index]) {
-          // Mark as complete
           raw[index].history[homeTodayStr] = true;
         } else {
-          // Unmark as complete
           delete raw[index].history[homeTodayStr];
         }
   
         localStorage.setItem(HOME_LS_KEY, JSON.stringify(raw));
   
-        // Update streaks per habit
         const updatedHabits = [...homeHabits];
         updatedHabits[index] = {
           ...updatedHabits[index],
@@ -198,7 +259,6 @@ export default function Home({ user }) {
         };
         setHomeHabits(updatedHabits);
   
-        // Check if all habits are unchecked → reset streak
         const anyCompleted = newCompleted.some(Boolean);
         if (!anyCompleted) {
           const homeUserStreakKey = `home.streak.${user?.email || "default"}`;
@@ -223,7 +283,6 @@ export default function Home({ user }) {
     if (homeSelectedMood === null) return;
 
     try {
-      // Save to localStorage first
       localStorage.setItem(
         "home.mood",
         JSON.stringify({ 
@@ -233,10 +292,7 @@ export default function Home({ user }) {
         })
       );
 
-      // Convert emoji index (0-4) to mood score (1-5)
       const homeMoodScore = homeSelectedMood + 1;
-
-      // Save to database
       const token = localStorage.getItem("token");
       const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
       
@@ -255,10 +311,8 @@ export default function Home({ user }) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        // If mood already exists for today, update it instead
         if (response.status === 400 && errorData.detail?.includes("already exists")) {
           console.log("Mood already exists, updating instead");
-          // Get today's mood to find its ID
           const todayResponse = await fetch(`${API}/mood/today`, {
             headers: {
               "Authorization": `Bearer ${token}`
@@ -268,7 +322,6 @@ export default function Home({ user }) {
           if (todayResponse.ok) {
             const todayMood = await todayResponse.json();
             if (todayMood) {
-              // Update existing mood
               const updateResponse = await fetch(`${API}/mood/${todayMood.mood_id}`, {
                 method: "PUT",
                 headers: {
@@ -291,7 +344,6 @@ export default function Home({ user }) {
         }
       }
 
-      // Dispatch event to notify Calendar component
       window.dispatchEvent(new CustomEvent("moodUpdated"));
 
       setHomeMoodSaved(true);
@@ -303,7 +355,6 @@ export default function Home({ user }) {
         { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }
       );
 
-      // Reset mood selection after successful save
       setTimeout(() => {
         gsap.to(".mood-save-feedback", {
           y: -10,
@@ -356,13 +407,11 @@ export default function Home({ user }) {
     const storedMood = JSON.parse(localStorage.getItem("home.mood") || "null");
     const currentUserEmail = user?.email || "default";
     
-    // Reset mood if it's a different user or a different day
     if (storedMood?.user !== currentUserEmail || storedMood?.date !== homeTodayStr) {
       setHomeSelectedMood(null);
       setHomeMoodSaved(false);
       localStorage.removeItem("home.mood");
       
-      // Try to load mood from database for today
       try {
         const token = localStorage.getItem("token");
         const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -376,12 +425,10 @@ export default function Home({ user }) {
         if (response.ok) {
           const todayMood = await response.json();
           if (todayMood && todayMood.logged_on === homeTodayStr) {
-            // Convert mood score (1-5) back to emoji index (0-4)
             const emojiIndex = Math.max(0, Math.min(4, todayMood.mood_score - 1));
             setHomeSelectedMood(emojiIndex);
             setHomeMoodSaved(true);
             
-            // Update localStorage
             localStorage.setItem(
               "home.mood",
               JSON.stringify({ 
@@ -426,7 +473,6 @@ export default function Home({ user }) {
       const data = await response.json();
       
       if (Array.isArray(data) && data.length > 0) {
-        // Filter to only get entries with text and get a random one
         const entriesWithText = data.filter(entry => entry.text && entry.text.trim());
         if (entriesWithText.length > 0) {
           const randomEntry = entriesWithText[Math.floor(Math.random() * entriesWithText.length)];
@@ -458,6 +504,46 @@ export default function Home({ user }) {
   useEffect(() => {
     fetchHomeGratitude();
   }, [fetchHomeGratitude]);
+
+  // Calculate weekly progress and improvement
+  useEffect(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(HOME_LS_KEY) || "[]");
+
+      if (Array.isArray(raw)) {
+        // Calculate last 7 days progress
+        const lastSevenDays = Array.from({ length: 7 }, (_, i) => {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          return date.toISOString().slice(0, 10);
+        });
+
+        const weeklyTotal = lastSevenDays.reduce((sum, date) => {
+          return sum + raw.filter((habit) => !!habit.history?.[date]).length;
+        }, 0);
+
+        const weekly = homeTotalHabits ? Math.round((weeklyTotal / (homeTotalHabits * 7)) * 100) : 0;
+        setHomeWeeklyProgress(weekly);
+
+        // Calculate previous week progress
+        const prevWeekDays = Array.from({ length: 7 }, (_, i) => {
+          const date = new Date();
+          date.setDate(date.getDate() - (i + 7));
+          return date.toISOString().slice(0, 10);
+        });
+
+        const prevWeekTotal = prevWeekDays.reduce((sum, date) => {
+          return sum + raw.filter((habit) => !!habit.history?.[date]).length;
+        }, 0);
+
+        const prevWeekly = homeTotalHabits ? Math.round((prevWeekTotal / (homeTotalHabits * 7)) * 100) : 0;
+        const diff = weekly - prevWeekly;
+        setHomeImprovement(diff);
+      }
+    } catch (error) {
+      console.error("Failed to calculate progress:", error);
+    }
+  }, [homeTotalHabits, homeCompletedHabits]);
 
   useEffect(() => {
     if (!user?.email) return;
@@ -491,7 +577,6 @@ export default function Home({ user }) {
       console.error("Home initialization error:", error);
     }
 
-    // Sync on window focus
     const handleHomeFocus = () => {
       homeSyncFromHabits();
       checkAndResetHomeMood();
@@ -503,10 +588,11 @@ export default function Home({ user }) {
   // Initial animations
   useEffect(() => {
     const homeTl = gsap.timeline({ defaults: { ease: "power2.out" } });
-    gsap.set([".home-header", ".left-col > div", ".right-col > div"], { opacity: 1 });
+    gsap.set([".home-header", ".combined-progress-card", ".habit-card", ".right-col > div"], { opacity: 1 });
 
     homeTl.from(homeHeaderRef.current, { y: -50, opacity: 0, duration: 0.8 })
-      .from(".left-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.5")
+      .from(".combined-progress-card", { y: 30, opacity: 0, duration: 0.6 }, "-=0.5")
+      .from(".habit-card", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.5")
       .from(".right-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.7");
   }, [user?.email]);
 
@@ -561,49 +647,61 @@ export default function Home({ user }) {
         </header>
         <section className="home-grid">
           <div className="left-col">
-            <div className="progress-card" {...makeHomeCardInteractive(() => navigate("/habits"))}>
-              <div className="progress-info">
-                <span>Today's Progress</span>
-                <span>{Math.round(homeProgressPercentage)}%</span>
+            {/* COMBINED PROGRESS & MOTIVATION CARD WITH HABITS */}
+            <div className="combined-progress-card">
+              <div className="combined-card-header">
+                <h2 className="combined-card-title">Today's Habits</h2>
+                <p className="combined-card-subtitle">
+                  {getMotivationMessage(homeCompletedHabits, homeTotalHabits, homeWeeklyProgress, homeImprovement)}
+                </p>
               </div>
-              <div className="home-progress-bar-container">
-                <div className="home-progress-bar">
-                  <div className="home-progress-fill" ref={homeProgressFillRef} />
-                </div>
-              </div>
-            </div>
 
-            {homeSortedHabits.map((habit) => (
-              <div className={`habit-card ${habit.done ? "done" : ""}`} key={habit.index}>
-                <button
-                  className="habit-check"
-                  onClick={() => homeToggleHabit(habit.index)}
-                  aria-pressed={habit.done}
-                  aria-label={`Mark ${habit.name} as ${habit.done ? "incomplete" : "complete"}`}
-                >
-                  {habit.done && <span className="material-symbols-outlined">check</span>}
-                </button>
-                <div className="habit-info">
-                  <div className="habit-left">
-                    <h3>{habit.name}</h3>
-                    <span 
-                      className="tag"
-                      style={{ 
-                        background: getCategoryColor(habit.category),
-                        borderColor: getCategoryColor(habit.category)
-                      }}
-                    >
-                      {habit.category}
-                    </span>
-                  </div>
-                  <div className="habit-right">
-                    <span className="streak">
-                      🔥 {habit.streak} {habit.streak <= 1 ? "day" : "days"}
-                    </span>
+              {/* Progress Bar */}
+              <div className="progress-section">
+                <div className="progress-info">
+                  <span>Progress</span>
+                  <span className="progress-percentage">{Math.round(homeProgressPercentage)}%</span>
+                </div>
+                <div className="home-progress-bar-container">
+                  <div className="home-progress-bar">
+                    <div className="home-progress-fill" ref={homeProgressFillRef} />
                   </div>
                 </div>
               </div>
-            ))}
+
+              {/* Individual Habit Cards Inside Combined Card */}
+              {homeSortedHabits.map((habit) => (
+                <div className={`habit-card ${habit.done ? "done" : ""}`} key={habit.index}>
+                  <button
+                    className="habit-check"
+                    onClick={() => homeToggleHabit(habit.index)}
+                    aria-pressed={habit.done}
+                    aria-label={`Mark ${habit.name} as ${habit.done ? "incomplete" : "complete"}`}
+                  >
+                    {habit.done && <span className="material-symbols-outlined">check</span>}
+                  </button>
+                  <div className="habit-info">
+                    <div className="habit-left">
+                      <h3>{habit.name}</h3>
+                      <span 
+                        className="tag"
+                        style={{ 
+                          background: getCategoryColor(habit.category),
+                          borderColor: getCategoryColor(habit.category)
+                        }}
+                      >
+                        {habit.category}
+                      </span>
+                    </div>
+                    <div className="habit-right">
+                      <span className="streak">
+                        🔥 {habit.streak} {habit.streak <= 1 ? "day" : "days"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="right-col">
@@ -653,11 +751,6 @@ export default function Home({ user }) {
               <h3>Today's Gratitude 🙏</h3>
               <p>"{homeRandomGratitude || "Take a moment to feel grateful today."}"</p>
             </div>
-            
-            <DailyMotivationCard className="motivation-card"
-              completedHabits={homeCompletedHabits} 
-              totalHabits={homeTotalHabits} 
-            />
           </div>
         </section>
       </main>
