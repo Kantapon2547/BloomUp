@@ -96,6 +96,7 @@ body{
   grid-template-columns: 2fr 1fr;
   gap: 1.7rem;
   padding-top: 0;
+  align-items: start;
 }
 
 @media (max-width: 900px) {
@@ -103,8 +104,16 @@ body{
     grid-template-columns: 1fr;
     gap: var(--home-spacing-lg);
   }
-}
+  
+  .right-col {
+    padding-top: 0.02rem;
+  }
 
+  .right-col > div {
+    width: 100%;
+    max-width: 100%;
+  }
+}
 /* ===== COLUMNS ===== */
 .left-col,
 .right-col {
@@ -432,7 +441,6 @@ body{
   word-break: break-word;
   overflow-wrap: break-word;
   overflow: hidden;
-  max-width: 100%;
   margin-bottom: -1rem;
 }
 

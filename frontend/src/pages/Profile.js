@@ -1,12 +1,14 @@
+// profile.js
 import React, { useState, useEffect, useRef } from "react";
 import html2canvas from 'html2canvas';
 import { getMyProfile, updateProfile, uploadAvatar } from "../services/userService";
 import { getUserAchievements, getEarnedAchievements } from "../services/achievementService";
-import { getWeeklyMoodSummary, shouldRefreshWeeklyData } from "../services/moodService";
-import { getShareableStats } from "../services/statsService";
+import { getWeeklyMoodSummary, shouldRefreshWeeklyData, isMoodCardVisible } from "../services/moodService";
+  import { getShareableStats } from "../services/statsService";
+import { createStorage } from "../services/habitStorage";
 import barCard from "../assets/bar_card.png";
 import "./style/Profile.css";
-
+import "./style/ShareCard.css";
 // Mood images
 import mood1 from "../assets/mood_1.png";
 import mood2 from "../assets/mood_2.png";
@@ -22,12 +24,6 @@ const STATS_CONFIG = [
   { key: "daysTracked", icon: "calendar_month", label: "DAYS TRACKED" }
 ];
 
-const RECENT_ACTIVITIES = [
-  { icon: "✅", text: "Completed Morning Meditation", time: "2 hours ago" },
-  { icon: "📝", text: "Logged Daily Gratitude", time: "5 hours ago" },
-  { icon: "💧", text: "Drank 8 glasses of water", time: "Yesterday" },
-  { icon: "🏃‍♂️", text: "Completed evening run", time: "Yesterday" }
-];
 
 // Helper Functions
 const handleLogout = () => {
@@ -58,6 +54,64 @@ const getMoodColors = (score) => {
 
 const formatAchievementRequirement = (achievement) => {
   return achievement.description;
+};
+
+// IMPROVED Helper function to calculate weekly average completion rate
+const calculateWeeklyCompletionRate = (habit, targetDate = new Date()) => {
+  if (!habit || !habit.history) return 0;
+
+  try {
+    const today = new Date(targetDate);
+    const dayOfWeek = today.getDay();
+    
+    // Get start of week (Sunday)
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    // Count completed days in this week
+    let completedDays = 0;
+    const daysInWeek = 7;
+
+    for (let i = 0; i < daysInWeek; i++) {
+      const checkDate = new Date(startOfWeek);
+      checkDate.setDate(startOfWeek.getDate() + i);
+      const dateStr = checkDate.toISOString().split('T')[0];
+
+      // Check if habit has completion for this date
+      if (habit.history && habit.history[dateStr]) {
+        completedDays++;
+      }
+    }
+
+    const completionRate = Math.round((completedDays / daysInWeek) * 100);
+    return completionRate;
+  } catch (error) {
+    console.error('Error calculating weekly completion rate:', error);
+    return 0;
+  }
+};
+
+// IMPROVED Helper function to get the most recently created habit
+const getMostRecentHabit = (habits) => {
+  if (!habits || habits.length === 0) return null;
+  
+  return habits.reduce((mostRecent, current) => {
+    const currentDate = new Date(current.created_at || current.createdAt || 0);
+    const mostRecentDate = new Date(mostRecent.created_at || mostRecent.createdAt || 0);
+    return currentDate > mostRecentDate ? current : mostRecent;
+  });
+};
+
+// NEW: Helper function to calculate highest progress habit
+const calculateHighestProgressHabit = (habits) => {
+  if (!habits || habits.length === 0) return null;
+  
+  return habits.reduce((highest, current) => {
+    const currentProgress = calculateWeeklyCompletionRate(current);
+    const highestProgress = calculateWeeklyCompletionRate(highest);
+    return currentProgress > highestProgress ? current : highest;
+  });
 };
 
 // Components
@@ -101,7 +155,6 @@ const ProfileHeader = ({ profileData, onEditProfileClick, onShareClick, formatMe
         </div>
         <p className="profile-bio-text">{profileData.bio || "No bio yet"}</p>
         <div className="profile-tags">
-          <div className="profile-tag-item"><span className="tag-emoji">🌱</span> Wellness Explorer</div>
           <div className="member-since-text">Member since {formatMemberSinceDate()}</div>
         </div>
       </div>
@@ -165,14 +218,16 @@ const ActivityItem = ({ activityItem }) => (
   </div>
 );
 
-const RecentActivityCard = () => (
+const RecentActivityCard = ({ activities }) => (
   <div className="profile-card activity-card">
     <div className="card-header">
       <h2 className="card-title">Recent Activity</h2>
     </div>
     <div className="activity-list">
-      {RECENT_ACTIVITIES.map((item, index) => 
-        <ActivityItem key={index} activityItem={item} />
+      {activities && activities.length > 0 ? (
+        activities.map((item, index) => <ActivityItem key={index} activityItem={item} />)
+      ) : (
+        <div className="no-activity">No recent activity recorded.</div>
       )}
     </div>
   </div>
@@ -190,7 +245,7 @@ const AchievementModalItem = ({ achievement }) => (
       </p>
       {achievement.is_earned && achievement.earned_date && (
         <div className="achievement-date">
-          Earned {new Date(achievement.earned_date).toLocaleDateString()}
+          Earned {new Date(achievement.earned_date).toLocaleDateString('en-GB')}
         </div>
       )}
     </div>
@@ -297,7 +352,7 @@ const AchievementShareCard = ({ earnedCount, totalCount, latestAchievement }) =>
 
   const formatEarnedDate = (dateString) => {
     if (!dateString) return "Recently";
-    return new Date(dateString).toLocaleDateString('en-US', { 
+    return new Date(dateString).toLocaleDateString('en-GB', { 
       month: 'numeric', 
       day: 'numeric', 
       year: 'numeric' 
@@ -374,14 +429,64 @@ const MoodShareCard = ({ moodData, weekLabel, moodScore }) => {
   );
 };
 
-const NewHabitStatShareCard = ({ newHabitStat }) => (
-  <>
-    <div className="share-icon-large">🚀</div>
-    <div className="label-display">{newHabitStat?.newHabitCount || 0}</div>
-    <div className="label-2-display">New Habits Started</div>
-    <div className="share-detail-text">Excited to grow!</div>
-  </>
-);
+// FIXED: NewHabitStatShareCard component
+const NewHabitStatShareCard = ({ habits = [], weeklyNewHabit = null }) => {
+  // Priority: use backend data if available, fallback to habits array
+  let habitToDisplay = weeklyNewHabit;
+  
+  if (!habitToDisplay && habits.length > 0) {
+    // Fallback: find most recent habit from habits array
+    habitToDisplay = getMostRecentHabit(habits);
+  }
+
+  if (!habitToDisplay) {
+    return (
+      <>
+        <div className="new-habit-emoji-container">
+          <div className="new-habit-emoji">📚</div>
+        </div>
+        
+        <div className="new-habit-content-container">
+          <div className="new-habit-header">THIS WEEK</div>
+          <div className="new-habit-subtitle">NEW HABIT</div>
+          
+          <div className="new-habit-percentage-wrapper">
+            <span className="new-habit-percentage">0</span>
+            <span className="new-habit-percent-symbol">%</span>
+          </div>
+          
+          <div className="new-habit-name">"No habits yet"</div>
+        </div>
+      </>
+    );
+  }
+
+  const completionRate = calculateWeeklyCompletionRate(habitToDisplay);
+  const habitEmoji = habitToDisplay.emoji || habitToDisplay.icon || "📚";
+  const habitName = habitToDisplay.habit_name || habitToDisplay.name || "New Habit";
+
+  return (
+    <>
+      <div className="new-habit-emoji-container">
+        <div className="new-habit-emoji">
+          {habitEmoji}
+        </div>
+      </div>
+      
+      <div className="new-habit-content-container">
+        <div className="new-habit-header">THIS WEEK</div>
+        <div className="new-habit-subtitle">NEW HABIT</div>
+        
+        <div className="new-habit-percentage-wrapper">
+          <span className="new-habit-percentage">{completionRate}</span>
+          <span className="new-habit-percent-symbol">%</span>
+        </div>
+        
+        <div className="new-habit-name">"{habitName}"</div>
+      </div>
+    </>
+  );
+};
 
 const WeeklyProgressComparisonCard = ({ progressData }) => {
   const percentageChange = progressData?.percentageChange || 0;
@@ -408,26 +513,67 @@ const WeeklyProgressComparisonCard = ({ progressData }) => {
   );
 };
 
-const HighestProgressHabitShareCard = ({ highestProgressHabit }) => (
-  <>
-    <div className="best-task-badge-container">
-      <div className="best-task-badge-circle">
-        <div className="best-task-icon">{highestProgressHabit?.habitIcon || "📚"}</div>
+// FIXED: HighestProgressHabitShareCard component
+const HighestProgressHabitShareCard = ({ highestProgressHabit = {}, allHabits = [] }) => {
+  // Use data directly from backend response if available, otherwise calculate from habits
+  let habitToDisplay = highestProgressHabit;
+  
+  if ((!habitToDisplay || !habitToDisplay.habit_name) && allHabits.length > 0) {
+    habitToDisplay = calculateHighestProgressHabit(allHabits);
+  }
+
+  if (!habitToDisplay) {
+    return (
+      <>
+        <div className="best-task-badge-container">
+          <div className="best-task-badge-circle">
+            <div className="best-task-icon">📚</div>
+          </div>
+          <div className="best-task-ribbon-left"></div>
+          <div className="best-task-ribbon-right"></div>
+        </div>
+        
+        <div className="best-task-content">
+          <div className="best-task-header">Weekly Best Habit</div>
+          
+          <div className="best-task-percentage">
+            0<span className="best-task-percent-symbol">%</span>
+          </div>
+          
+          <div className="best-task-name">"No habits"</div>
+          <div className="best-task-status">COMPLETED</div>
+        </div>
+      </>
+    );
+  }
+
+  const habitEmoji = habitToDisplay.emoji || habitToDisplay.icon || "📚";
+  const habitName = habitToDisplay.habit_name || habitToDisplay.name || "Best Habit";
+  const progressPercentage = habitToDisplay.progressPercentage || calculateWeeklyCompletionRate(habitToDisplay);
+
+  return (
+    <>
+      <div className="best-task-badge-container">
+        <div className="best-task-badge-circle">
+          <div className="best-task-icon">{habitEmoji}</div>
+        </div>
+        <div className="best-task-ribbon-left"></div>
+        <div className="best-task-ribbon-right"></div>
       </div>
-      <div className="best-task-ribbon-left"></div>
-      <div className="best-task-ribbon-right"></div>
-    </div>
-    
-    <div className="best-task-content">
-      <div className="best-task-header">Weekly BestHabit</div>
       
-      <div className="best-task-percentage">{highestProgressHabit?.progressPercentage || 70}<span className="best-task-percent-symbol">%</span></div>
-      
-      <div className="best-task-name">"{highestProgressHabit?.habitName || "Reading"}"</div>
-      <div className="best-task-status">COMPLETED</div>
-    </div>
-  </>
-);
+      <div className="best-task-content">
+        <div className="best-task-header">Weekly Best Habit</div>
+        
+        <div className="best-task-percentage">
+          {Math.round(progressPercentage)}<span className="best-task-percent-symbol">%</span>
+        </div>
+        
+        <div className="best-task-name">"{habitName}"</div>
+        <div className="best-task-status">COMPLETED</div>
+      </div>
+    </>
+  );
+};
 
 const OverallStreakShareCard = ({ overallStreak }) => (
   <>
@@ -459,7 +605,6 @@ const ShareModalContainer = ({
     const cardToCapture = cardRef.current;
     if (!cardToCapture) return;
 
-    // Hide elements for capture
     const elementsToHide = [
       '.share-card-decorator',
       '.share-card-footer-action',
@@ -472,13 +617,11 @@ const ShareModalContainer = ({
 
     cardToCapture.style.boxShadow = 'none';
 
-    // Create a wrapper div to capture the overflowing elements
     const wrapper = document.createElement('div');
     wrapper.style.position = 'relative';
     wrapper.style.padding = '100px';
     wrapper.style.background = 'transparent';
     
-    // Clone the card
     const cardClone = cardToCapture.cloneNode(true);
     cardClone.style.position = 'relative';
     cardClone.style.margin = '0';
@@ -517,12 +660,10 @@ const ShareModalContainer = ({
       console.error('Saving image failed:', error);
       alert('Oops! Something went wrong while saving the image.');
     } finally {
-      // Clean up wrapper
       if (document.body.contains(wrapper)) {
         document.body.removeChild(wrapper);
       }
       
-      // Restore hidden elements
       elementsToHide.forEach(el => {
         if (el) el.style.display = '';
       });
@@ -563,7 +704,6 @@ const ShareModalContainer = ({
             <div className="share-card-fg">
               {currentCard.content}
             </div>
-            {/* Consistent share button for all cards */}
             <div className="share-card-footer-action">
               <button className="share-action-btn-visual" onClick={handleVisualShare}>
                 <span className="material-symbols-outlined">ios_share</span>
@@ -594,15 +734,22 @@ export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState(null);
   const [temporaryProfileData, setTemporaryProfileData] = useState(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editValidationError, setEditValidationError] = useState(""); // Validation State
+  
+
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [allAchievementsList, setAllAchievementsList] = useState([]);
   const [earnedAchievementsList, setEarnedAchievementsList] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
+  
   const [showAchievementsModal, setShowAchievementsModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentShareCardIndex, setCurrentShareCardIndex] = useState(0);
+  
   const [reportStats, setReportStats] = useState(null);
   const [moodSummary, setMoodSummary] = useState(null);
+  const [allHabits, setAllHabits] = useState([]);
   const fileInputReference = useRef(null);
 
   useEffect(() => {
@@ -613,13 +760,77 @@ export default function ProfilePage() {
   useEffect(() => {
     loadUserProfileData();
   }, []);
+ 
+ // --- Generate Dynamic Activity ---
+  useEffect(() => {
+    if (!reportStats || !earnedAchievementsList) return;
 
+    const activities = [];
+
+    // 1. Recent Achievements (Top 2)
+    const latestAchievements = [...earnedAchievementsList].reverse().slice(0, 2);
+    latestAchievements.forEach(ach => {
+      activities.push({
+        icon: "🏆",
+        text: `Unlocked: ${ach.title}`,
+        time: ach.earned_date ? new Date(ach.earned_date).toLocaleDateString('en-GB') : "Recently"
+      });
+    });
+
+    // 2. Streak
+    if (reportStats.longestOverallStreak > 0) {
+      activities.push({
+        icon: "🔥",
+        text: `Maintained a ${reportStats.longestOverallStreak} day streak!`,
+        time: "Ongoing"
+      });
+    }
+
+    // 3. Mood
+    if (moodSummary && moodSummary.logs_count > 0) {
+      activities.push({
+        icon: "📝",
+        text: `Tracked mood ${moodSummary.logs_count} times this week`,
+        time: "This week"
+      });
+    }
+
+    // 4. Habits activity
+    if (allHabits.length > 0) {
+      const recentHabit = getMostRecentHabit(allHabits);
+      if (recentHabit) {
+        activities.push({
+          icon: recentHabit.emoji || "📚",
+          text: `Created habit: ${recentHabit.habit_name || recentHabit.name}`,
+          time: "Recently"
+        });
+      }
+    }
+
+    // 5. Fallback
+    if (activities.length === 0) {
+      activities.push({
+        icon: "👋",
+        text: "Joined BloomUp!",
+        time: formatMemberSinceDate()
+      });
+    }
+
+    setRecentActivities(activities);
+  }, [reportStats, earnedAchievementsList, moodSummary, allHabits]); // Re-run when these change
+
+  // FIXED: Added habits data fetching
   const loadUserProfileData = async () => {
     setIsLoading(true);
     try {
       const profile = await getMyProfile();
       setUserProfile(profile);
       setTemporaryProfileData(profile);
+      
+      // Fetch habits data
+      const habitStorage = createStorage();
+      const habits = await habitStorage.list();
+      setAllHabits(habits);
       
       const [allAch, earnedAch, shareableData, weeklyMood] = await Promise.all([
         getUserAchievements(),
@@ -633,6 +844,10 @@ export default function ProfilePage() {
       setReportStats(shareableData);
       setMoodSummary(weeklyMood);
 
+      // Debug logging
+      console.log('Loaded habits:', habits);
+      console.log('Shareable stats:', shareableData);
+
     } catch (error) {
       console.error("Failed to load profile data:", error);
       setErrorMessage(error.message || "Failed to load data.");
@@ -643,12 +858,12 @@ export default function ProfilePage() {
 
   const handleInputChange = (event) => {
     const { name, value, files } = event.target;
+    if (name === "name") setEditValidationError(""); // Clear error on type
+
     if (files && files[0]) {
       const reader = new FileReader();
-      reader.onload = (e) => setTemporaryProfileData({ 
-        ...temporaryProfileData, 
-        profile_picture: e.target.result 
-      });
+      reader.onload = (e) => setTemporaryProfileData({ ...temporaryProfileData, profile_picture: e.target.result });
+
       reader.readAsDataURL(files[0]);
     } else {
       setTemporaryProfileData({ 
@@ -659,6 +874,10 @@ export default function ProfilePage() {
   };
 
   const handleSaveProfile = async () => {
+    if (!temporaryProfileData.name || temporaryProfileData.name.trim() === "") {
+      setEditValidationError("Name is required.");
+      return;
+    }
     try {
       if (temporaryProfileData.profile_picture && temporaryProfileData.profile_picture.startsWith('data:')) {
         const res = await fetch(temporaryProfileData.profile_picture);
@@ -675,9 +894,15 @@ export default function ProfilePage() {
       setUserProfile(updatedProfile);
       setTemporaryProfileData(updatedProfile);
       setIsEditingProfile(false);
+      setEditValidationError("");
     } catch (error) {
       setErrorMessage(error.message || "Failed to save profile.");
     }
+  };
+  const handleCancelEdit = () => {
+    setTemporaryProfileData(userProfile);
+    setEditValidationError("");
+    setIsEditingProfile(false);
   };
 
   const formatMemberSinceDate = () => {
@@ -710,64 +935,77 @@ export default function ProfilePage() {
       });
     }
 
-    if (moodSummary?.hasHistory) {
-      const mood = scoreToMoodDisplay(moodSummary.most_common_mood);
-      const moodColors = getMoodColors(moodSummary.most_common_mood);
-      
-      cardsConfig.push({
-        type: "mood",
-        content: (
-          <MoodShareCard
-            moodData={{
-              moodImage: mood.image,
-              moodEmoji: mood.emoji,
-              moodDescription: mood.description,
-            }}
-            weekLabel={moodSummary.weekLabel || "Previous Week"}
-            moodScore={moodSummary.most_common_mood}
-          />
-        ),
-        theme: 'theme-mood-custom',
-        customStyle: {
-          background: moodColors.background,
-          color: moodColors.text
+    if (moodSummary?.hasHistory && isMoodCardVisible()) {
+    const mood = scoreToMoodDisplay(moodSummary.most_common_mood);
+    const moodColors = getMoodColors(moodSummary.most_common_mood);
+    
+    cardsConfig.push({
+      type: "mood",
+      content: (
+        <MoodShareCard
+          moodData={{
+            moodImage: mood.image,
+            moodEmoji: mood.emoji,
+            moodDescription: mood.description,
+          }}
+          weekLabel={moodSummary.weekLabel || "Previous Week"}
+          moodScore={moodSummary.most_common_mood}
+        />
+      ),
+      theme: 'theme-mood-custom',
+      customStyle: {
+        background: moodColors.background,
+        color: moodColors.text
+      }
+    });
+  }
+
+
+    // Only show habit-related cards if we have habits
+    if (allHabits.length > 0) {
+      cardsConfig.push(
+        {
+          type: "new_habit_stat",
+          content: (
+            <NewHabitStatShareCard 
+              habits={allHabits}
+              weeklyNewHabit={reportStats?.weeklyNewHabit}
+            />
+          ),
+          theme: 'theme-new-habit',
+        },
+        {
+          type: "highest_progress_habit",
+          content: (
+            <HighestProgressHabitShareCard
+              highestProgressHabit={reportStats?.highestProgressHabit || {}}
+              allHabits={allHabits}
+            />
+          ),
+          theme: 'theme-progress',
         }
-      });
+      );
     }
 
     cardsConfig.push(
       {
-        type: "new_habit_stat",
-        content: <NewHabitStatShareCard newHabitStat={{ newHabitCount: reportStats.newHabitsCount }} />,
-        theme: 'theme-new-habit',
-      },
-      {
         type: "weekly_progress_comparison",
-        content: <WeeklyProgressComparisonCard
-          progressData={{
-            lastWeekProgress: reportStats.lastWeekProgress || 0,
-            thisWeekProgress: reportStats.thisWeekProgress || 0,
-            percentageChange: reportStats.percentageChange || 0
-          }}
-        />,
+        content: (
+          <WeeklyProgressComparisonCard
+            progressData={{
+              lastWeekProgress: reportStats?.lastWeekProgress || 0,
+              thisWeekProgress: reportStats?.thisWeekProgress || 0,
+              percentageChange: reportStats?.percentageChange || 0
+            }}
+          />
+        ),
         theme: 'theme-review',
-      },
-      {
-        type: "highest_progress_habit",
-        content: <HighestProgressHabitShareCard
-          highestProgressHabit={{
-            habitName: reportStats.highestProgressHabit?.habitName || "N/A",
-            progressPercentage: reportStats.highestProgressHabit?.progressPercentage || 0,
-            habitIcon: reportStats.highestProgressHabit?.icon || "📚" 
-          }}
-        />,
-        theme: 'theme-progress',
       },
       {
         type: "overall_streak",
         content: <OverallStreakShareCard
           overallStreak={{
-            longestOverallStreak: reportStats.longestOverallStreak
+            longestOverallStreak: reportStats?.longestOverallStreak || 0
           }}
         />,
         theme: 'theme-streak',
@@ -801,7 +1039,7 @@ export default function ProfilePage() {
 
   const shareCardsConfig = generateShareCardsConfig();
   const displayStats = {
-    activeHabits: reportStats.activeHabits,
+    activeHabits: reportStats.activeHabits || allHabits.filter(h => h.is_active !== false).length,
     longestStreak: reportStats.longestOverallStreak,
     gratitudeEntries: reportStats.gratitudeEntries,
     daysTracked: reportStats.daysTracked,
@@ -825,7 +1063,7 @@ export default function ProfilePage() {
           totalAchievementsCount={allAchievementsList.length}
           onViewAllAchievements={() => setShowAchievementsModal(true)}
         />
-        <RecentActivityCard />
+        <RecentActivityCard activities={recentActivities} />
       </div>
 
       {showAchievementsModal && (

@@ -1,19 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import "./style/Home.css";
-import Jar from '../components/Jar';
 
-// Home Component Constants
-const HOME_LS_KEY = "habit-tracker@hybrid";
-const HOME_MOOD_EMOJIS = ["😭", "😐", "🙂", "😊", "😁"];
+// Constants
+const HOME_MOOD_EMOJIS = ["😭", "😕", "🙂", "😊", "😄"];
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
-// Home Helper functions
+// Helper: Get Bangkok time today
 const getHomeTodayString = () => {
   const bangkokTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" });
   return new Date(bangkokTime).toISOString().slice(0, 10);
 };
 
+// Helper: Get greeting
 const getHomeGreeting = () => {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -21,13 +20,14 @@ const getHomeGreeting = () => {
   return "Good evening";
 };
 
-const calculateHomeStreak = (habit) => {
-  const days = Object.keys(habit.history || {}).sort();
+// Helper: Calculate streak from history
+const calculateHomeStreak = (history) => {
+  const days = Object.keys(history || {}).sort();
   let current = 0;
   let prev = null;
   
   for (const d of days) {
-    if (!habit.history[d]) continue;
+    if (!history[d]) continue;
     if (!prev) {
       current = 1;
     } else {
@@ -41,6 +41,7 @@ const calculateHomeStreak = (habit) => {
   return current;
 };
 
+// Helper: Get category color
 const getCategoryColor = (categoryName) => {
   const defaultCategories = {
     'General': '#ede9ff',
@@ -49,54 +50,37 @@ const getCategoryColor = (categoryName) => {
     'Mind': '#fbefff',
     'Personal': '#e6e6f9'
   };
-  
-  try {
-    const storedCats = JSON.parse(localStorage.getItem("habit-tracker@categories"));
-    if (storedCats && Array.isArray(storedCats)) {
-      const foundCat = storedCats.find(cat => 
-        typeof cat === 'object' ? cat.name === categoryName : cat === categoryName
-      );
-      if (foundCat) {
-        return typeof foundCat === 'object' ? foundCat.color : defaultCategories[categoryName];
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to load categories from storage:', error);
-  }
-  
   return defaultCategories[categoryName] || '#e6e6f9';
 };
 
+// Motivation feedback templates
 const FEEDBACK_TEMPLATES = {
   0: {
     baseMessages: [
       "You are capable of amazing things.",
       "Every journey begins with a single step.",
       "Ready to begin? Just click and you'll immediately beat 0%.",
-      "Every 100% success starts here. Take your first step",
-      "Every big goal starts with a small step — you've got this!"
     ],
   },
   25: {
     baseMessages: [
       "Every journey starts with a single step! You've officially begun.",
       "Great start! Keep that streak going!",
-      "Keep going! The hardest part is starting, and you've already done that. 25% complete!",
-      "Good progress! you're already a quarter of the way there!"
+      "Good progress! You're already a quarter of the way there!"
     ],
   },
   50: {
     baseMessages: [
-      "Halfway there! You're doing great! ",
+      "Halfway there! You're doing great!",
       "50% complete today. Keep going!",
       "Halfway there! The goal is closer than the start.",
     ],
   },
   75: {
     baseMessages: [
-      "Almost there! You're unstoppable! ",
+      "Almost there! You're unstoppable!",
       "75% complete! One more push!",
-      "You've come so far. just a little more effort to go!"
+      "You've come so far. Just a little more effort to go!"
     ],
   },
   100: {
@@ -104,7 +88,6 @@ const FEEDBACK_TEMPLATES = {
       "Perfect day! You're a champion!!",
       "100% complete! Crushed your goals!",
       "Amazing finish! Keep the streak going — tomorrow's a new opportunity.",
-      "Congratulations! You did it!"
     ],
   },
 };
@@ -134,13 +117,80 @@ const getMotivationMessage = (completed, total, weeklyProgress, improvement) => 
   return finalMessage;
 };
 
-export default function Home({ user }) {
-  const navigate = useNavigate();
+// Helper: Get token
+const getToken = () => {
+  const token = localStorage.getItem("token");
+  if (!token || token === "null" || token === "undefined") {
+    return null;
+  }
+  if (token.startsWith("Bearer ")) {
+    return token;
+  }
+  return `Bearer ${token}`;
+};
+
+// Helper: API fetch
+async function apiFetch(path, options = {}) {
+  const token = getToken();
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": token,
+    ...(options.headers || {}),
+  };
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers,
+    ...options,
+  });
+
+  if (res.status === 204) {
+    return null;
+  }
+
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(`API Error ${res.status}: ${error}`);
+  }
+
+  return res.json();
+}
+
+// Add these helper functions at the top (after the constants)
+const getHabitCompletion = () => {
+  try {
+    return JSON.parse(localStorage.getItem('habit-completion') || '{}');
+  } catch {
+    return {};
+  }
+};
+
+const setHabitCompletion = (completionData) => {
+  localStorage.setItem('habit-completion', JSON.stringify(completionData));
+};
+
+// Helper: Calculate time until midnight Bangkok time
+const getTimeUntilMidnightBangkok = () => {
+  const now = new Date();
+  const bangkokTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
+  
+  const midnight = new Date(bangkokTime);
+  midnight.setHours(24, 0, 0, 0);
+  
+  const timeUntil = midnight - bangkokTime;
+  return Math.max(0, timeUntil);
+};
+
+export default function Home({ user, onNavigate }) {
   const homeTodayStr = getHomeTodayString();
 
   // Refs
   const homeHeaderRef = useRef(null);
   const homeProgressFillRef = useRef(null);
+  const midnightRefreshTimeoutRef = useRef(null);
 
   // State
   const [homeHabits, setHomeHabits] = useState([]);
@@ -153,6 +203,7 @@ export default function Home({ user }) {
   const [homeUserName, setHomeUserName] = useState("");
   const [homeWeeklyProgress, setHomeWeeklyProgress] = useState(0);
   const [homeImprovement, setHomeImprovement] = useState(0);
+  const [homeLoading, setHomeLoading] = useState(true);
 
   // Derived state
   const homeCompletedHabits = homeCompleted.filter(Boolean).length;
@@ -160,120 +211,149 @@ export default function Home({ user }) {
   const homeProgressPercentage = homeTotalHabits ? (homeCompletedHabits / homeTotalHabits) * 100 : 0;
   const homeDisplayName = homeUserName || user?.name?.trim() || user?.email?.split("@")[0] || "User";
 
+  // Add this useEffect to listen for changes from Habits page
+  useEffect(() => {
+    const handleHabitToggled = (event) => {
+      const { habitId, completed, source } = event.detail;
+      
+      // Only process events from habits page to avoid loops
+      if (source === 'habits') {
+        const habitIndex = homeHabits.findIndex(h => h.id === habitId);
+        if (habitIndex !== -1) {
+          const newCompleted = [...homeCompleted];
+          newCompleted[habitIndex] = completed;
+          setHomeCompleted(newCompleted);
+          
+          // Update localStorage to stay in sync
+          const completionData = getHabitCompletion();
+          completionData[habitId] = completed;
+          setHabitCompletion(completionData);
+        }
+      }
+    };
+
+    window.addEventListener('habitToggled', handleHabitToggled);
+    return () => window.removeEventListener('habitToggled', handleHabitToggled);
+  }, [homeHabits, homeCompleted]);
+
   // Fetch user data from backend
   const fetchHomeUserData = useCallback(async () => {
     try {
-      const getToken = () => {
-        const token = localStorage.getItem("token");
-        console.log("Home.js Token:", token ? token.substring(0, 20) + "..." : "null");
-        
-        if (!token || token === "null" || token === "undefined") {
-          return null;
-        }
-        
-        if (token.startsWith("eyJ") && !token.startsWith("Bearer ")) {
-          return `Bearer ${token}`;
-        }
-        
-        return token;
-      };
-
-      // Then use it:
-      const token = getToken();
-      if (!token) {
-        console.warn("No token found, using fallback user data");
-        return;
-      }
-
-      const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
-      const response = await fetch(`${API}/users/me`, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        if (userData && userData.name) {
-          setHomeUserName(userData.name);
-        }
-      } else {
-        console.warn("Failed to fetch user data, using fallback");
+      const userData = await apiFetch("/users/me");
+      if (userData && userData.name) {
+        setHomeUserName(userData.name);
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
     }
   }, []);
 
-  // Home Data synchronization
-  const homeSyncFromHabits = useCallback(() => {
+  // Fetch habits from database
+  const fetchHomeHabitsFromDB = useCallback(async () => {
     try {
-      const raw = JSON.parse(localStorage.getItem(HOME_LS_KEY) || "[]");
+      setHomeLoading(true);
+      const habitsData = await apiFetch("/habits");
       
-      if (Array.isArray(raw)) {
-        const processedHabits = raw.map((habit) => ({
-          id: habit.id,
-          name: habit.name,
-          category: habit.category || "General",
-          streak: calculateHomeStreak(habit),
+      if (Array.isArray(habitsData)) {
+        // Convert API response to internal format
+        const processedHabits = habitsData.map((habit) => ({
+          id: habit.habit_id,
+          name: habit.habit_name,
+          category: habit.category?.category_name || "General",
+          emoji: habit.emoji,
+          streak: calculateHomeStreak(habit.history),
+          history: habit.history || {},
+          duration_minutes: habit.duration_minutes,
         }));
 
         setHomeHabits(processedHabits);
-        setHomeCompleted(raw.map((habit) => !!habit.history?.[homeTodayStr]));
-      } else {
-        setHomeHabits([]);
-        setHomeCompleted([]);
+        
+        // Set completed from localStorage (for sync) or API history
+        const completionData = getHabitCompletion();
+        const completedToday = processedHabits.map(h => {
+          // Prefer localStorage sync, fallback to API data
+          return completionData[h.id] !== undefined ? completionData[h.id] : !!h.history[homeTodayStr];
+        });
+        setHomeCompleted(completedToday);
       }
     } catch (error) {
-      console.error("Failed to sync habits:", error);
+      console.error("Failed to fetch habits from database:", error);
       setHomeHabits([]);
       setHomeCompleted([]);
+    } finally {
+      setHomeLoading(false);
     }
   }, [homeTodayStr]);
 
   // Toggle habit completion
   const homeToggleHabit = useCallback((index) => {
+    const habit = homeHabits[index];
+    if (!habit) return;
+
+    const isCurrentlyDone = homeCompleted[index];
+    const newDone = !isCurrentlyDone;
+    const habitId = habit.id;
+
+    // Optimistic update
     const newCompleted = [...homeCompleted];
-    newCompleted[index] = !newCompleted[index];
+    newCompleted[index] = newDone;
     setHomeCompleted(newCompleted);
-  
-    try {
-      const raw = JSON.parse(localStorage.getItem(HOME_LS_KEY) || "[]");
-      if (Array.isArray(raw) && raw[index]) {
-        raw[index].history = raw[index].history || {};
+
+    // Update localStorage for sync with Habits page
+    const completionData = getHabitCompletion();
+    completionData[habitId] = newDone;
+    setHabitCompletion(completionData);
+
+    // Emit custom event for real-time sync
+    window.dispatchEvent(new CustomEvent('habitToggled', { 
+      detail: { habitId: habitId, completed: newDone, source: 'home' }
+    }));
+
+    // API call
+    (async () => {
+      try {
+        const endpoint = `/habits/${habitId}/complete?on=${homeTodayStr}`;
         
-        if (newCompleted[index]) {
-          raw[index].history[homeTodayStr] = true;
-        } else {
-          delete raw[index].history[homeTodayStr];
-        }
-  
-        localStorage.setItem(HOME_LS_KEY, JSON.stringify(raw));
-  
+        await apiFetch(endpoint, {
+          method: newDone ? "POST" : "DELETE",
+        });
+
+        // Update habit history locally
         const updatedHabits = [...homeHabits];
+        const newHistory = { ...updatedHabits[index].history };
+        if (newDone) {
+          newHistory[homeTodayStr] = true;
+        } else {
+          delete newHistory[homeTodayStr];
+        }
+        
         updatedHabits[index] = {
           ...updatedHabits[index],
-          streak: calculateHomeStreak(raw[index]),
+          history: newHistory,
+          streak: calculateHomeStreak(newHistory),
         };
         setHomeHabits(updatedHabits);
-  
-        const anyCompleted = newCompleted.some(Boolean);
-        if (!anyCompleted) {
-          const homeUserStreakKey = `home.streak.${user?.email || "default"}`;
-          const reset = { count: 0, lastActiveDate: null };
-          localStorage.setItem(homeUserStreakKey, JSON.stringify(reset));
-          setHomeOverallStreak(0);
-        }
+      } catch (error) {
+        console.error("Failed to toggle habit:", error);
+        // Revert optimistic update on error
+        const revertedCompleted = [...homeCompleted];
+        revertedCompleted[index] = isCurrentlyDone;
+        setHomeCompleted(revertedCompleted);
+        
+        // Revert localStorage
+        const completionData = getHabitCompletion();
+        completionData[habitId] = isCurrentlyDone;
+        setHabitCompletion(completionData);
+        
+        // Emit revert event
+        window.dispatchEvent(new CustomEvent('habitToggled', { 
+          detail: { habitId, completed: isCurrentlyDone, source: 'home' }
+        }));
       }
-    } catch (error) {
-      console.error("Failed to toggle habit:", error);
-    }
-  }, [homeCompleted, homeHabits, homeTodayStr, user]);
-  
+    })();
+  }, [homeCompleted, homeHabits, homeTodayStr]);
 
-  // Home Mood handlers
+  // Mood handlers
   const handleHomeMoodClick = useCallback((moodIndex) => {
     setHomeSelectedMood(moodIndex);
     setHomeMoodSaved(false);
@@ -283,68 +363,16 @@ export default function Home({ user }) {
     if (homeSelectedMood === null) return;
 
     try {
-      localStorage.setItem(
-        "home.mood",
-        JSON.stringify({ 
-          date: homeTodayStr, 
-          value: homeSelectedMood,
-          user: user?.email || "default"
-        })
-      );
-
       const homeMoodScore = homeSelectedMood + 1;
-      const token = localStorage.getItem("token");
-      const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
       
-      const response = await fetch(`${API}/mood/`, {
+      await apiFetch("/mood/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
         body: JSON.stringify({
           mood_score: homeMoodScore,
           logged_on: homeTodayStr,
           note: null
         })
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (response.status === 400 && errorData.detail?.includes("already exists")) {
-          console.log("Mood already exists, updating instead");
-          const todayResponse = await fetch(`${API}/mood/today`, {
-            headers: {
-              "Authorization": `Bearer ${token}`
-            }
-          });
-          
-          if (todayResponse.ok) {
-            const todayMood = await todayResponse.json();
-            if (todayMood) {
-              const updateResponse = await fetch(`${API}/mood/${todayMood.mood_id}`, {
-                method: "PUT",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                  mood_score: homeMoodScore,
-                  note: null
-                })
-              });
-              
-              if (!updateResponse.ok) {
-                throw new Error("Failed to update mood");
-              }
-            }
-          }
-        } else {
-          throw new Error(errorData.detail || "Failed to save mood");
-        }
-      }
-
-      window.dispatchEvent(new CustomEvent("moodUpdated"));
 
       setHomeMoodSaved(true);
       setHomeSaveFeedback("Mood saved for today");
@@ -368,6 +396,8 @@ export default function Home({ user }) {
           }
         });
       }, 1500);
+
+      window.dispatchEvent(new CustomEvent("moodUpdated"));
     } catch (error) {
       console.error("Failed to save mood:", error);
       setHomeSaveFeedback("Failed to save mood");
@@ -376,7 +406,7 @@ export default function Home({ user }) {
         setHomeSaveFeedback("");
       }, 2000);
     }
-  }, [homeSelectedMood, homeTodayStr, user]);
+  }, [homeSelectedMood, homeTodayStr]);
 
   // Animate progress bar
   const animateHomeProgressBar = useCallback((targetWidth) => {
@@ -388,89 +418,30 @@ export default function Home({ user }) {
     });
   }, []);
 
-  // Create interactive card props
-  const makeHomeCardInteractive = useCallback((onActivate) => ({
-    role: "button",
-    tabIndex: 0,
-    onClick: onActivate,
-    onKeyDown: (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        onActivate();
-      }
-    },
-    style: { cursor: "pointer" },
-  }), []);
-
-  // Check and reset mood based on user and date
+  // Check and load mood
   const checkAndResetHomeMood = useCallback(async () => {
-    const storedMood = JSON.parse(localStorage.getItem("home.mood") || "null");
-    const currentUserEmail = user?.email || "default";
-    
-    if (storedMood?.user !== currentUserEmail || storedMood?.date !== homeTodayStr) {
+    try {
+      const response = await apiFetch("/mood/today");
+      
+      if (response && response.logged_on === homeTodayStr) {
+        const emojiIndex = Math.max(0, Math.min(4, response.mood_score - 1));
+        setHomeSelectedMood(emojiIndex);
+        setHomeMoodSaved(true);
+      } else {
+        setHomeSelectedMood(null);
+        setHomeMoodSaved(false);
+      }
+    } catch (error) {
+      console.log("No mood logged for today");
       setHomeSelectedMood(null);
       setHomeMoodSaved(false);
-      localStorage.removeItem("home.mood");
-      
-      try {
-        const token = localStorage.getItem("token");
-        const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
-        
-        const response = await fetch(`${API}/mood/today`, {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-        
-        if (response.ok) {
-          const todayMood = await response.json();
-          if (todayMood && todayMood.logged_on === homeTodayStr) {
-            const emojiIndex = Math.max(0, Math.min(4, todayMood.mood_score - 1));
-            setHomeSelectedMood(emojiIndex);
-            setHomeMoodSaved(true);
-            
-            localStorage.setItem(
-              "home.mood",
-              JSON.stringify({ 
-                date: homeTodayStr, 
-                value: emojiIndex,
-                user: currentUserEmail
-              })
-            );
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load mood from database:", error);
-      }
-    } else if (storedMood?.value !== undefined) {
-      setHomeSelectedMood(storedMood.value);
-      setHomeMoodSaved(true);
     }
-  }, [homeTodayStr, user]);
+  }, [homeTodayStr]);
 
-  // Fetch gratitude data from backend
+  // Fetch gratitude
   const fetchHomeGratitude = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setHomeRandomGratitude("Take a moment to feel grateful today.");
-        return;
-      }
-
-      const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
-      const response = await fetch(`${API}/gratitude/`, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch gratitude: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await apiFetch("/gratitude/");
       
       if (Array.isArray(data) && data.length > 0) {
         const entriesWithText = data.filter(entry => entry.text && entry.text.trim());
@@ -489,6 +460,33 @@ export default function Home({ user }) {
     }
   }, []);
 
+  // Refresh all data at midnight Bangkok time
+  const scheduleNextMidnightRefresh = useCallback(() => {
+    // Clear any existing timeout
+    if (midnightRefreshTimeoutRef.current) {
+      clearTimeout(midnightRefreshTimeoutRef.current);
+    }
+
+    const timeUntilMidnight = getTimeUntilMidnightBangkok();
+    console.log(`Next refresh scheduled in ${Math.round(timeUntilMidnight / 1000 / 60)} minutes`);
+
+    midnightRefreshTimeoutRef.current = setTimeout(() => {
+      console.log("Midnight refresh triggered!");
+      
+      // Clear local completion data for new day
+      setHabitCompletion({});
+      
+      // Refresh all data
+      fetchHomeHabitsFromDB();
+      checkAndResetHomeMood();
+      fetchHomeGratitude();
+      fetchHomeUserData();
+      
+      // Schedule next refresh
+      scheduleNextMidnightRefresh();
+    }, timeUntilMidnight);
+  }, [fetchHomeHabitsFromDB, checkAndResetHomeMood, fetchHomeGratitude, fetchHomeUserData]);
+
   // Listen for profile updates
   useEffect(() => {
     const handleProfileUpdate = () => {
@@ -501,91 +499,63 @@ export default function Home({ user }) {
     };
   }, [fetchHomeUserData]);
 
-  useEffect(() => {
-    fetchHomeGratitude();
-  }, [fetchHomeGratitude]);
-
-  // Calculate weekly progress and improvement
+  // Calculate weekly progress
   useEffect(() => {
     try {
-      const raw = JSON.parse(localStorage.getItem(HOME_LS_KEY) || "[]");
+      const lastSevenDays = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        return date.toISOString().slice(0, 10);
+      });
 
-      if (Array.isArray(raw)) {
-        // Calculate last 7 days progress
-        const lastSevenDays = Array.from({ length: 7 }, (_, i) => {
-          const date = new Date();
-          date.setDate(date.getDate() - i);
-          return date.toISOString().slice(0, 10);
-        });
+      const weeklyTotal = lastSevenDays.reduce((sum, date) => {
+        return sum + homeHabits.filter((h) => !!h.history?.[date]).length;
+      }, 0);
 
-        const weeklyTotal = lastSevenDays.reduce((sum, date) => {
-          return sum + raw.filter((habit) => !!habit.history?.[date]).length;
-        }, 0);
+      const weekly = homeTotalHabits ? Math.round((weeklyTotal / (homeTotalHabits * 7)) * 100) : 0;
+      setHomeWeeklyProgress(weekly);
 
-        const weekly = homeTotalHabits ? Math.round((weeklyTotal / (homeTotalHabits * 7)) * 100) : 0;
-        setHomeWeeklyProgress(weekly);
+      const prevWeekDays = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (i + 7));
+        return date.toISOString().slice(0, 10);
+      });
 
-        // Calculate previous week progress
-        const prevWeekDays = Array.from({ length: 7 }, (_, i) => {
-          const date = new Date();
-          date.setDate(date.getDate() - (i + 7));
-          return date.toISOString().slice(0, 10);
-        });
+      const prevWeekTotal = prevWeekDays.reduce((sum, date) => {
+        return sum + homeHabits.filter((h) => !!h.history?.[date]).length;
+      }, 0);
 
-        const prevWeekTotal = prevWeekDays.reduce((sum, date) => {
-          return sum + raw.filter((habit) => !!habit.history?.[date]).length;
-        }, 0);
-
-        const prevWeekly = homeTotalHabits ? Math.round((prevWeekTotal / (homeTotalHabits * 7)) * 100) : 0;
-        const diff = weekly - prevWeekly;
-        setHomeImprovement(diff);
-      }
+      const prevWeekly = homeTotalHabits ? Math.round((prevWeekTotal / (homeTotalHabits * 7)) * 100) : 0;
+      setHomeImprovement(weekly - prevWeekly);
     } catch (error) {
       console.error("Failed to calculate progress:", error);
     }
-  }, [homeTotalHabits, homeCompletedHabits]);
+  }, [homeTotalHabits, homeHabits]);
 
+  // Initialize on mount
   useEffect(() => {
-    if (!user?.email) return;
-
-    const homeUserStreakKey = `home.streak.${user.email}`;
-    const stored = JSON.parse(localStorage.getItem(homeUserStreakKey) || "null");
-
-    if (!stored) {
-      const initialStreak = { count: 0, lastActiveDate: null };
-      localStorage.setItem(homeUserStreakKey, JSON.stringify(initialStreak));
-      setHomeOverallStreak(0);
-    } else {
-      setHomeOverallStreak(stored.count || 0);
-    }
-  }, [user]);
-
-  // Initialize data on mount
-  useEffect(() => {
-    try {
-      homeSyncFromHabits();
-      fetchHomeUserData();
-      checkAndResetHomeMood();
-      
-      const homeUserStreakKey = `home.streak.${user?.email || "default"}`;
-      const stored = JSON.parse(localStorage.getItem(homeUserStreakKey) || "null");
-      if (stored?.count) {
-        setHomeOverallStreak(stored.count);
-      }
-
-    } catch (error) {
-      console.error("Home initialization error:", error);
-    }
+    fetchHomeHabitsFromDB();
+    fetchHomeUserData();
+    checkAndResetHomeMood();
+    fetchHomeGratitude();
+    scheduleNextMidnightRefresh();
 
     const handleHomeFocus = () => {
-      homeSyncFromHabits();
+      fetchHomeHabitsFromDB();
       checkAndResetHomeMood();
     };
-    window.addEventListener("focus", handleHomeFocus);
-    return () => window.removeEventListener("focus", handleHomeFocus);
-  }, [homeSyncFromHabits, homeTodayStr, checkAndResetHomeMood, fetchHomeUserData]);
 
-  // Initial animations
+    window.addEventListener("focus", handleHomeFocus);
+    
+    return () => {
+      window.removeEventListener("focus", handleHomeFocus);
+      if (midnightRefreshTimeoutRef.current) {
+        clearTimeout(midnightRefreshTimeoutRef.current);
+      }
+    };
+  }, [fetchHomeHabitsFromDB, fetchHomeUserData, checkAndResetHomeMood, fetchHomeGratitude, scheduleNextMidnightRefresh]);
+
+  // Animations
   useEffect(() => {
     const homeTl = gsap.timeline({ defaults: { ease: "power2.out" } });
     gsap.set([".home-header", ".combined-progress-card", ".habit-card", ".right-col > div"], { opacity: 1 });
@@ -594,47 +564,45 @@ export default function Home({ user }) {
       .from(".combined-progress-card", { y: 30, opacity: 0, duration: 0.6 }, "-=0.5")
       .from(".habit-card", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.5")
       .from(".right-col > div", { y: 30, opacity: 0, stagger: 0.15, duration: 0.6 }, "-=0.7");
-  }, [user?.email]);
+  }, []);
 
-  // Animate progress bar when percentage changes
+  // Animate progress bar
   useEffect(() => {
     animateHomeProgressBar(homeProgressPercentage);
   }, [homeProgressPercentage, animateHomeProgressBar]);
 
-  // Calculate streak
+  // Calculate overall streak from habits (use best streak from all habits)
   useEffect(() => {
-    if (!homeCompleted.some(Boolean)) return;
-
     try {
-      const homeUserStreakKey = `home.streak.${user?.email || "default"}`;
-      const stored = JSON.parse(localStorage.getItem(homeUserStreakKey) || "null");
-      const lastActiveDate = stored?.lastActiveDate;
-
-      if (lastActiveDate === homeTodayStr) return;
-
-      let count = stored?.count || 0;
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().slice(0, 10);
-
-      count = lastActiveDate === yesterdayStr ? count + 1 : 1;
-
-      localStorage.setItem(homeUserStreakKey, JSON.stringify({ count, lastActiveDate: homeTodayStr }));
-      setHomeOverallStreak(count);
-
+      // Find the maximum streak across all habits
+      const maxStreak = Math.max(
+        ...homeHabits.map(h => calculateHomeStreak(h.history || {})),
+        0
+      );
+      setHomeOverallStreak(maxStreak);
     } catch (error) {
       console.error("Home streak calculation error:", error);
+      setHomeOverallStreak(0);
     }
-  }, [homeCompleted, homeTodayStr, user]);
+  }, [homeHabits]);
 
   // Sort habits (completed last)
   const homeSortedHabits = homeHabits
     .map((habit, index) => ({ ...habit, index, done: homeCompleted[index] }))
     .sort((a, b) => a.done - b.done);
 
+  if (homeLoading) {
+    return (
+      <div className="home-layout">
+        <main className="home-main">
+          <p>Loading your habits...</p>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="home-layout">
-      <Jar />
       <main className="home-main">
         <header className="home-header" ref={homeHeaderRef}>
           <div className="header-left">
@@ -645,10 +613,10 @@ export default function Home({ user }) {
             </p>
           </div>
         </header>
+
         <section className="home-grid">
           <div className="left-col">
-            {/* COMBINED PROGRESS & MOTIVATION CARD WITH HABITS */}
-            <div className="combined-progress-card">
+            <div className="combined-progress-card" style={{ marginTop: 0 }}>
               <div className="combined-card-header">
                 <h2 className="combined-card-title">Today's Habits</h2>
                 <p className="combined-card-subtitle">
@@ -656,7 +624,6 @@ export default function Home({ user }) {
                 </p>
               </div>
 
-              {/* Progress Bar */}
               <div className="progress-section">
                 <div className="progress-info">
                   <span>Progress</span>
@@ -669,7 +636,6 @@ export default function Home({ user }) {
                 </div>
               </div>
 
-              {/* Individual Habit Cards Inside Combined Card */}
               {homeSortedHabits.map((habit) => (
                 <div className={`habit-card ${habit.done ? "done" : ""}`} key={habit.index}>
                   <button
@@ -705,7 +671,13 @@ export default function Home({ user }) {
           </div>
 
           <div className="right-col">
-            <div className="streak-card" {...makeHomeCardInteractive(() => navigate("/reports"))}>
+            <div 
+              className="streak-card"
+              onClick={() => onNavigate?.("reports")}
+              role="button"
+              tabIndex="0"
+              style={{ cursor: "pointer" }}
+            >
               <h3>Streak</h3>
               <div className="streak-number">{homeOverallStreak}</div>
               <p className="streak-sub">
@@ -743,11 +715,15 @@ export default function Home({ user }) {
                   </div>
                 </div>
               )}
-
-              {homeMoodSaved}
             </div>
             
-            <div className="gratitude-card" {...makeHomeCardInteractive(() => navigate("/gratitude"))}>
+            <div 
+              className="gratitude-card"
+              onClick={() => onNavigate?.("gratitude")}
+              role="button"
+              tabIndex="0"
+              style={{ cursor: "pointer" }}
+            >
               <h3>Today's Gratitude 🙏</h3>
               <p>"{homeRandomGratitude || "Take a moment to feel grateful today."}"</p>
             </div>

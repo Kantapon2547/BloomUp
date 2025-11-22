@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import "./Navbar.css";
 
 const Navbar = ({ onLogout }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   const navLinks = [
     { path: "/home", label: "Home" },
     { path: "/gratitude", label: "Gratitude" },
@@ -12,13 +14,27 @@ const Navbar = ({ onLogout }) => {
     { path: "/profile", label: <span className="material-symbols-outlined">account_circle</span> },
   ];
 
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-left">
         <h1 className="navbar-title">BloomUp</h1>
       </div>
 
-      <div className="navbar-right">
+      <button className="hamburger" onClick={toggleMenu}>
+        <span className={`hamburger-line ${isMenuOpen ? "open" : ""}`}></span>
+        <span className={`hamburger-line ${isMenuOpen ? "open" : ""}`}></span>
+        <span className={`hamburger-line ${isMenuOpen ? "open" : ""}`}></span>
+      </button>
+
+      <div className={`navbar-right ${isMenuOpen ? "active" : ""}`}>
         <div className="navbar-center">
           {navLinks.map((link) => (
             <NavLink
@@ -27,12 +43,12 @@ const Navbar = ({ onLogout }) => {
               className={({ isActive }) =>
                 isActive ? "nav-link active" : "nav-link"
               }
+              onClick={closeMenu}
             >
               {link.label}
             </NavLink>
           ))}
         </div>
-
       </div>
     </nav>
   );
