@@ -26,7 +26,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="BloomUp API", lifespan=lifespan)
 
-Base.metadata.create_all(bind=engine)
+if os.getenv("TESTING") != "1":
+    Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
