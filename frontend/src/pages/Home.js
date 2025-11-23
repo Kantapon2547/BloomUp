@@ -6,18 +6,84 @@ import "./style/Home.css";
 const HOME_MOOD_EMOJIS = ["😭", "😕", "🙂", "😊", "😄"];
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
-// Helper: Get Bangkok time today
+function getBangkokDateString() {
+  const now = new Date();
+  const bangkokOffset = 7 * 60; // minutes ahead of UTC
+  const localOffset = now.getTimezoneOffset(); 
+  const bangkokTime = new Date(now.getTime() + (bangkokOffset + localOffset) * 60000);
+  
+  return bangkokTime.toISOString().split("T")[0]; // YYYY-MM-DD
+}
+
+// Add missing helper functions
+const convertToBangkokTime = (date) => {
+  const bangkokOffset = 7 * 60; // minutes ahead of UTC
+  const localOffset = date.getTimezoneOffset();
+  return new Date(date.getTime() + (bangkokOffset + localOffset) * 60000);
+};
+
+const getCurrentBangkokTime = () => {
+  return convertToBangkokTime(new Date());
+};
+
 const getHomeTodayString = () => {
-  const bangkokTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" });
-  return new Date(bangkokTime).toISOString().slice(0, 10);
+  return getBangkokDateString();
 };
 
 // Helper: Get greeting
 const getHomeGreeting = () => {
-  const hour = new Date().getHours();
+  const bangkokTime = convertToBangkokTime(new Date());
+  const hour = bangkokTime.getUTCHours();
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
+};
+
+// Helper: Get midnight Bangkok time (today or tomorrow)
+const getMidnightBangkok = (referenceDate = new Date()) => {
+  const bangkokTime = convertToBangkokTime(referenceDate);
+  
+  // Create midnight of the next day in Bangkok time
+  const midnight = new Date(bangkokTime);
+  midnight.setUTCHours(24, 0, 0, 0);
+  
+  return midnight;
+};
+
+// Helper: Calculate time until midnight Bangkok time in milliseconds
+const getTimeUntilMidnightBangkok = () => {
+  const now = new Date();
+  const bangkokTime = getCurrentBangkokTime();
+  const nextMidnight = getMidnightBangkok(now);
+  
+  const timeUntil = nextMidnight.getTime() - bangkokTime.getTime();
+  return Math.max(0, timeUntil);
+};
+
+// Helper: Check if we've crossed into a new day (Bangkok time)
+const shouldRefreshForNewDay = () => {
+  try {
+    const lastRefreshTime = localStorage.getItem("homeLastRefreshTime");
+    
+    if (!lastRefreshTime) {
+      // First time, store current Bangkok date
+      const today = getHomeTodayString();
+      localStorage.setItem("homeLastRefreshTime", today);
+      return false;
+    }
+
+    const today = getHomeTodayString();
+    const hasNewDay = lastRefreshTime !== today;
+
+    if (hasNewDay) {
+      localStorage.setItem("homeLastRefreshTime", today);
+    }
+
+    return hasNewDay;
+  } catch (error) {
+    console.error("Error checking if new day:", error);
+    return false;
+  }
 };
 
 // Helper: Calculate streak from history
@@ -170,18 +236,6 @@ const getHabitCompletion = () => {
 
 const setHabitCompletion = (completionData) => {
   localStorage.setItem('habit-completion', JSON.stringify(completionData));
-};
-
-// Helper: Calculate time until midnight Bangkok time
-const getTimeUntilMidnightBangkok = () => {
-  const now = new Date();
-  const bangkokTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
-  
-  const midnight = new Date(bangkokTime);
-  midnight.setHours(24, 0, 0, 0);
-  
-  const timeUntil = midnight - bangkokTime;
-  return Math.max(0, timeUntil);
 };
 
 export default function Home({ user, onNavigate }) {
@@ -364,18 +418,46 @@ export default function Home({ user, onNavigate }) {
 
     try {
       const homeMoodScore = homeSelectedMood + 1;
+      console.log(`[Mood] Saving mood ${homeMoodScore} for date ${homeTodayStr}`);
       
-      await apiFetch("/mood/", {
-        method: "POST",
-        body: JSON.stringify({
-          mood_score: homeMoodScore,
-          logged_on: homeTodayStr,
-          note: null
-        })
-      });
+      // First try to get today's mood to check if it exists
+      let moodId = null;
+      try {
+        const todayMood = await apiFetch("/mood/today");
+        if (todayMood && todayMood.mood_id) {
+          moodId = todayMood.mood_id;
+          console.log(`[Mood] Found existing mood ${moodId}, will update`);
+        }
+      } catch (error) {
+        // No mood exists yet, will create new one
+        console.log("[Mood] No existing mood found, will create new one");
+      }
+
+      // If mood exists, update it; otherwise create new one
+      if (moodId) {
+        console.log(`[Mood] Updating mood ${moodId} to score ${homeMoodScore}`);
+        await apiFetch(`/mood/${moodId}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            mood_score: homeMoodScore,
+            note: null
+          })
+        });
+      } else {
+        console.log(`[Mood] Creating new mood with score ${homeMoodScore}`);
+        await apiFetch("/mood/", {
+          method: "POST",
+          body: JSON.stringify({
+            mood_score: homeMoodScore,
+            logged_on: homeTodayStr,
+            note: null
+          })
+        });
+      }
 
       setHomeMoodSaved(true);
       setHomeSaveFeedback("Mood saved for today");
+      console.log("[Mood] Mood saved successfully");
       
       gsap.fromTo(
         ".mood-save-feedback",
@@ -423,16 +505,19 @@ export default function Home({ user, onNavigate }) {
     try {
       const response = await apiFetch("/mood/today");
       
-      if (response && response.logged_on === homeTodayStr) {
+      if (response && response.mood_id) {
+        // Mood exists for today
         const emojiIndex = Math.max(0, Math.min(4, response.mood_score - 1));
         setHomeSelectedMood(emojiIndex);
         setHomeMoodSaved(true);
+        console.log("Mood loaded for today:", response.mood_score);
       } else {
+        // No mood for today
         setHomeSelectedMood(null);
         setHomeMoodSaved(false);
       }
     } catch (error) {
-      console.log("No mood logged for today");
+      console.log("No mood logged for today:", error);
       setHomeSelectedMood(null);
       setHomeMoodSaved(false);
     }
@@ -460,7 +545,7 @@ export default function Home({ user, onNavigate }) {
     }
   }, []);
 
-  // Refresh all data at midnight Bangkok time
+  // IMPROVED: Refresh all data at midnight Bangkok time
   const scheduleNextMidnightRefresh = useCallback(() => {
     // Clear any existing timeout
     if (midnightRefreshTimeoutRef.current) {
@@ -468,10 +553,11 @@ export default function Home({ user, onNavigate }) {
     }
 
     const timeUntilMidnight = getTimeUntilMidnightBangkok();
-    console.log(`Next refresh scheduled in ${Math.round(timeUntilMidnight / 1000 / 60)} minutes`);
+    const minutesUntilMidnight = Math.round(timeUntilMidnight / 1000 / 60);
+    console.log(`[Home] Next refresh scheduled in ${minutesUntilMidnight} minutes (Bangkok midnight)`);
 
     midnightRefreshTimeoutRef.current = setTimeout(() => {
-      console.log("Midnight refresh triggered!");
+      console.log("[Home] Midnight Bangkok time - refreshing all data!");
       
       // Clear local completion data for new day
       setHabitCompletion({});
@@ -541,8 +627,19 @@ export default function Home({ user, onNavigate }) {
     scheduleNextMidnightRefresh();
 
     const handleHomeFocus = () => {
-      fetchHomeHabitsFromDB();
-      checkAndResetHomeMood();
+      // Check if it's a new day (Bangkok time)
+      if (shouldRefreshForNewDay()) {
+        console.log("[Home] New day detected (Bangkok time) - refreshing on focus");
+        setHabitCompletion({});
+        fetchHomeHabitsFromDB();
+        checkAndResetHomeMood();
+        fetchHomeGratitude();
+        scheduleNextMidnightRefresh();
+      } else {
+        // Just refresh habits and mood
+        fetchHomeHabitsFromDB();
+        checkAndResetHomeMood();
+      }
     };
 
     window.addEventListener("focus", handleHomeFocus);
@@ -554,6 +651,23 @@ export default function Home({ user, onNavigate }) {
       }
     };
   }, [fetchHomeHabitsFromDB, fetchHomeUserData, checkAndResetHomeMood, fetchHomeGratitude, scheduleNextMidnightRefresh]);
+
+  // ADDED: Daily reset for mood and gratitude state
+  useEffect(() => {
+    const today = getBangkokDateString();
+    const lastDate = localStorage.getItem("bloomup_last_date");
+
+    if (lastDate !== today) {
+      // Reset all fields you want
+      setHomeSelectedMood(null);
+      setHomeMoodSaved(false);
+      setHomeSaveFeedback("");
+      setHomeRandomGratitude("");
+
+      // Save today's date
+      localStorage.setItem("bloomup_last_date", today);
+    }
+  }, []);
 
   // Animations
   useEffect(() => {
