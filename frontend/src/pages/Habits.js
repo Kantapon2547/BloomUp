@@ -133,6 +133,7 @@ const normalizeHabit = (h) => {
 // Storage with API and localStorage 
 export function createStorage() {
   let useApi = true;
+  let categoriesCache = null;
 
   async function safeApi(fn, fallback) {
     if (!useApi) return fallback();
@@ -142,6 +143,24 @@ export function createStorage() {
       console.warn("[API error] -> fallback to localStorage:", e.message);
       useApi = false;
       return fallback();
+    }
+  }
+
+  // Fetch and cache categories from API
+  async function getCategoriesMap() {
+    if (categoriesCache) return categoriesCache;
+    
+    try {
+      const response = await apiFetch("/habits/categories");
+      const map = {};
+      response.forEach((cat) => {
+        map[cat.category_name] = cat.category_id;
+      });
+      categoriesCache = map;
+      return map;
+    } catch (e) {
+      console.error("Failed to fetch categories:", e);
+      return {};
     }
   }
 
@@ -161,9 +180,37 @@ export function createStorage() {
       return safeApi(
         async () => {
           let categoryId = null;
+
           if (payload.category && payload.category !== "General") {
-            categoryId = null;
+            const categoriesMap = await getCategoriesMap();
+            categoryId = categoriesMap[payload.category] || null;
+            
+            if (categoryId === null) {
+              console.warn(
+                `Category "${payload.category}" not found in database. Creating it...`
+              );
+              // If category doesn't exist, create it first
+              try {
+                const newCat = await apiFetch("/habits/categories", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    category_name: payload.category,
+                    color: payload.color || PASTELS[0],
+                  }),
+                });
+                categoryId = newCat.category_id;
+                // Update cache
+                if (categoriesCache) {
+                  categoriesCache[payload.category] = categoryId;
+                }
+              } catch (e) {
+                console.error("Failed to create category:", e);
+                categoryId = null;
+              }
+            }
           }
+
+          console.log(`Creating habit "${payload.name}" with categoryId=${categoryId}`);
 
           const response = await apiFetch("/habits", {
             method: "POST",
@@ -201,12 +248,37 @@ export function createStorage() {
 
     async update(id, patch) {
       return safeApi(
-        () => {
+        async () => {
           let categoryId = null;
           
           if (patch.category && patch.category !== "General") {
-            categoryId = null; 
+            const categoriesMap = await getCategoriesMap();
+            categoryId = categoriesMap[patch.category] || null;
+            
+            if (categoryId === null) {
+              console.warn(
+                `Category "${patch.category}" not found. Creating it...`
+              );
+              try {
+                const newCat = await apiFetch("/habits/categories", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    category_name: patch.category,
+                    color: patch.color || PASTELS[0],
+                  }),
+                });
+                categoryId = newCat.category_id;
+                if (categoriesCache) {
+                  categoriesCache[patch.category] = categoryId;
+                }
+              } catch (e) {
+                console.error("Failed to create category:", e);
+                categoryId = null;
+              }
+            }
           }
+
+          console.log(`Updating habit ${id} with categoryId=${categoryId}`);
 
           return apiFetch(`/habits/${id}`, {
             method: "PUT",
@@ -234,9 +306,7 @@ export function createStorage() {
     async toggleHistory(id, date, done) {
       return safeApi(
         async () => {
-          const endpoint = done 
-            ? `/habits/${id}/complete?on=${date}`
-            : `/habits/${id}/complete?on=${date}`;
+          const endpoint = `/habits/${id}/complete?on=${date}`;
           
           await apiFetch(endpoint, {
             method: done ? "POST" : "DELETE",
@@ -259,6 +329,10 @@ export function createStorage() {
           return null;
         }
       );
+    },
+
+    clearCategoriesCache() {
+      categoriesCache = null;
     },
   };
 }
