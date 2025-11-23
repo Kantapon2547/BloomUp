@@ -885,210 +885,173 @@ export default function Reports() {
       return 0;
     };
 
-    let sessions = [];
-    if (typeof window !== "undefined") {
-      try {
-        const raw = window.localStorage.getItem("bloomup_timer_sessions");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) sessions = parsed;
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-
     const hasPeriod = period && period.start && period.end;
     const start = hasPeriod ? atMidnight(period.start) : null;
     const end = hasPeriod ? atMidnight(period.end) : null;
 
-    const inPeriod = (completedAt) => {
-      if (!hasPeriod || !completedAt) return false;
-      const d = new Date(completedAt);
+    const inPeriod = (dateStr) => {
+      if (!hasPeriod || !dateStr) return false;
+      const d = new Date(dateStr);
       if (Number.isNaN(d.getTime())) return false;
-      return d >= start && d <= new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
+      const midnight = atMidnight(d);
+      return midnight >= start && midnight <= new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
     };
 
     const currentHabitIds = new Set(habits.map((h) => h.id));
 
-    const filteredSessions = sessions.filter((s) => {
-      if (!inPeriod(s.completedAt)) return false;
-      if (!s.habitId) return true;              
-      return currentHabitIds.has(s.habitId);    
+    const allTimerData = [];
+
+    try {
+      const storedSessions = localStorage.getItem("bloomup_timer_sessions");
+      if (storedSessions) {
+        const sessions = JSON.parse(storedSessions);
+        if (Array.isArray(sessions)) {
+          sessions.forEach(session => {
+            if (inPeriod(session.completedAt || session.date)) {
+              allTimerData.push({
+                source: 'localStorage',
+                ...session
+              });
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load timer sessions from localStorage:", e);
+    }
+
+    // Check for active timer state
+    try {
+      const timerState = localStorage.getItem("timer_state");
+      if (timerState) {
+        const state = JSON.parse(timerState);
+        if (state.date && inPeriod(state.date)) {
+          const taskIndex = state.currentTaskIndex || 0;
+          const currentTask = habits[taskIndex];
+          
+          if (currentTask && state.elapsedSeconds > 0) {
+            allTimerData.push({
+              source: 'timer_state',
+              habitId: currentTask.id,
+              name: currentTask.name,
+              category: currentTask.category || 'General',
+              plannedMinutes: normalizeMinutes(currentTask.minutes || currentTask.duration),
+              actualMinutes: Math.floor(state.elapsedSeconds / 60),
+              elapsedMinutes: Math.floor(state.elapsedSeconds / 60),
+              mode: state.mode || 'regular',
+              status: 'in_progress',
+              date: state.date,
+              isActive: true
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load timer state:", e);
+    }
+
+    // Get session data from habits history
+    habits.forEach(habit => {
+      if (!habit.id) return;
+      
+      period.days.forEach(day => {
+        const dateKey = fmtLocal(day);
+        if (habit.history && habit.history[dateKey]) {
+          const existingSession = allTimerData.find(
+            item => item.habitId === habit.id && 
+                    (item.date === dateKey || fmtLocal(new Date(item.completedAt)) === dateKey)
+          );
+          
+          if (!existingSession) {
+            allTimerData.push({
+              source: 'habit_history',
+              habitId: habit.id,
+              name: habit.name,
+              category: habit.category || 'General',
+              plannedMinutes: normalizeMinutes(habit.minutes || habit.duration || 30),
+              actualMinutes: normalizeMinutes(habit.minutes || habit.duration || 30),
+              mode: 'regular',
+              date: dateKey,
+              status: 'done',
+              completed: true
+            });
+          }
+        }
+      });
     });
 
-    if (filteredSessions.length > 0) {
-      const modeStats = {
-        pomodoro: 0,
-        regular: 0,
-        break: 0,
-      };
+    const detailList = [];
+    const modeStats = { pomodoro: 0, regular: 0, break: 0 };
+    const categoryMap = new Map();
 
-      const categoryMap = new Map();
-      const detailList = [];
+    const seen = new Set();
 
-      filteredSessions.forEach((s) => {
-        const rawMode = (s.mode || "pomodoro").toLowerCase();
-        let bucket = "pomodoro";
-        if (rawMode === "regular") {
-          bucket = "regular";
-        } else if (
-          rawMode.includes("break") ||
-          rawMode === "short" ||
-          rawMode === "long"
-        ) {
-          bucket = "break";
-        }
+    allTimerData.forEach(item => {
+      const dateStr = item.date || (item.completedAt ? fmtLocal(new Date(item.completedAt)) : 'no-date');
+      const key = `${item.habitId || item.id || 'unknown'}-${dateStr}`;
 
-        const plannedMinutes = normalizeMinutes(s.plannedMinutes);
-        const actualMinutes = normalizeMinutes(
-          s.actualMinutes ?? s.minutes ?? s.duration
-        );
+      if (!item.isActive && seen.has(key)) return;
+      if (!item.isActive) seen.add(key);
 
-        const minutesForStats = actualMinutes || plannedMinutes;
-        modeStats[bucket] += minutesForStats;
+      if (item.habitId && !currentHabitIds.has(item.habitId)) return;
 
-        const category =
-          (s.category || (bucket === "break" ? "Break" : "General")).trim() ||
-          (bucket === "break" ? "Break" : "General");
-
-        if (bucket !== "break") {
-          categoryMap.set(
-            category,
-            (categoryMap.get(category) || 0) + minutesForStats
-          );
-        }
-
-        if (!s.habitId || bucket === "break") return;
-
-        const planned = plannedMinutes || minutesForStats;
-        const actual = actualMinutes;
-        const completedFlag =
-          s.status === "done" ||
-          (planned > 0 && actual >= planned);
-
-        detailList.push({
-          name: s.taskName || s.taskTitle || s.name || "Unnamed task",
-          category,
-          mode: bucket,
-          modeLabel:
-            bucket === "pomodoro"
-              ? "Pomodoro"
-              : bucket === "regular"
-              ? "Regular"
-              : "Break",
-          duration: actual,          
-          actualMinutes: actual,
-          plannedMinutes: planned,
-          completed: completedFlag,
-        });
-      });
-
-      const categoryBreakdown = Array.from(categoryMap.entries()).map(
-        ([name, minutes]) => ({ name, minutes })
-      );
-      categoryBreakdown.sort((a, b) => b.minutes - a.minutes);
-      const topCategory = categoryBreakdown[0] || null;
-
-      const totalMinutes = detailList.reduce(
-        (sum, t) => sum + (t.actualMinutes ?? t.duration ?? 0),
-        0
-      );
-
-      const completedTasks = detailList.filter((t) => t.completed).length;
-      const pendingTasks = detailList.length - completedTasks;
-
-      return {
-        source: "sessions",
-        completedTasks,
-        pendingTasks,
-        totalMinutes,
-        modeStats,
-        categoryBreakdown,
-        topCategory,
-        list: detailList,
-      };
-    }
-
-    if (timerTasksFromShared && timerTasksFromShared.length > 0) {
-      const currentTasks = timerTasksFromShared.filter((task) =>
-        currentHabitIds.has(task.id)
-      );
-
-      if (currentTasks.length === 0) {
-        return {
-          source: "none",
-          completedTasks: 0,
-          pendingTasks: 0,
-          totalMinutes: 0,
-          modeStats: null,
-          categoryBreakdown: null,
-          topCategory: null,
-          list: [],
-        };
+      const planned = normalizeMinutes(item.plannedMinutes || item.minutes || item.duration || 0);
+      const actual = normalizeMinutes(item.actualMinutes || item.elapsedMinutes || 0);
+      
+      const mode = (item.mode || 'regular').toLowerCase();
+      const category = item.category || 'General';
+      
+      let bucket = 'regular';
+      if (mode.includes('pomodoro') || mode.includes('pomo')) {
+        bucket = 'pomodoro';
+      } else if (mode.includes('break')) {
+        bucket = 'break';
       }
 
-      const detailList = currentTasks.map((task) => {
-        const minutes = normalizeMinutes(task.minutes);
-        const category = (task.category || "General").trim() || "General";
-        const completed = !!task.completed;
+      const minutesForStats = actual > 0 ? actual : planned;
 
-        return {
-          name: task.name,
-          category,
-          mode: "task",
-          modeLabel: "Task",
-          duration: minutes,
-          actualMinutes: completed ? minutes : 0,
-          plannedMinutes: minutes,
-          completed,
-        };
+      if (bucket !== 'break') {
+        modeStats[bucket] += minutesForStats;
+        categoryMap.set(category, (categoryMap.get(category) || 0) + minutesForStats);
+      } else {
+        modeStats.break += minutesForStats;
+      }
+
+      const isCompleted = item.completed || 
+                        item.status === 'done' || 
+                        (planned > 0 && actual >= planned);
+
+      detailList.push({
+        name: item.name || item.taskName || item.taskTitle || 'Unnamed task',
+        category,
+        mode: bucket,
+        modeLabel: bucket === 'pomodoro' ? 'Pomodoro' : bucket === 'regular' ? 'Regular' : 'Break',
+        duration: actual > 0 ? actual : planned,
+        actualMinutes: actual,
+        plannedMinutes: planned,
+        completed: isCompleted,
+        isActive: item.isActive || false
       });
+    });
 
-      const completedTasks = detailList.filter((t) => t.completed).length;
-      const pendingTasks = detailList.length - completedTasks;
+    const categoryBreakdown = Array.from(categoryMap.entries())
+      .map(([name, minutes]) => ({ name, minutes }))
+      .sort((a, b) => b.minutes - a.minutes);
 
-      const categoryMap = new Map();
-      detailList.forEach((t) => {
-        if (!t.completed) return;
-        categoryMap.set(
-          t.category,
-          (categoryMap.get(t.category) || 0) + t.actualMinutes
-        );
-      });
-
-      const categoryBreakdown = Array.from(categoryMap.entries()).map(
-        ([name, minutes]) => ({ name, minutes })
-      );
-      categoryBreakdown.sort((a, b) => b.minutes - a.minutes);
-      const topCategory = categoryBreakdown[0] || null;
-
-      const totalMinutes = detailList.reduce(
-        (sum, t) => sum + t.actualMinutes,
-        0
-      );
-
-      return {
-        source: "tasks",
-        completedTasks,
-        pendingTasks,
-        totalMinutes,
-        modeStats: null,
-        categoryBreakdown,
-        topCategory,
-        list: detailList,
-      };
-    }
+    const topCategory = categoryBreakdown[0] || null;
+    const totalMinutes = detailList.reduce((sum, t) => sum + (t.actualMinutes || t.duration || 0), 0);
+    const completedTasks = detailList.filter(t => t.completed).length;
+    const pendingTasks = detailList.filter(t => !t.completed).length;
 
     return {
-      source: "none",
-      completedTasks: 0,
-      pendingTasks: 0,
-      totalMinutes: 0,
-      modeStats: null,
-      categoryBreakdown: null,
-      topCategory: null,
-      list: [],
+      source: detailList.length > 0 ? 'sessions' : 'none',
+      completedTasks,
+      pendingTasks,
+      totalMinutes,
+      modeStats: Object.values(modeStats).some(v => v > 0) ? modeStats : null,
+      categoryBreakdown: categoryBreakdown.length > 0 ? categoryBreakdown : null,
+      topCategory,
+      list: detailList
     };
   };
 

@@ -103,6 +103,41 @@ function formatDisplayTime(seconds) {
   return `${String(totalMinutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
+// Helper function to save timer sessions to localStorage
+const saveTimerSession = (sessionData) => {
+  try {
+    const stored = localStorage.getItem("bloomup_timer_sessions");
+    let sessions = [];
+    
+    if (stored) {
+      sessions = JSON.parse(stored);
+    }
+    
+    sessions.push({
+      habitId: sessionData.habitId,
+      name: sessionData.name,
+      category: sessionData.category,
+      plannedMinutes: sessionData.plannedMinutes,
+      actualMinutes: sessionData.actualMinutes,
+      elapsedMinutes: sessionData.elapsedMinutes,
+      mode: sessionData.mode,
+      status: sessionData.status,
+      completedAt: new Date().toISOString(),
+      date: formatLocalDate(new Date())
+    });
+    
+    // Keep only last 100 sessions
+    if (sessions.length > 100) {
+      sessions = sessions.slice(-100);
+    }
+    
+    localStorage.setItem("bloomup_timer_sessions", JSON.stringify(sessions));
+    console.log("✅ Timer session saved to localStorage:", sessionData);
+  } catch (e) {
+    console.error("Failed to save timer session:", e);
+  }
+};
+
 const TIMER_STORAGE_KEY = "timer_state";
 
 export default function Timer() {
@@ -432,8 +467,21 @@ export default function Timer() {
         if (currentTaskIndex < tasks.length) {
           const currentTask = tasks[currentTaskIndex];
           const finalSeconds = elapsedSeconds;
+          const finalMinutes = Math.floor(finalSeconds / 60);
           console.log(`Timer finished - ${finalSeconds} seconds elapsed`);
           
+          // Save session to localStorage 
+          saveTimerSession({
+            habitId: currentTask.id,
+            name: currentTask.name,
+            category: currentTask.category || 'General',
+            plannedMinutes: typeof currentTask.minutes === 'number' ? currentTask.minutes : 30,
+            actualMinutes: finalMinutes,
+            elapsedMinutes: finalMinutes,
+            mode: 'regular',
+            status: 'done'
+          });
+
           const habitId = parseInt(currentTask.id, 10);
           const sessionKey = `${habitId}-${formatLocalDate(new Date())}`;
           const session = habitSessions[sessionKey];
@@ -482,6 +530,18 @@ export default function Timer() {
             const currentTask = tasks[currentTaskIndex];
             const requiredPomos = Math.max(1, Math.ceil(currentTask.minutes / 25));
             
+            // Save pomodoro session
+            saveTimerSession({
+              habitId: currentTask.id,
+              name: currentTask.name,
+              category: currentTask.category || 'General',
+              plannedMinutes: 25,
+              actualMinutes: 25,
+              elapsedMinutes: 25,
+              mode: 'pomodoro',
+              status: newSessionCount >= requiredPomos ? 'done' : 'in_progress'
+            });
+
             if (newSessionCount >= requiredPomos) {
               completeTask(currentTask.id);
               setCurrentTaskIndex(currentTaskIndex + 1);
@@ -606,7 +666,20 @@ export default function Timer() {
       }
     } else if (isRunning && mode === "regular" && currentTaskIndex < tasks.length) {
       const currentTask = tasks[currentTaskIndex];
+      const elapsedMinutes = Math.floor(elapsedSeconds / 60);
       console.log(`PAUSING timer - elapsed: ${elapsedSeconds} seconds`);
+      
+      // Save partial session to localStorage
+      saveTimerSession({
+        habitId: currentTask.id,
+        name: currentTask.name,
+        category: currentTask.category || 'General',
+        plannedMinutes: typeof currentTask.minutes === 'number' ? currentTask.minutes : 30,
+        actualMinutes: elapsedMinutes,
+        elapsedMinutes: elapsedMinutes,
+        mode: 'regular',
+        status: 'in_progress'
+      });
       
       const habitId = parseInt(currentTask.id, 10);
       const sessionKey = `${habitId}-${formatLocalDate(new Date())}`;
