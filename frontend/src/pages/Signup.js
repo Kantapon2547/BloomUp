@@ -133,7 +133,10 @@ export function Signup() {
 
           <form onSubmit={handleSubmit}>
             <div className="signup-input-group">
-              <label htmlFor="full_name">Full Name</label>
+              <label htmlFor="full_name">
+                Full Name
+                <span className="signup-required-asterisk">*</span>
+              </label>
               <input
                 type="text"
                 id="full_name"
@@ -146,7 +149,10 @@ export function Signup() {
             </div>
 
             <div className="signup-input-group">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">
+                Email
+                <span className="signup-required-asterisk">*</span>
+              </label>
               <input
                 type="email"
                 id="email"
@@ -159,7 +165,10 @@ export function Signup() {
             </div>
 
             <div className="signup-input-group">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">
+                Password
+                <span className="signup-required-asterisk">*</span>
+              </label>
               <input
                 type="password"
                 id="password"
@@ -172,7 +181,10 @@ export function Signup() {
             </div>
 
             <div className="signup-input-group">
-              <label htmlFor="confirm_password">Confirm Password</label>
+              <label htmlFor="confirm_password">
+                Confirm Password
+                <span className="signup-required-asterisk">*</span>
+              </label>
               <input
                 type="password"
                 id="confirm_password"
