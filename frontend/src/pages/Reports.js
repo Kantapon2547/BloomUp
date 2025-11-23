@@ -1179,7 +1179,7 @@ export default function Reports() {
       pdf.setFont(undefined, "normal");
     };
 
-    const addText = (text, size = 10, indent = 0, lineHeight = 7.5) => {
+    const addText = (text, size = 10, indent = 0, lineHeight = 5) => {
       pdf.setFontSize(size);
       pdf.setFont(undefined, "normal");
       setColor(colors.textLight);
@@ -1709,6 +1709,7 @@ export default function Reports() {
       (rates.length || 1);
     const stdDev = Math.sqrt(variance);
 
+    y += 3;
     if (habits.length === 0) {
       addText(
         "No habits were tracked during this period. Begin by adding at least one habit to start measuring your progress.",
@@ -1837,6 +1838,9 @@ export default function Reports() {
     }
 
     addSubHeader("Consistency Insights");
+
+    y += 3;
+
     if (habits.length === 0) {
       addText(
         "No habit data is available to evaluate consistency. Add a habit and track it daily to begin building patterns.",
@@ -1854,6 +1858,7 @@ export default function Reports() {
     }
 
     addSubHeader("Period-over-Period Trend");
+    y += 3;
     const trendPrevAvg = prevAvgMetric;
     const delta = trendPrevAvg == null ? null : Math.round(currAvg - trendPrevAvg);
 
@@ -2170,6 +2175,8 @@ export default function Reports() {
 
       addSubHeader("Timer Insights");
 
+      y += 3;
+
       const insights = [];
 
       if (timerAnalysis.completedTasks === 0) {
@@ -2207,7 +2214,7 @@ export default function Reports() {
       }
 
       insights.forEach((insight) => {
-        addText("• " + insight, 9, 3, 5.5);
+        addText("• " + insight, 9, 3, 2.5);
       });
     }
     nextPage();
@@ -2216,6 +2223,9 @@ export default function Reports() {
     addSectionHeader("7. CONCLUSION & RECOMMENDATIONS", false);
 
     addSubHeader("Overall Performance");
+
+    y += 3;
+
     const conclusion =
       avgCompletion >= 80
         ? `Performance at ${avgCompletion}% indicates excellent consistency and dedication to your habits. Maintain this level and consider gradually introducing more challenging goals.`
@@ -2224,7 +2234,7 @@ export default function Reports() {
         : avgCompletion >= 40
         ? `Performance at ${avgCompletion}% suggests that your habits are developing but not yet stable. Identify what works on your best days and replicate those conditions more often.`
         : `Current performance is ${avgCompletion}%. Focus on building a foundation with smaller, more achievable habits and aim for daily completion, even with minimal effort.`;
-    addText(conclusion, 9, 0, 6.8);
+    addText(conclusion, 9, 3, 5.5);
 
 
     addSubHeader("Key Insights");
@@ -2285,6 +2295,8 @@ export default function Reports() {
       y += lines.length * 5.5 + 2;
     });
 
+    y += 5.5;
+
     addSubHeader("Recommended Action Items");
     const actions = [
       "1. Review the lowest-performing days and identify specific obstacles or time conflicts.",
@@ -2294,7 +2306,7 @@ export default function Reports() {
       "5. Acknowledge progress regularly to maintain motivation and momentum."
     ];
 
-    y += 5; 
+    y += 3; 
     pdf.setFontSize(9);
     setColor(colors.textLight);
 
