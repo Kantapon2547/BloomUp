@@ -10,6 +10,7 @@ from .. import crud, models, schemas
 from ..db import get_db
 from ..security import get_current_user
 from ..services.achievement_checker import check_mood_achievements
+from ..utils.timezone_utils import get_bangkok_today
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +114,7 @@ def create_mood_log(
     """Log a new mood entry."""
     try:
         user_id = _user_id(current_user)
-        log_date = payload.logged_on or date.today()
+        log_date = payload.logged_on or get_bangkok_today()  
 
         logger.info(
             f"Creating mood for user {user_id} on {log_date}: score={payload.mood_score}"
@@ -165,7 +166,7 @@ def get_mood_trend(
 ):
     """Get mood trend data for visualization."""
     user_id = _user_id(current_user)
-    start_date = date.today() - timedelta(days=days)
+    start_date = get_bangkok_today() - timedelta(days=days)
 
     logs = crud.get_user_mood_logs(
         db, user_id=user_id, start_date=start_date, limit=days
@@ -184,7 +185,7 @@ def get_today_mood(
 ):
     """Get today's mood log if it exists."""
     user_id = _user_id(current_user)
-    log = crud.get_mood_log_by_date(db, user_id, date.today())
+    log = crud.get_mood_log_by_date(db, user_id, get_bangkok_today())
     return log
 
 
@@ -266,7 +267,7 @@ def get_week_summary(
     """Get a summary of this week's mood logs."""
     user_id = _user_id(current_user)
 
-    today = date.today()
+    today = get_bangkok_today()
     start_of_week = today - timedelta(days=today.weekday() + 1)
     if today.weekday() == 6:
         start_of_week = today

@@ -1,6 +1,7 @@
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import jwt
 from fastapi import Depends, HTTPException, status
@@ -15,6 +16,9 @@ from .db import get_db
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+# Bangkok timezone
+BANGKOK_TZ = ZoneInfo("Asia/Bangkok")
 
 BCRYPT_MAX_BYTES = 72
 JWT_SECRET = os.getenv("JWT_SECRET", "change_me")
@@ -57,7 +61,8 @@ def create_access_token(subject: str) -> str:
     """Create a JWT token for the given subject (email)"""
     payload = {
         "sub": subject,
-        "exp": datetime.utcnow() + timedelta(minutes=JWT_EXPIRE_MIN),
+        # Use UTC for token expiration (standard practice)
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRE_MIN),
     }
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
     logger.info(f"Created token for {subject}")

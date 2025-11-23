@@ -17,6 +17,18 @@ const PASTELS = [
   "#e4c1f9",
 ];
 
+// Add these helper functions at the top (after the constants)
+const getHabitCompletion = () => {
+  try {
+    return JSON.parse(localStorage.getItem('habit-completion') || '{}');
+  } catch {
+    return {};
+  }
+};
+
+const setHabitCompletion = (completionData) => {
+  localStorage.setItem('habit-completion', JSON.stringify(completionData));
+};
 
 // Get token from localStorage
 const getToken = () => {
@@ -90,22 +102,22 @@ async function apiFetch(path, options = {}) {
 const uid = () =>
   Math.random().toString(36).slice(2, 7) + Date.now().toString(36).slice(-3);
 
-  // Normalize habit from API response
-  const normalizeHabit = (h) => {
-    const habitId = h.habit_id || h.id || uid();
-    const habitName = h.habit_name || h.name || "";
+// Normalize habit from API response
+const normalizeHabit = (h) => {
+  const habitId = h.habit_id || h.id || uid();
+  const habitName = h.habit_name || h.name || "";
 
-    let categoryName = "General";
-    if (h.category && typeof h.category === 'object' && h.category.category_name) {
-      categoryName = h.category.category_name;  
-    } else if (typeof h.category === 'string') {
-      categoryName = h.category; 
-    }
-    
-    const habitIcon = h.emoji || h.icon || "📚";
-    const durationMinutes = h.duration_minutes || h.duration || 30;
-    const habitColor = h.color || "#ede9ff";
-    const habitHistory = h.history || {};
+  let categoryName = "General";
+  if (h.category && typeof h.category === 'object' && h.category.category_name) {
+    categoryName = h.category.category_name;  
+  } else if (typeof h.category === 'string') {
+    categoryName = h.category; 
+  }
+  
+  const habitIcon = h.emoji || h.icon || "📚";
+  const durationMinutes = h.duration_minutes || h.duration || 30;
+  const habitColor = h.color || "#ede9ff";
+  const habitHistory = h.history || {};
 
   return {
     id: habitId,
@@ -121,6 +133,7 @@ const uid = () =>
 // Storage with API and localStorage 
 export function createStorage() {
   let useApi = true;
+  let categoriesCache = null;
 
   async function safeApi(fn, fallback) {
     if (!useApi) return fallback();
@@ -130,6 +143,24 @@ export function createStorage() {
       console.warn("[API error] -> fallback to localStorage:", e.message);
       useApi = false;
       return fallback();
+    }
+  }
+
+  // Fetch and cache categories from API
+  async function getCategoriesMap() {
+    if (categoriesCache) return categoriesCache;
+    
+    try {
+      const response = await apiFetch("/habits/categories");
+      const map = {};
+      response.forEach((cat) => {
+        map[cat.category_name] = cat.category_id;
+      });
+      categoriesCache = map;
+      return map;
+    } catch (e) {
+      console.error("Failed to fetch categories:", e);
+      return {};
     }
   }
 
@@ -146,34 +177,62 @@ export function createStorage() {
     },
     
     async create(payload) {
-    return safeApi(
-      async () => {
-        let categoryId = null;
-        if (payload.category && payload.category !== "General") {
-          categoryId = null;
-        }
+      return safeApi(
+        async () => {
+          let categoryId = null;
 
-        const response = await apiFetch("/habits", {
-          method: "POST",
-          body: JSON.stringify({
-            name: payload.name,
-            category_id: categoryId,
-            emoji: payload.icon,
-            duration_minutes: payload.duration,
-            is_active: true,
-          }),
-        });
-        return normalizeHabit(response);
-      },
-      () => {
-        const body = normalizeHabit(payload);
-        const list = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
-        list.push(body);
-        localStorage.setItem(LS_KEY, JSON.stringify(list));
-        return body;
-      }
-    );
-  },
+          if (payload.category && payload.category !== "General") {
+            const categoriesMap = await getCategoriesMap();
+            categoryId = categoriesMap[payload.category] || null;
+            
+            if (categoryId === null) {
+              console.warn(
+                `Category "${payload.category}" not found in database. Creating it...`
+              );
+              // If category doesn't exist, create it first
+              try {
+                const newCat = await apiFetch("/habits/categories", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    category_name: payload.category,
+                    color: payload.color || PASTELS[0],
+                  }),
+                });
+                categoryId = newCat.category_id;
+                // Update cache
+                if (categoriesCache) {
+                  categoriesCache[payload.category] = categoryId;
+                }
+              } catch (e) {
+                console.error("Failed to create category:", e);
+                categoryId = null;
+              }
+            }
+          }
+
+          console.log(`Creating habit "${payload.name}" with categoryId=${categoryId}`);
+
+          const response = await apiFetch("/habits", {
+            method: "POST",
+            body: JSON.stringify({
+              name: payload.name,
+              category_id: categoryId,
+              emoji: payload.icon,
+              duration_minutes: payload.duration,
+              is_active: true,
+            }),
+          });
+          return normalizeHabit(response);
+        },
+        () => {
+          const body = normalizeHabit(payload);
+          const list = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+          list.push(body);
+          localStorage.setItem(LS_KEY, JSON.stringify(list));
+          return body;
+        }
+      );
+    },
     
     async remove(id) {
       return safeApi(
@@ -189,12 +248,37 @@ export function createStorage() {
 
     async update(id, patch) {
       return safeApi(
-        () => {
+        async () => {
           let categoryId = null;
           
           if (patch.category && patch.category !== "General") {
-            categoryId = null; 
+            const categoriesMap = await getCategoriesMap();
+            categoryId = categoriesMap[patch.category] || null;
+            
+            if (categoryId === null) {
+              console.warn(
+                `Category "${patch.category}" not found. Creating it...`
+              );
+              try {
+                const newCat = await apiFetch("/habits/categories", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    category_name: patch.category,
+                    color: patch.color || PASTELS[0],
+                  }),
+                });
+                categoryId = newCat.category_id;
+                if (categoriesCache) {
+                  categoriesCache[patch.category] = categoryId;
+                }
+              } catch (e) {
+                console.error("Failed to create category:", e);
+                categoryId = null;
+              }
+            }
           }
+
+          console.log(`Updating habit ${id} with categoryId=${categoryId}`);
 
           return apiFetch(`/habits/${id}`, {
             method: "PUT",
@@ -222,9 +306,7 @@ export function createStorage() {
     async toggleHistory(id, date, done) {
       return safeApi(
         async () => {
-          const endpoint = done 
-            ? `/habits/${id}/complete?on=${date}`
-            : `/habits/${id}/complete?on=${date}`;
+          const endpoint = `/habits/${id}/complete?on=${date}`;
           
           await apiFetch(endpoint, {
             method: done ? "POST" : "DELETE",
@@ -247,6 +329,10 @@ export function createStorage() {
           return null;
         }
       );
+    },
+
+    clearCategoriesCache() {
+      categoriesCache = null;
     },
   };
 }
@@ -347,8 +433,9 @@ function durationToMins(raw) {
 
 function formatDuration(mins) {
   if (typeof mins !== "number" || isNaN(mins)) return "";
+  
   if (mins < 60) {
-    return `${mins} mins`;
+    return `${mins} min${mins === 1 ? "" : "s"}`;
   }
 
   if (mins % 60 === 0) {
@@ -358,7 +445,9 @@ function formatDuration(mins) {
 
   const hrs = Math.floor(mins / 60);
   const rem = mins % 60;
-  return `${hrs}h ${rem}m`;
+  const hrText = `${hrs} hour${hrs === 1 ? "" : "s"}`;
+  const remText = `${rem} min${rem === 1 ? "" : "s"}`;
+  return `${hrText} ${remText}`;
 }
 
 function Dropdown({ value, items, onChange, label }) {
@@ -492,15 +581,13 @@ function HabitModal({
   const [showDurationPicker, setShowDurationPicker] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
 
-  // Debug: Check initial state
-useEffect(() => {
-  const token = localStorage.getItem("token");
-  console.log("🔍 Habits Component Mounted");
-  console.log("🔍 Token exists:", !!token);
-  console.log("🔍 Token value:", token ? token.substring(0, 20) + "..." : "null");
-}, []);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    console.log("🔍 Habits Component Mounted");
+    console.log("🔍 Token exists:", !!token);
+    console.log("🔍 Token value:", token ? token.substring(0, 20) + "..." : "null");
+  }, []);
   
-  // FIX #1: Add proper dependency array to prevent infinite loops
   useEffect(() => {
     if (open) {
       setName(initial?.name || "");
@@ -763,7 +850,6 @@ function CategoryPickerModal({
   const [deletingCategory, setDeletingCategory] = useState(null);
   const [selectingCategory, setSelectingCategory] = useState(null);
 
-  // Proper dependency array
   useEffect(() => {
     setTempCategories(categories);
   }, [categories]); 
@@ -1028,6 +1114,86 @@ export default function HabitsPage({ onNavigateToTimer }) {
     );
   };
 
+  // Define today variable at the top of the component
+  const today = todayKey();
+  const week = thisWeek();
+
+  // Updated toggle function with sync
+  const toggle = async (id, date, newDone) => {
+    try {
+      // Update localStorage for sync with Home page
+      if (date === today) {
+        const completionData = getHabitCompletion();
+        completionData[id] = newDone;
+        setHabitCompletion(completionData);
+        
+        // Emit custom event for real-time sync
+        window.dispatchEvent(new CustomEvent('habitToggled', { 
+          detail: { habitId: id, completed: newDone, source: 'habits' }
+        }));
+      }
+
+      await storage.toggleHistory(id, date, newDone);
+      setHabits((list) =>
+        list.map((h) => {
+          if (h.id !== id) return h;
+          const nextHistory = { ...(h.history || {}) };
+          if (newDone) {
+            nextHistory[date] = true;
+          } else {
+            delete nextHistory[date];
+          }
+          return {
+            ...h,
+            history: nextHistory,
+          };
+        })
+      );
+    } catch (error) {
+      console.error("Failed to toggle habit:", error);
+      // Revert localStorage on error
+      if (date === today) {
+        const completionData = getHabitCompletion();
+        completionData[id] = !newDone;
+        setHabitCompletion(completionData);
+        
+        // Emit revert event
+        window.dispatchEvent(new CustomEvent('habitToggled', { 
+          detail: { habitId: id, completed: !newDone, source: 'habits' }
+        }));
+      }
+    }
+  };
+
+  // Add this useEffect to listen for changes from Home page
+  useEffect(() => {
+    const handleHabitToggled = (event) => {
+      const { habitId, completed, source } = event.detail;
+      
+      // Only process events from home page to avoid loops
+      if (source === 'home') {
+        setHabits(prev => prev.map(habit => {
+          if (habit.id === habitId) {
+            const newHistory = { ...habit.history };
+            if (completed) {
+              newHistory[today] = true;
+            } else {
+              delete newHistory[today];
+            }
+            return {
+              ...habit,
+              history: newHistory
+            };
+          }
+          return habit;
+        }));
+      }
+    };
+
+    window.addEventListener('habitToggled', handleHabitToggled);
+    return () => window.removeEventListener('habitToggled', handleHabitToggled);
+  }, [today]);
+
   // Proper dependency array to prevent infinite loop
   useEffect(() => {
     let mounted = true;
@@ -1050,9 +1216,6 @@ export default function HabitsPage({ onNavigateToTimer }) {
   useEffect(() => {
     updateHabits(habits);
   }, [habits, updateHabits]);
-
-  const today = todayKey();
-  const week = thisWeek();
 
   const totals = useMemo(() => {
     const total = habits.length || 0;
@@ -1149,29 +1312,6 @@ export default function HabitsPage({ onNavigateToTimer }) {
         setDeletingHabit(null);
       }
     }, 400);
-  };
-
-  const toggle = async (id, date, newDone) => {
-    try {
-      await storage.toggleHistory(id, date, newDone);
-      setHabits((list) =>
-        list.map((h) => {
-          if (h.id !== id) return h;
-          const nextHistory = { ...(h.history || {}) };
-          if (newDone) {
-            nextHistory[date] = true;
-          } else {
-            delete nextHistory[date];
-          }
-          return {
-            ...h,
-            history: nextHistory,
-          };
-        })
-      );
-    } catch (error) {
-      console.error("Failed to toggle habit:", error);
-    }
   };
 
   return (
@@ -1280,6 +1420,8 @@ export default function HabitsPage({ onNavigateToTimer }) {
               const catData = categories.find(c => c.name === h.category);
               const bg = catData?.color || "#eef1ff";
               const isDeleting = deletingHabit === h.id;
+              const completionData = getHabitCompletion();
+              const isChecked = completionData[h.id] !== undefined ? completionData[h.id] : !!h.history?.[today];
               
               return (
                 <div 
@@ -1290,12 +1432,11 @@ export default function HabitsPage({ onNavigateToTimer }) {
                     <input
                       className="checkbox"
                       type="checkbox"
-                      checked={!!h.history?.[today]}
+                      checked={isChecked}
                       onChange={(e) => {
-                        const wasChecked = !!h.history?.[today];
                         const nowChecked = e.target.checked;
                         toggle(h.id, today, nowChecked);
-                        if (!wasChecked && nowChecked) {
+                        if (!isChecked && nowChecked) {
                           fireRowFx(h.id);
                         }
                       }}
@@ -1304,7 +1445,7 @@ export default function HabitsPage({ onNavigateToTimer }) {
                       <span className="hl-emoji">{h.icon || "📚"}</span>
                     </div>
                     <div className="hl-title">
-                      <div className={`habit-name ${h.history?.[today] ? "is-done" : ""}`} >
+                      <div className={`habit-name ${isChecked ? "is-done" : ""}`} >
                         {h.name}
                       </div>
                       <div className="habit-tags">
@@ -1346,7 +1487,7 @@ export default function HabitsPage({ onNavigateToTimer }) {
                     <div className={`hl-stats ${rowFx[h.id] ? "is-pop" : ""}`}>
                       <span
                         className={`hl-fire ${
-                          h.history?.[today] ? "is-on" : "is-off"
+                          isChecked ? "is-on" : "is-off"
                         } ${rowFx[h.id] ? "is-ignite" : ""}`}
                       >
                         🔥
