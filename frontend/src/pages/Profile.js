@@ -282,7 +282,8 @@ const EditProfileModal = ({
   onSaveProfile, 
   onCancelEdit, 
   onChangeProfileImageClick, 
-  onProfileImageFileChange 
+  onProfileImageFileChange,
+  editValidationError
 }) => (
   <div className="modal-overlay" onClick={onCloseModal}>
     <div className="profile-modal-content" onClick={e => e.stopPropagation()}>
@@ -310,22 +311,34 @@ const EditProfileModal = ({
           />
         </div>
         <div className="form-fields">
-          <input 
-            type="text" 
-            name="name" 
-            value={temporaryProfileData.name || ""} 
-            onChange={onInputChange} 
-            className="input-field-edit" 
-            placeholder="Name" 
-          />
-          <textarea 
-            name="bio" 
-            value={temporaryProfileData.bio || ""} 
-            onChange={onInputChange} 
-            rows="4" 
-            className="input-field-edit bio-textarea" 
-            placeholder="Bio" 
-          />
+          <div className="form-field-wrapper">
+            <label className="form-field-label">
+              Name
+              <span className="required-asterisk">*</span>
+            </label>
+            <input 
+              type="text" 
+              name="name" 
+              value={temporaryProfileData.name || ""} 
+              onChange={onInputChange} 
+              className={`input-field-edit ${editValidationError ? 'input-field-error' : ''}`}
+              placeholder="Enter your name" 
+            />
+            {editValidationError && (
+              <div className="error-text-field">{editValidationError}</div>
+            )}
+          </div>
+          <div className="form-field-wrapper">
+            <label className="form-field-label">Bio</label>
+            <textarea 
+              name="bio" 
+              value={temporaryProfileData.bio || ""} 
+              onChange={onInputChange} 
+              rows="4" 
+              className="input-field-edit bio-textarea" 
+              placeholder="Tell us about yourself" 
+            />
+          </div>
           <div className="edit-buttons">
             <button className="btn save-btn" onClick={onSaveProfile} type="button">Save</button>
             <button className="btn cancel-btn" onClick={onCancelEdit} type="button">Cancel</button>
@@ -856,14 +869,13 @@ export default function ProfilePage() {
     }
   };
 
-  const handleInputChange = (event) => {
+const handleInputChange = (event) => {
     const { name, value, files } = event.target;
     if (name === "name") setEditValidationError(""); // Clear error on type
 
     if (files && files[0]) {
       const reader = new FileReader();
       reader.onload = (e) => setTemporaryProfileData({ ...temporaryProfileData, profile_picture: e.target.result });
-
       reader.readAsDataURL(files[0]);
     } else {
       setTemporaryProfileData({ 
@@ -899,6 +911,7 @@ export default function ProfilePage() {
       setErrorMessage(error.message || "Failed to save profile.");
     }
   };
+
   const handleCancelEdit = () => {
     setTemporaryProfileData(userProfile);
     setEditValidationError("");
@@ -1080,9 +1093,10 @@ export default function ProfilePage() {
           onCloseModal={() => setIsEditingProfile(false)}
           onInputChange={handleInputChange}
           onSaveProfile={handleSaveProfile}
-          onCancelEdit={() => setTemporaryProfileData(userProfile)}
+          onCancelEdit={handleCancelEdit}
           onChangeProfileImageClick={() => fileInputReference.current.click()}
           onProfileImageFileChange={handleInputChange}
+          editValidationError={editValidationError}
         />
       )}
 

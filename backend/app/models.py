@@ -12,8 +12,15 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from datetime import datetime, timezone
+from sqlalchemy import func
 
 from .db import Base
+
+
+def get_utc_now():
+    """Return current UTC time (databases store in UTC, Python converts to Bangkok)"""
+    return datetime.now(timezone.utc)
 
 
 class User(Base):

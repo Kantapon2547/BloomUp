@@ -1,5 +1,6 @@
 import pytest
 from datetime import date, timedelta
+from app.utils.timezone_utils import get_bangkok_today
 from app.crud import (
     create_mood_log,
     get_mood_log,
@@ -25,7 +26,7 @@ class TestCreateMoodLog:
     
     def test_create_mood_log_specific_date(self, db, test_user):
         """Create mood log for specific date"""
-        log_date = date.today() - timedelta(days=5)
+        log_date = get_bangkok_today() - timedelta(days=5)
         mood = create_mood_log(
             db, test_user.user_id, mood_score=6, logged_on=log_date
         )
@@ -33,15 +34,16 @@ class TestCreateMoodLog:
         assert mood.logged_on == log_date
     
     def test_create_mood_log_defaults_to_today(self, db, test_user):
-        """Create mood log defaults to today's date"""
+        """Create mood log defaults to today's date (Bangkok timezone)"""
         mood = create_mood_log(db, test_user.user_id, mood_score=7)
         
-        assert mood.logged_on == date.today()
+        # Use Bangkok timezone instead of UTC
+        assert mood.logged_on == get_bangkok_today()
     
     def test_create_mood_log_different_scores(self, db, test_user):
         """Create mood logs with different scores on different dates"""
         for i, score in enumerate([1, 2, 3, 4, 5], start=0):
-            log_date = date.today() - timedelta(days=i)
+            log_date = get_bangkok_today() - timedelta(days=i)
             mood = create_mood_log(db, test_user.user_id, mood_score=score, logged_on=log_date)
             assert mood.mood_score == score
 
@@ -75,7 +77,7 @@ class TestGetMoodLogByDate:
     
     def test_get_mood_log_by_date_exists(self, db, test_user):
         """Retrieve mood by date"""
-        log_date = date.today()
+        log_date = get_bangkok_today()
         create_mood_log(db, test_user.user_id, mood_score=8, logged_on=log_date)
         
         mood = get_mood_log_by_date(db, test_user.user_id, log_date)
@@ -84,13 +86,13 @@ class TestGetMoodLogByDate:
     
     def test_get_mood_log_by_date_not_exists(self, db, test_user):
         """Return None when no mood logged for date"""
-        mood = get_mood_log_by_date(db, test_user.user_id, date.today())
+        mood = get_mood_log_by_date(db, test_user.user_id, get_bangkok_today())
         assert mood is None
     
     def test_get_mood_log_by_date_different_dates(self, db, test_user):
         """Different dates return different moods"""
-        date1 = date.today()
-        date2 = date.today() - timedelta(days=1)
+        date1 = get_bangkok_today()
+        date2 = get_bangkok_today() - timedelta(days=1)
         
         create_mood_log(db, test_user.user_id, mood_score=8, logged_on=date1)
         create_mood_log(db, test_user.user_id, mood_score=5, logged_on=date2)
@@ -123,7 +125,7 @@ class TestGetUserMoodLogs:
         for i in range(5):
             create_mood_log(
                 db, test_user.user_id, mood_score=i+1,
-                logged_on=date.today() - timedelta(days=i)
+                logged_on=get_bangkok_today() - timedelta(days=i)
             )
         
         logs = get_user_mood_logs(db, test_user.user_id, limit=100)
@@ -136,7 +138,7 @@ class TestGetUserMoodLogs:
         for i in range(10):
             create_mood_log(
                 db, test_user.user_id, mood_score=5,
-                logged_on=date.today() - timedelta(days=i)
+                logged_on=get_bangkok_today() - timedelta(days=i)
             )
         
         logs = get_user_mood_logs(db, test_user.user_id, limit=5)
@@ -147,7 +149,7 @@ class TestGetUserMoodLogs:
         for i in range(5):
             create_mood_log(
                 db, test_user.user_id, mood_score=i+1,
-                logged_on=date.today() - timedelta(days=i)
+                logged_on=get_bangkok_today() - timedelta(days=i)
             )
         
         logs = get_user_mood_logs(db, test_user.user_id, offset=2, limit=2)
@@ -158,11 +160,12 @@ class TestGetUserMoodLogs:
         for i in range(10):
             create_mood_log(
                 db, test_user.user_id, mood_score=5,
-                logged_on=date.today() - timedelta(days=i)
+                logged_on=get_bangkok_today() - timedelta(days=i)
             )
         
-        start = date.today() - timedelta(days=5)
-        end = date.today() - timedelta(days=2)
+        start = get_bangkok_today() - timedelta(days=5)
+        new_var = get_bangkok_today()
+        end = new_var - timedelta(days=2)
         logs = get_user_mood_logs(db, test_user.user_id, start_date=start, end_date=end, limit=100)
         
         for log in logs:
@@ -253,7 +256,7 @@ class TestGetMoodStatistics:
         for i, score in enumerate(scores):
             create_mood_log(
                 db, test_user.user_id, mood_score=score,
-                logged_on=date.today() - timedelta(days=i)
+                logged_on=get_bangkok_today() - timedelta(days=i)
             )
         
         stats = get_mood_statistics(db, test_user.user_id, days=30)
@@ -264,7 +267,7 @@ class TestGetMoodStatistics:
     
     def test_get_mood_statistics_week_count(self, db, test_user):
         """Count logs in current week"""
-        today = date.today()
+        today = get_bangkok_today()
         week_ago = today - timedelta(days=7)
         
         create_mood_log(db, test_user.user_id, mood_score=3, logged_on=today)
@@ -278,7 +281,7 @@ class TestGetMoodStatistics:
         for i in range(60):
             create_mood_log(
                 db, test_user.user_id, mood_score=3,
-                logged_on=date.today() - timedelta(days=i)
+                logged_on=get_bangkok_today() - timedelta(days=i)
             )
         
         stats_30 = get_mood_statistics(db, test_user.user_id, days=30)

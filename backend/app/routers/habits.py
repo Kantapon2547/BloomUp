@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -12,6 +12,7 @@ from ..services.achievement_checker import (
     check_habit_achievements,
     check_streak_achievements,
 )
+from ..utils.timezone_utils import get_bangkok_today, get_bangkok_now
 
 router = APIRouter(prefix="/habits", tags=["Habits"])
 
@@ -233,7 +234,7 @@ def create_habit(
         duration_minutes=payload.duration_minutes or 30,
         description=payload.description,
         is_active=payload.is_active if payload.is_active is not None else True,
-        start_date=date.today(),
+        start_date=get_bangkok_today(),
         best_streak=0,)
     
     db.add(habit)
@@ -399,7 +400,7 @@ def create_habit_session(
     if not habit:
         raise HTTPException(status_code=404, detail="Habit not found")
     
-    session_date = payload.session_date or date.today()
+    session_date = payload.session_date or get_bangkok_today()
     
     # Check if session exists for this date
     existing = (
@@ -463,17 +464,17 @@ def update_habit_session(
         
         # Set started_at when transitioning to in_progress
         if payload.status == "in_progress" and not session.started_at:
-            session.started_at = datetime.utcnow()
+            session.started_at = get_bangkok_now()
             print(f"SET started_at: {session.started_at}")
         
         # Set completed_at when transitioning to done
         elif payload.status == "done" and not session.completed_at:
-            session.completed_at = datetime.utcnow()
+            session.completed_at = get_bangkok_now()
             print(f"SET completed_at: {session.completed_at}")
         
         # If pausing, keep started_at but don't set completed_at
         elif payload.status == "todo" and old_status == "in_progress":
-            print(f"⏸PAUSED: keeping started_at={session.started_at}")
+            print(f"PAUSED: keeping started_at={session.started_at}")
     
     # Update actual_duration_seconds (in seconds!)
     if payload.actual_duration_seconds is not None:

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { gsap } from "gsap";
+import Jar from '../components/Jar';
 import "./style/Home.css";
 
 // Constants
@@ -603,6 +604,7 @@ export default function Home({ user, onNavigate }) {
 
   return (
     <div className="home-layout">
+      <Jar />
       <main className="home-main">
         <header className="home-header" ref={homeHeaderRef}>
           <div className="header-left">

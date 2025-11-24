@@ -270,27 +270,27 @@ clip-path: polygon(100% 0%, 75% 50%, 100% 100%, 0 100%, 0% 50%, 0 0);
   width: 100%;
   flex: 1;
   justify-content: center;
-  padding-top: 2rem;
+  padding-top: 4rem;
   gap: 0.5rem;
 }
 
 .best-task-header {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #ce4444;
   margin-bottom: 0.8rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   letter-spacing: 0.5px;
   position: relative;
   z-index: 1;
 }
 
 .best-task-percentage {
+  padding-left: 2rem;
   font-size: 3.5rem;
-  font-weight: 900;
+  font-weight: 800;
   color: #ffffff;
   line-height: 1;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.8rem;
   text-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: baseline;
@@ -307,8 +307,7 @@ clip-path: polygon(100% 0%, 75% 50%, 100% 100%, 0 100%, 0% 50%, 0 0);
 .best-task-name {
   font-size: 1.4rem;
   font-weight: 700;
-  color: #ffffff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  color: #ce4444;
   margin-bottom: 0.5rem;
   line-height: 1.3;
 }
@@ -316,10 +315,9 @@ clip-path: polygon(100% 0%, 75% 50%, 100% 100%, 0 100%, 0% 50%, 0 0);
 .best-task-status {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #ce4444;
   letter-spacing: 1px;
   text-transform: uppercase;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .theme-progress .share-card-fg {
@@ -511,7 +509,7 @@ clip-path: polygon(100% 0%, 75% 50%, 100% 100%, 0 100%, 0% 50%, 0 0);
   text-align: left;
   margin-bottom: 3px;
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 800;
   color: #5C374C;
   letter-spacing: 0.5px;
   padding-bottom: 8px;
@@ -543,18 +541,22 @@ clip-path: polygon(100% 0%, 75% 50%, 100% 100%, 0 100%, 0% 50%, 0 0);
   object-fit: contain;
 }
 
-.theme-mood-custom .mood-share-header,
 .theme-mood-custom .mood-share-text {
   color: inherit !important;
 }
 
-.theme-mood-custom .mood-share-header {
+.theme-mood-custom {
   opacity: 0.9;
   font-weight: 600;
 }
 
+.mood-share-header {
+  font-weight: 700;
+  color: #3a3a3a;
+}
 .theme-mood-custom .share-card-fg { 
   padding: 2.5rem 1.5rem 0.7rem 1.5rem;
+  background-color: #ffffff !important;
 }
 
 /* New Habit Card Styles */
@@ -893,6 +895,56 @@ clip-path: polygon(100% 0%, 75% 50%, 100% 100%, 0 100%, 0% 50%, 0 0);
   pointer-events: none;
   transform-origin: bottom center;
   animation: gentle-wave 2.5s infinite ease-in-out;
+}
+
+
+/* Form Field Wrapper and Label Styles */
+.form-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-field-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4e1b47;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.required-asterisk {
+  color: #e91e63;
+  font-weight: 700;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* Input Error State */
+.input-field-edit.input-field-error {
+  border-color: #e91e63 !important;
+  background: #ffebee;
+}
+
+.input-field-edit.input-field-error:focus {
+  border-color: #e91e63 !important;
+  box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1) !important;
+}
+
+/* Error Text Field */
+.error-text-field {
+  font-size: 0.8rem;
+  color: #e91e63;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.error-text-field::before {
+  content: "⚠";
+  font-size: 0.9rem;
 }
 
 @keyframes gentle-wave {

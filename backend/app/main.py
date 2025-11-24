@@ -1,5 +1,6 @@
 import os
 from contextlib import asynccontextmanager
+from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,9 +10,13 @@ from .db import Base, engine
 from .routers import achievements, auth, gratitude, habits, mood, users
 from .seed_achievements import seed_achievements
 
+# Set Bangkok timezone
+os.environ['TZ'] = 'Asia/Bangkok'
 
 # Startup event
 async def startup_event():
+    print("Starting BloomUp API")
+    print("Timezone: Asia/Bangkok (UTC+7)")
     seed_achievements()
 
 
@@ -26,9 +31,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="BloomUp API", lifespan=lifespan)
 
-if os.getenv("TESTING") != "1":
-    Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
+# CORS - MUST be before other middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -36,14 +41,19 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3001",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "X-User-Email",
+        "X-User-ID",
+        "Accept",
+        "Origin",
+    ],
     expose_headers=["*"],
-    max_age=7200,
+    max_age=600,
 )
 
 # serve uploaded files
@@ -53,7 +63,15 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 def root():
-    return {"status": "ok"}
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    bangkok_tz = ZoneInfo("Asia/Bangkok")
+    bangkok_time = datetime.now(bangkok_tz)
+    return {
+        "status": "ok",
+        "timezone": "Asia/Bangkok (UTC+7)",
+        "server_time": bangkok_time.isoformat()
+    }
 
 
 # include routers

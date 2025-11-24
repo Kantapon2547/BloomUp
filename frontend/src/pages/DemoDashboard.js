@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./style/DemoDashboard.css";
 
 export default function DemoDashboard() {
+  const navigate = useNavigate();
   const [activeMood, setActiveMood] = useState(3);
   const [habits, setHabits] = useState([
     { id: 1, name: "Morning Exercise", completed: true, streak: 12, category: "Health" },
     { id: 2, name: "Reading Novel", completed: false, streak: 8, category: "Personal" },
     { id: 3, name: "Study Session", completed: true, streak: 15, category: "Study" },
-    { id: 4, name: "Meditation", completed: false, streak: 5, category: "Mind" } // Added this habit
+    { id: 4, name: "Meditation", completed: false, streak: 5, category: "Mind" }
   ]);
 
   const moods = ["😭", "😐", "🙂", "😊", "😁"];
@@ -66,10 +68,10 @@ export default function DemoDashboard() {
           <span className="demo-logo-text">BloomUp</span>
         </div>
         <div className="demo-nav-buttons">
-          <button className="demo-primary-btn demo-btn-login" onClick={() => alert('Navigate to Login')}>
+          <button className="demo-primary-btn demo-btn-login" onClick={() => navigate('/login')}>
             Login
           </button>
-          <button className="demo-primary-btn demo-btn-signup" onClick={() => alert('Navigate to Signup')}>
+          <button className="demo-primary-btn demo-btn-signup" onClick={() => navigate('/signup')}>
             Sign Up
           </button>
         </div>
@@ -86,7 +88,7 @@ export default function DemoDashboard() {
             practice gratitude, and track your journey.
           </p>
           <div className="demo-hero-buttons">
-            <button className="demo-secondary-btn" onClick={() => alert('Start Journey')}>
+            <button className="demo-secondary-btn" onClick={() => navigate('/signup')}>
               Start Your Journey
             </button>
           </div>
@@ -197,7 +199,7 @@ export default function DemoDashboard() {
               <p className="demo-mood-feedback">You're feeling {moods[activeMood]}</p>
             </div>
 
-            {/* Gratitude Card - MOVED TO RIGHT COLUMN */}
+            {/* Gratitude Card */}
             <div className="demo-card demo-gratitude-card demo-animate-up">
               <h3>Today's Gratitude 🙏</h3>
               <p>"Grateful for learning something new every day and support from family."</p>
@@ -230,10 +232,10 @@ export default function DemoDashboard() {
             Join thousands of users who have already transformed their lives with BloomUp.
           </p>
           <div className="demo-cta-buttons">
-            <button className="demo-cta-button-primary" onClick={() => alert('Get Started')}>
+            <button className="demo-cta-button-primary" onClick={() => navigate('/signup')}>
               Get Started Free
             </button>
-            <button className="demo-cta-button-outline" onClick={() => alert('Login')}>
+            <button className="demo-cta-button-outline" onClick={() => navigate('/login')}>
               Already have an account?
             </button>
           </div>

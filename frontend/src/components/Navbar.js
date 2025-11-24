@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import "./Navbar.css";
 
 const Navbar = ({ onLogout }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const navLinks = [
     { path: "/home", label: "Home" },
@@ -22,10 +23,17 @@ const Navbar = ({ onLogout }) => {
     setIsMenuOpen(false);
   };
 
+  const handleLogoClick = () => {
+    navigate("/");
+    closeMenu();
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-left">
-        <h1 className="navbar-title">BloomUp</h1>
+        <h1 className="navbar-title" onClick={handleLogoClick} style={{ cursor: "pointer" }}>
+          BloomUp
+        </h1>
       </div>
 
       <button className="hamburger" onClick={toggleMenu}>
