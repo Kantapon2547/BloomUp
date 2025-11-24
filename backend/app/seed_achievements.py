@@ -47,16 +47,6 @@ ACHIEVEMENTS_SEED = [
         ],
     },
     {
-        "key_name": "early_bird",
-        "title": "Early Bird",
-        "description": "Completed 5 morning habits",
-        "icon": "🦅",
-        "points": 15,
-        "requirements": [
-            {"requirement_type": "morning_habits", "target_value": 5, "unit": "habits"}
-        ],
-    },
-    {
         "key_name": "wellness_warrior",
         "title": "Wellness Warrior",
         "description": "Completed 100 habit checkmarks",

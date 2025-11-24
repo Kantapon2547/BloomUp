@@ -1,5 +1,6 @@
 import os
 from contextlib import asynccontextmanager
+from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,9 +10,13 @@ from .db import Base, engine
 from .routers import achievements, auth, gratitude, habits, mood, users
 from .seed_achievements import seed_achievements
 
+# Set Bangkok timezone
+os.environ['TZ'] = 'Asia/Bangkok'
 
 # Startup event
 async def startup_event():
+    print("Starting BloomUp API")
+    print("Timezone: Asia/Bangkok (UTC+7)")
     seed_achievements()
 
 
@@ -58,7 +63,15 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 def root():
-    return {"status": "ok"}
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    bangkok_tz = ZoneInfo("Asia/Bangkok")
+    bangkok_time = datetime.now(bangkok_tz)
+    return {
+        "status": "ok",
+        "timezone": "Asia/Bangkok (UTC+7)",
+        "server_time": bangkok_time.isoformat()
+    }
 
 
 # include routers

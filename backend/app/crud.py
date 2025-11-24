@@ -5,6 +5,7 @@ from sqlalchemy import and_, delete
 from sqlalchemy.orm import Session, joinedload
 
 from . import models, schemas
+from .utils.timezone_utils import get_bangkok_today
 
 
 # User (for security)
@@ -65,7 +66,7 @@ def create_user_habit(db: Session, habit: schemas.HabitCreate, user_id: int):
         habit_name=habit.name,
         category_id=habit.category,
         is_active=True if habit.is_active is None else habit.is_active,
-        start_date=date.today(),
+        start_date=get_bangkok_today(),
         best_streak=0,
     )
     db.add(obj)
@@ -89,7 +90,7 @@ def delete_user_habit(db: Session, habit_id: int, user_id: int) -> bool:
 def log_habit_completion(db: Session, habit_id: int, user_id: int, completed_on: date):
     """Create a habit completion record."""
     db_completion = models.HabitCompletion(
-        habit_id=habit_id,  # FIXED: was habitid
+        habit_id=habit_id,
         user_id=user_id,
         completed_on=completed_on,
     )
@@ -130,7 +131,7 @@ def get_user_gratitude_entries(db: Session, user_id: int) -> List[dict]:
             "text": entry.body,
             "category": entry.category or "",
             "date": entry.created_at.strftime("%d/%m/%Y"),  # DD/MM/YYYY
-            "image": entry.image_url,  # Include image URL
+            "image": entry.image_url,
         }
         for entry in entries
     ]
@@ -239,7 +240,7 @@ def create_mood_log(
 ) -> models.MoodLog:
     """Create a new mood log entry."""
     if logged_on is None:
-        logged_on = date.today()
+        logged_on = get_bangkok_today()
 
     mood_log = models.MoodLog(
         user_id=user_id,
@@ -292,7 +293,7 @@ def delete_mood_log(db: Session, mood_id: int, user_id: int) -> bool:
 
 def get_mood_statistics(db: Session, user_id: int, days: int = 30) -> dict:
     """Calculate mood statistics for a user over a period."""
-    start_date = date.today() - timedelta(days=days)
+    start_date = get_bangkok_today() - timedelta(days=days)
 
     logs = get_user_mood_logs(db, user_id=user_id, start_date=start_date, limit=days)
 
@@ -313,8 +314,9 @@ def get_mood_statistics(db: Session, user_id: int, days: int = 30) -> dict:
     average_mood = sum(mood_scores) / len(mood_scores)
 
     # Week and month counts
-    week_ago = date.today() - timedelta(days=7)
-    month_ago = date.today() - timedelta(days=30)
+    today = get_bangkok_today()
+    week_ago = today - timedelta(days=7)
+    month_ago = today - timedelta(days=30)
 
     logs_this_week = sum(1 for log in logs if log.logged_on >= week_ago)
     logs_this_month = sum(1 for log in logs if log.logged_on >= month_ago)
@@ -333,7 +335,7 @@ def get_mood_statistics(db: Session, user_id: int, days: int = 30) -> dict:
         sorted_logs = sorted(all_logs, key=lambda x: x.logged_on, reverse=True)
 
         # Calculate current streak
-        check_date = date.today()
+        check_date = today
         for log in sorted_logs:
             if log.logged_on == check_date:
                 current_streak += 1

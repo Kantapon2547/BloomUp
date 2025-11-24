@@ -5,9 +5,7 @@ import "./style/Habits.css";
 import EmojiPicker from "emoji-picker-react";
 import { useSharedTasks } from "./SharedTaskContext";
 
-const USE_API_DEFAULT = true;
-const BASE_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
-const AUTH_TOKEN = import.meta?.env?.VITE_API_TOKEN || "";
+const BASE_URL = "http://localhost:8000";
 const LS_KEY = "habit-tracker@hybrid";
 const CATS_LS = "habit-tracker@categories";
 const PASTELS = [
@@ -19,34 +17,123 @@ const PASTELS = [
   "#e4c1f9",
 ];
 
+// Add these helper functions at the top (after the constants)
+const getHabitCompletion = () => {
+  try {
+    return JSON.parse(localStorage.getItem('habit-completion') || '{}');
+  } catch {
+    return {};
+  }
+};
+
+const setHabitCompletion = (completionData) => {
+  localStorage.setItem('habit-completion', JSON.stringify(completionData));
+};
+
+// Get token from localStorage
+const getToken = () => {
+  const token = localStorage.getItem("token");
+  
+  if (!token || token === "null" || token === "undefined") {
+    console.warn("No valid token found");
+    return null;
+  }
+  if (token.startsWith("Bearer ")) {
+    return token;
+  }
+  return `Bearer ${token}`;
+};
+
+// API fetch with auth
 async function apiFetch(path, options = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(AUTH_TOKEN ? { Authorization: `Bearer ${AUTH_TOKEN}` } : {}),
-      ...(options.headers || {}),
-    },
-    ...options,
+  const token = getToken();
+  
+  if (!token) {
+    console.error("No token available for API call");
+    throw new Error("Authentication required");
+  }
+  
+  console.log(`API Call: ${path}`, { 
+    hasToken: !!token,
+    method: options.method || 'GET',
+    tokenPreview: token.substring(0, 30) + "..."
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.status === 204 ? null : res.json();
+  
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": token,
+    ...(options.headers || {}),
+  };
+  
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      headers,
+      ...options,
+    });
+    
+    console.log(`Response Status: ${res.status} for ${path}`);
+    
+    if (res.status === 401) {
+      console.error("401 Unauthorized - Token is invalid");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+      throw new Error("Unauthorized - Please login again");
+    }
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`API Error ${res.status}:`, errorText);
+      throw new Error(`API Error ${res.status}: ${errorText}`);
+    }
+    
+    // Handle 204 No Content responses
+    if (res.status === 204) {
+      return null;
+    }
+    
+    return res.json();
+  } catch (error) {
+    console.error(`Fetch failed for ${path}:`, error);
+    throw error;
+  }
 }
 
 const uid = () =>
   Math.random().toString(36).slice(2, 7) + Date.now().toString(36).slice(-3);
 
-const normalizeHabit = (h) => ({
-  id: h.id ?? uid(),
-  name: h.name ?? "",
-  category: h.category ?? "General",
-  icon: h.icon ?? "📚",
-  duration: h.duration ?? 30,
-  color: h.color ?? "#ede9ff",
-  history: h.history ?? {},
-});
+// Normalize habit from API response
+const normalizeHabit = (h) => {
+  const habitId = h.habit_id || h.id || uid();
+  const habitName = h.habit_name || h.name || "";
 
+  let categoryName = "General";
+  if (h.category && typeof h.category === 'object' && h.category.category_name) {
+    categoryName = h.category.category_name;  
+  } else if (typeof h.category === 'string') {
+    categoryName = h.category; 
+  }
+  
+  const habitIcon = h.emoji || h.icon || "📚";
+  const durationMinutes = h.duration_minutes || h.duration || 30;
+  const habitColor = h.color || "#ede9ff";
+  const habitHistory = h.history || {};
+
+  return {
+    id: habitId,
+    name: habitName,
+    category: categoryName,
+    icon: habitIcon,
+    duration: durationMinutes,
+    color: habitColor,
+    history: habitHistory,
+  };
+};
+
+// Storage with API and localStorage 
 export function createStorage() {
-  let useApi = USE_API_DEFAULT;
+  let useApi = true;
+  let categoriesCache = null;
 
   async function safeApi(fn, fallback) {
     if (!useApi) return fallback();
@@ -56,6 +143,24 @@ export function createStorage() {
       console.warn("[API error] -> fallback to localStorage:", e.message);
       useApi = false;
       return fallback();
+    }
+  }
+
+  // Fetch and cache categories from API
+  async function getCategoriesMap() {
+    if (categoriesCache) return categoriesCache;
+    
+    try {
+      const response = await apiFetch("/habits/categories");
+      const map = {};
+      response.forEach((cat) => {
+        map[cat.category_name] = cat.category_id;
+      });
+      categoriesCache = map;
+      return map;
+    } catch (e) {
+      console.error("Failed to fetch categories:", e);
+      return {};
     }
   }
 
@@ -70,11 +175,57 @@ export function createStorage() {
         }
       );
     },
+    
     async create(payload) {
-      const body = normalizeHabit(payload);
       return safeApi(
-        () => apiFetch("/habits", { method: "POST", body: JSON.stringify(body) }),
+        async () => {
+          let categoryId = null;
+
+          if (payload.category && payload.category !== "General") {
+            const categoriesMap = await getCategoriesMap();
+            categoryId = categoriesMap[payload.category] || null;
+            
+            if (categoryId === null) {
+              console.warn(
+                `Category "${payload.category}" not found in database. Creating it...`
+              );
+              // If category doesn't exist, create it first
+              try {
+                const newCat = await apiFetch("/habits/categories", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    category_name: payload.category,
+                    color: payload.color || PASTELS[0],
+                  }),
+                });
+                categoryId = newCat.category_id;
+                // Update cache
+                if (categoriesCache) {
+                  categoriesCache[payload.category] = categoryId;
+                }
+              } catch (e) {
+                console.error("Failed to create category:", e);
+                categoryId = null;
+              }
+            }
+          }
+
+          console.log(`Creating habit "${payload.name}" with categoryId=${categoryId}`);
+
+          const response = await apiFetch("/habits", {
+            method: "POST",
+            body: JSON.stringify({
+              name: payload.name,
+              category_id: categoryId,
+              emoji: payload.icon,
+              duration_minutes: payload.duration,
+              is_active: true,
+            }),
+          });
+          return normalizeHabit(response);
+        },
         () => {
+          const body = normalizeHabit(payload);
           const list = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
           list.push(body);
           localStorage.setItem(LS_KEY, JSON.stringify(list));
@@ -82,21 +233,7 @@ export function createStorage() {
         }
       );
     },
-    async update(id, patch) {
-      return safeApi(
-        () => apiFetch(`/habits/${id}`, { method: "PUT", body: JSON.stringify(patch) }),
-        () => {
-          const list = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
-          const idx = list.findIndex((x) => x.id === id);
-          if (idx >= 0) {
-            list[idx] = { ...list[idx], ...patch };
-            localStorage.setItem(LS_KEY, JSON.stringify(list));
-            return list[idx];
-          }
-          return null;
-        }
-      );
-    },
+    
     async remove(id) {
       return safeApi(
         () => apiFetch(`/habits/${id}`, { method: "DELETE" }),
@@ -108,13 +245,75 @@ export function createStorage() {
         }
       );
     },
+
+    async update(id, patch) {
+      return safeApi(
+        async () => {
+          let categoryId = null;
+          
+          if (patch.category && patch.category !== "General") {
+            const categoriesMap = await getCategoriesMap();
+            categoryId = categoriesMap[patch.category] || null;
+            
+            if (categoryId === null) {
+              console.warn(
+                `Category "${patch.category}" not found. Creating it...`
+              );
+              try {
+                const newCat = await apiFetch("/habits/categories", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    category_name: patch.category,
+                    color: patch.color || PASTELS[0],
+                  }),
+                });
+                categoryId = newCat.category_id;
+                if (categoriesCache) {
+                  categoriesCache[patch.category] = categoryId;
+                }
+              } catch (e) {
+                console.error("Failed to create category:", e);
+                categoryId = null;
+              }
+            }
+          }
+
+          console.log(`Updating habit ${id} with categoryId=${categoryId}`);
+
+          return apiFetch(`/habits/${id}`, {
+            method: "PUT",
+            body: JSON.stringify({
+              habit_name: patch.name,
+              category_id: categoryId,
+              emoji: patch.icon,
+              duration_minutes: patch.duration,
+              description: patch.description,
+            }),
+          });
+        },
+        () => {
+          const list = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+          const idx = list.findIndex((x) => x.id === id);
+          if (idx >= 0) {
+            list[idx] = { ...list[idx], ...patch };
+            localStorage.setItem(LS_KEY, JSON.stringify(list));
+          }
+          return true;
+        }
+      );
+    },
+    
     async toggleHistory(id, date, done) {
       return safeApi(
-        () =>
-          apiFetch(`/habits/${id}/history`, {
-            method: "PATCH",
-            body: JSON.stringify({ date, done }),
-          }),
+        async () => {
+          const endpoint = `/habits/${id}/complete?on=${date}`;
+          
+          await apiFetch(endpoint, {
+            method: done ? "POST" : "DELETE",
+          });
+          
+          return { id, date, done };
+        },
         () => {
           const list = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
           const idx = list.findIndex((x) => x.id === id);
@@ -130,6 +329,10 @@ export function createStorage() {
           return null;
         }
       );
+    },
+
+    clearCategoriesCache() {
+      categoriesCache = null;
     },
   };
 }
@@ -161,7 +364,6 @@ const todayKey = () => formatLocalDate(new Date());
 const thisWeek = () => weekOf(new Date());
 const pct = (n) => Math.round(n * 100);
 const plural = (n, w) => `${n} ${w}${n > 1 ? "s" : ""}`;
-
 
 function bestStreak(history = {}) {
   const days = Object.keys(history).sort();
@@ -231,9 +433,9 @@ function durationToMins(raw) {
 
 function formatDuration(mins) {
   if (typeof mins !== "number" || isNaN(mins)) return "";
-
+  
   if (mins < 60) {
-    return `${mins} mins`;
+    return `${mins} min${mins === 1 ? "" : "s"}`;
   }
 
   if (mins % 60 === 0) {
@@ -243,9 +445,10 @@ function formatDuration(mins) {
 
   const hrs = Math.floor(mins / 60);
   const rem = mins % 60;
-  return `${hrs}h ${rem}m`;
+  const hrText = `${hrs} hour${hrs === 1 ? "" : "s"}`;
+  const remText = `${rem} min${rem === 1 ? "" : "s"}`;
+  return `${hrText} ${remText}`;
 }
-
 
 function Dropdown({ value, items, onChange, label }) {
   const [open, setOpen] = useState(false);
@@ -288,15 +491,9 @@ function Dropdown({ value, items, onChange, label }) {
   );
 }
 
-function DurationPickerModal({
-  current,
-  onSelect,
-  onClose,
-}) {
-
+function DurationPickerModal({ current, onSelect, onClose }) {
   const initHours = Math.floor(current / 60);
   const initMins = current % 60;
-
   const [hours, setHours] = useState(initHours);
   const [mins, setMins] = useState(initMins);
 
@@ -307,14 +504,10 @@ function DurationPickerModal({
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div
-        className="floating-panel"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="floating-panel" onClick={(e) => e.stopPropagation()}>
         <div className="floating-head">
           <div className="floating-title">Set Duration</div>
-          <div className="floating-actions">
-          </div>
+          <div className="floating-actions"></div>
         </div>
 
         <div className="duration-form">
@@ -346,13 +539,9 @@ function DurationPickerModal({
         </div>
 
         <div className="newcat-actions">
-          <button
-            className="newcat-cancel-btn"
-            onClick={onClose}
-          >
+          <button className="newcat-cancel-btn" onClick={onClose}>
             Cancel
           </button>
-
           <button
             className="newcat-add-btn"
             onClick={() => {
@@ -391,6 +580,13 @@ function HabitModal({
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showDurationPicker, setShowDurationPicker] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    console.log("🔍 Habits Component Mounted");
+    console.log("🔍 Token exists:", !!token);
+    console.log("🔍 Token value:", token ? token.substring(0, 20) + "..." : "null");
+  }, []);
   
   useEffect(() => {
     if (open) {
@@ -409,10 +605,7 @@ function HabitModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div
-        className="modal modal-task"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="modal modal-task" onClick={(e) => e.stopPropagation()}>
         <div className="task-header">
           <button
             className="task-emoji-btn"
@@ -508,20 +701,17 @@ function HabitModal({
             current={category}
             onSelect={(catName) => {
               setCategory(catName);
-
               const picked = categories.find(c => c.name === catName);
               if (picked?.color) {
-              setColor(picked.color);
+                setColor(picked.color);
               }
               setShowCategoryPicker(false);
             }}
-
             onClose={() => setShowCategoryPicker(false)}
             onAddNewRequest={() => {
               setShowCategoryPicker(false);
               setShowAddCategory(true);  
             }}
-
             onDeleteCategory={(catNameToDelete) => {
               onDeleteCategory(catNameToDelete);
               if (category === catNameToDelete) {
@@ -561,25 +751,17 @@ function HabitModal({
       </div>
   );
 }
-function NewCategoryModal({
-  onClose,
-  onAdd,
-}) {
+
+function NewCategoryModal({ onClose, onAdd }) {
   const [draft, setDraft] = useState("");
   const [pickedColor, setPickedColor] = useState(PASTELS[0]);
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-
-
-      <div
-        className="floating-panel"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="floating-panel" onClick={(e) => e.stopPropagation()}>
         <div className="floating-head">
           <div className="floating-title">Add Category</div>
-          <div className="floating-actions">
-          </div>
+          <div className="floating-actions"></div>
         </div>
 
         <div className="color-row-main color-row-cat">
@@ -604,13 +786,9 @@ function NewCategoryModal({
         />
 
         <div className="newcat-actions">
-          <button
-            className="newcat-cancel-btn"
-            onClick={onClose}
-          >
+          <button className="newcat-cancel-btn" onClick={onClose}>
             Cancel
           </button>
-
           <button
             className="newcat-add-btn"
             onClick={() => {
@@ -627,13 +805,11 @@ function NewCategoryModal({
     </div>
   );
 }
+
 function EmojiPickerModal({ onClose, onSelect }) {
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div
-        className="sheet-panel emoji-panel"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="sheet-panel emoji-panel" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-head">
           <div className="sheet-title">Choose Emoji</div>
           <button className="sheet-close-btn" onClick={onClose}>✕</button>
@@ -644,7 +820,7 @@ function EmojiPickerModal({ onClose, onSelect }) {
             theme="light"
             searchDisabled={false}
             skinTonesDisabled={false}
-            onEmojiClick={(emojiData /* {emoji:'💧', ...} */) => {
+            onEmojiClick={(emojiData) => {
               onSelect(emojiData.emoji);
             }}
             suggestedEmojisMode="recent"
@@ -676,10 +852,7 @@ function CategoryPickerModal({
 
   useEffect(() => {
     setTempCategories(categories);
-  }, [categories]);
-
-  const activeCat = tempCategories.find(c => c.name === current);
-  const activeColor = activeCat?.color || PASTELS[0];
+  }, [categories]); 
 
   const handleColorChange = (categoryName, newColor) => {
     setTempCategories(prev => 
@@ -706,7 +879,6 @@ function CategoryPickerModal({
 
   const handleSelectCategory = (categoryName) => {
     setSelectingCategory(categoryName);
-    
     setTimeout(() => {
       onSelect(categoryName);
       setSelectingCategory(null);
@@ -716,7 +888,6 @@ function CategoryPickerModal({
 
   const handleDeleteCategory = (categoryName) => {
     setDeletingCategory(categoryName);
-    
     setTimeout(() => {
       onDeleteCategory(categoryName);
       setDeletingCategory(null);
@@ -728,14 +899,12 @@ function CategoryPickerModal({
     const r = parseInt(hex.substr(0, 2), 16);
     const g = parseInt(hex.substr(2, 2), 16);
     const b = parseInt(hex.substr(4, 2), 16);
-    
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
     return luminance > 0.6;
   };
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      {/* Close button with different positions based on mode */}
       <button
         className={`sheet-close-external ${isEditing ? 'edit-mode' : 'select-mode'}`}
         onClick={onClose}
@@ -755,10 +924,7 @@ function CategoryPickerModal({
           <div className="floating-actions">
             {isEditing ? (
               <>
-                <button
-                  className="floating-edit-btn"
-                  onClick={handleCancelEdit}
-                >
+                <button className="floating-edit-btn" onClick={handleCancelEdit}>
                   Cancel
                 </button>
                 <button
@@ -770,17 +936,13 @@ function CategoryPickerModal({
                 </button>
               </>
             ) : (
-              <button
-                className="floating-edit-btn"
-                onClick={() => setIsEditing(true)}
-              >
+              <button className="floating-edit-btn" onClick={() => setIsEditing(true)}>
                 Edit
               </button>
             )}
           </div>
         </div>
 
-        {/* Color selection - shows when editing */}
         {isEditing && (
           <div className="color-row-main color-row-cat">
             {PASTELS.map((c) => (
@@ -846,10 +1008,7 @@ function CategoryPickerModal({
               );
             })}
 
-            <button
-              className="option-tile add-tile"
-              onClick={onAddNewRequest}
-            >
+            <button className="option-tile add-tile" onClick={onAddNewRequest}>
               <div className="add-tile-plus">＋</div>
               <div className="option-tile-label">Add Category</div>
             </button>
@@ -926,13 +1085,11 @@ export default function HabitsPage({ onNavigateToTimer }) {
   const applyCategoryColor = (catName, pastel) => {
     setCategories(prev => {
       const exists = prev.find(c => c.name === catName);
-
       if (!exists) {
         const next = [...prev, { name: catName, color: pastel }];
         localStorage.setItem(CATS_LS, JSON.stringify(next));
         return next;
       }
-
       const next = prev.map(c =>
         c.name === catName ? { ...c, color: pastel } : c
       );
@@ -957,29 +1114,112 @@ export default function HabitsPage({ onNavigateToTimer }) {
     );
   };
 
+  // Define today variable at the top of the component
+  const today = todayKey();
+  const week = thisWeek();
+
+  // Updated toggle function with sync
+  const toggle = async (id, date, newDone) => {
+    try {
+      // Update localStorage for sync with Home page
+      if (date === today) {
+        const completionData = getHabitCompletion();
+        completionData[id] = newDone;
+        setHabitCompletion(completionData);
+        
+        // Emit custom event for real-time sync
+        window.dispatchEvent(new CustomEvent('habitToggled', { 
+          detail: { habitId: id, completed: newDone, source: 'habits' }
+        }));
+      }
+
+      await storage.toggleHistory(id, date, newDone);
+      setHabits((list) =>
+        list.map((h) => {
+          if (h.id !== id) return h;
+          const nextHistory = { ...(h.history || {}) };
+          if (newDone) {
+            nextHistory[date] = true;
+          } else {
+            delete nextHistory[date];
+          }
+          return {
+            ...h,
+            history: nextHistory,
+          };
+        })
+      );
+    } catch (error) {
+      console.error("Failed to toggle habit:", error);
+      // Revert localStorage on error
+      if (date === today) {
+        const completionData = getHabitCompletion();
+        completionData[id] = !newDone;
+        setHabitCompletion(completionData);
+        
+        // Emit revert event
+        window.dispatchEvent(new CustomEvent('habitToggled', { 
+          detail: { habitId: id, completed: !newDone, source: 'habits' }
+        }));
+      }
+    }
+  };
+
+  // Add this useEffect to listen for changes from Home page
+  useEffect(() => {
+    const handleHabitToggled = (event) => {
+      const { habitId, completed, source } = event.detail;
+      
+      // Only process events from home page to avoid loops
+      if (source === 'home') {
+        setHabits(prev => prev.map(habit => {
+          if (habit.id === habitId) {
+            const newHistory = { ...habit.history };
+            if (completed) {
+              newHistory[today] = true;
+            } else {
+              delete newHistory[today];
+            }
+            return {
+              ...habit,
+              history: newHistory
+            };
+          }
+          return habit;
+        }));
+      }
+    };
+
+    window.addEventListener('habitToggled', handleHabitToggled);
+    return () => window.removeEventListener('habitToggled', handleHabitToggled);
+  }, [today]);
+
+  // Proper dependency array to prevent infinite loop
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const data = await storage.list();
-      if (!mounted) return;
-      setHabits(data);
-      updateHabits(data);
-      setLoading(false);
+      try {
+        const data = await storage.list();
+        if (!mounted) return;
+        setHabits(data);
+        updateHabits(data);
+      } catch (error) {
+        console.error("Failed to load habits:", error);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     })();
     return () => (mounted = false);
   }, []);
 
+  // Separate effect with proper dependencies
   useEffect(() => {
     updateHabits(habits);
   }, [habits, updateHabits]);
 
-  const today = todayKey();
-  const week = thisWeek();
-
   const totals = useMemo(() => {
     const total = habits.length || 0;
     const doneToday = habits.filter((h) => h.history?.[today]).length;
-    
     const todayPct = total > 0 ? Math.round((doneToday / total) * 100) : 0;
 
     let avgCompletion = 0;
@@ -989,7 +1229,7 @@ export default function HabitsPage({ onNavigateToTimer }) {
     }
     
     const best = Math.max(...habits.map((h) => bestStreak(h.history || {})), 0);
-    return { total, doneToday,todayPct, completion: avgCompletion, best };
+    return { total, doneToday, todayPct, completion: avgCompletion, best };
   }, [habits, today]);
 
   const filtered = useMemo(() => {
@@ -1012,16 +1252,12 @@ export default function HabitsPage({ onNavigateToTimer }) {
       }
       if (durationFilter !== "All Durations") {
         const durMins = durationToMins(h.duration); 
-
         if (isNaN(durMins)) return false;
-
         if (durationFilter === "1–30 mins") {
           if (!(durMins >= 1 && durMins <= 30)) return false;
         } else if (durationFilter === "30 mins–1 hr") {
-   
           if (!(durMins > 30 && durMins <= 60)) return false;
         } else if (durationFilter === "1–2 hrs") {
-    
           if (!(durMins > 60 && durMins <= 120)) return false;
         } else if (durationFilter === "2+ hrs") {
           if (!(durMins > 120)) return false;
@@ -1042,46 +1278,40 @@ export default function HabitsPage({ onNavigateToTimer }) {
   }, [filtered]);
 
   const addHabit = async (payload) => {
-    const created = await storage.create(normalizeHabit(payload));
-    setHabits((x) => [...x, created]);
-    setOpenModal(false);
+    try {
+      const created = await storage.create(normalizeHabit(payload));
+      setHabits((x) => [...x, created]);
+      setOpenModal(false);
+    } catch (error) {
+      console.error("Failed to create habit:", error);
+      alert("Failed to create habit. Please try again.");
+    }
   };
 
   const editHabit = async (id, patch) => {
-    await storage.update(id, patch);
-    setHabits((x) => x.map((h) => (h.id === id ? { ...h, ...patch } : h)));
-    setEditing(null);
+    try {
+      await storage.update(id, patch);
+      setHabits((x) => x.map((h) => (h.id === id ? { ...h, ...patch } : h)));
+      setEditing(null);
+    } catch (error) {
+      console.error("Failed to update habit:", error);
+      alert("Failed to update habit. Please try again.");
+    }
   };
 
   const removeHabit = async (id) => {
     setDeletingHabit(id);
-    
     setTimeout(async () => {
-      await storage.remove(id);
-      setHabits((x) => x.filter((h) => h.id !== id));
-      setDeletingHabit(null);
+      try {
+        await storage.remove(id);
+        setHabits((x) => x.filter((h) => h.id !== id));
+      } catch (error) {
+        console.error("Failed to delete habit:", error);
+        alert("Failed to delete habit. Please try again.");
+      } finally {
+        setDeletingHabit(null);
+      }
     }, 400);
-  };
-
-  const toggle = async (id, date, newDone) => {
-    await storage.toggleHistory(id, date, newDone);
-    setHabits((list) =>
-      list.map((h) =>{
-        if (h.id !== id) return h;
-        const nextHistory = { ...(h.history || {}) };
-
-        if (newDone) {
-          nextHistory[date] = true;
-        } else {
-          delete nextHistory[date];
-        }
-
-        return {
-          ...h,
-          history: nextHistory,
-        };
-      })
-    );
   };
 
   return (
@@ -1190,6 +1420,8 @@ export default function HabitsPage({ onNavigateToTimer }) {
               const catData = categories.find(c => c.name === h.category);
               const bg = catData?.color || "#eef1ff";
               const isDeleting = deletingHabit === h.id;
+              const completionData = getHabitCompletion();
+              const isChecked = completionData[h.id] !== undefined ? completionData[h.id] : !!h.history?.[today];
               
               return (
                 <div 
@@ -1200,15 +1432,12 @@ export default function HabitsPage({ onNavigateToTimer }) {
                     <input
                       className="checkbox"
                       type="checkbox"
-                      checked={!!h.history?.[today]}
+                      checked={isChecked}
                       onChange={(e) => {
-                        const wasChecked = !!h.history?.[today];
                         const nowChecked = e.target.checked;
-     
                         toggle(h.id, today, nowChecked);
-                        if (!wasChecked && nowChecked) {
+                        if (!isChecked && nowChecked) {
                           fireRowFx(h.id);
-                    
                         }
                       }}
                     />
@@ -1216,7 +1445,7 @@ export default function HabitsPage({ onNavigateToTimer }) {
                       <span className="hl-emoji">{h.icon || "📚"}</span>
                     </div>
                     <div className="hl-title">
-                      <div className={`habit-name ${h.history?.[today] ? "is-done" : ""}`} >
+                      <div className={`habit-name ${isChecked ? "is-done" : ""}`} >
                         {h.name}
                       </div>
                       <div className="habit-tags">
@@ -1233,12 +1462,8 @@ export default function HabitsPage({ onNavigateToTimer }) {
                   </div>
                   <div className="hl-middle">
                     <div className="week-chips">
-                      {week.map((d, i) => {
+                      {week.map((d) => {
                         const done = !!h.history?.[d];
-                        const small = "SSMTWTF"[i];
-                        const big = new Date(d).toLocaleDateString(undefined, {
-                          weekday: "short",
-                        });
                         return (
                           <div
                             key={d}
@@ -1262,7 +1487,7 @@ export default function HabitsPage({ onNavigateToTimer }) {
                     <div className={`hl-stats ${rowFx[h.id] ? "is-pop" : ""}`}>
                       <span
                         className={`hl-fire ${
-                          h.history?.[today] ? "is-on" : "is-off"
+                          isChecked ? "is-on" : "is-off"
                         } ${rowFx[h.id] ? "is-ignite" : ""}`}
                       >
                         🔥

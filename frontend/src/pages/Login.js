@@ -39,47 +39,95 @@ export function Login({ onLoginSuccess }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.detail || "Login failed");
 
-      if (data.access_token) {
-        localStorage.setItem("token", data.access_token);
+      console.log("Login response:", data);
+
+      // Store token
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        console.log("Token stored:", data.token.substring(0, 20) + "...");
+      } else {
+        throw new Error("No token received from server");
       }
 
+      // Store complete user data
+      const loggedInUser = {
+        user_id: data.user_id || null,
+        email: data.email || email,
+        name: data.name || email.split("@")[0],
+        bio: data.bio || null,
+        profile_picture: data.profile_picture || null,
+        created_at: data.created_at || new Date().toISOString(),
+      };
+      localStorage.setItem("user", JSON.stringify(loggedInUser));
+      console.log("User stored:", loggedInUser);
+
       if (onLoginSuccess) {
-        const loggedInUser = { email };
-        localStorage.setItem("user", JSON.stringify(loggedInUser));
         onLoginSuccess(loggedInUser);
-        navigate("/home", { replace: true });
       }
+
+      navigate("/home", { replace: true });
     } catch (err) {
+      console.error("Login error:", err);
       setError(err.message || "Something went wrong.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Google login success handler
-  const handleGoogleSuccess = async (credentialResponse) => {
-    const decoded = jwtDecode(credentialResponse.credential);
-    console.log("Google User:", decoded);
+// In handleGoogleSuccess function:
+const handleGoogleSuccess = async (credentialResponse) => {
+  setIsLoading(true);
+  setError("");
 
-    // Optionally send credential to backend for verification:
-    // const res = await fetch(`${API}/auth/google-login`, {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({ token: credentialResponse.credential }),
-    // });
+  try {
+    const decoded = jwtDecode(credentialResponse.credential);
+    console.log("Google decoded:", decoded);
+
+    const res = await fetch(`${API}/auth/google-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: credentialResponse.credential }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.detail || "Google login failed");
+
+    console.log("Backend response:", data);
+
+    // Store token
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+      console.log("BloomUp token stored:", data.token.substring(0, 20) + "...");
+    } else {
+      throw new Error("No token received from backend");
+    }
 
     const loggedInUser = {
-      email: decoded.email,
-      name: decoded.name,
-      picture: decoded.picture,
+      user_id: data.user_id || null,
+      email: data.email || decoded.email,
+      name: data.name || decoded.name || decoded.email.split("@")[0],
+      bio: data.bio || null,
+      profile_picture: data.profile_picture || decoded.picture || null,
+      created_at: data.created_at || new Date().toISOString(),
     };
-
     localStorage.setItem("user", JSON.stringify(loggedInUser));
+    console.log("User stored:", loggedInUser);
+
     if (onLoginSuccess) onLoginSuccess(loggedInUser);
-    navigate("/home", { replace: true });
-  };
+    
+    setTimeout(() => {
+      navigate("/home", { replace: true });
+    }, 100);
+  } catch (err) {
+    console.error("Google login error:", err);
+    setError(err.message || "Google login failed. Please try again.");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleGoogleError = () => {
+    console.error("Google login error");
     setError("Google login failed. Please try again.");
   };
 
@@ -151,11 +199,14 @@ export function Login({ onLoginSuccess }) {
 
           {/* Google Login Button */}
           <div className="google-login">
-            <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
+            <GoogleLogin 
+              onSuccess={handleGoogleSuccess} 
+              onError={handleGoogleError} 
+            />
           </div>
 
           <p className="signup-link">
-            Don’t have an account?{" "}
+            Don't have an account?{" "}
             <span
               className="clickable-text"
               onClick={() => navigate("/signup")}

@@ -23,7 +23,7 @@ services:
 
   web:
     image: kantaponh/bloomup-web:latest 
-    command: sh -lc "npm ci && npm start"
+    command: sh -lc "npm install && npm start"
     environment:
       NEXT_PUBLIC_API_URL: "http://localhost:8000"
     depends_on:

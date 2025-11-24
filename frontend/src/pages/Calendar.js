@@ -288,7 +288,7 @@ export default function Calendar() {
 
         <section className="grid-2">
           <div className="card summary-card" ref={el => (cardRefs.current[1] = el)}>
-            <div className="card-head-only"><h3 className="card-title">Mood Summary</h3></div>
+            <div className="mood-card-head-only"><h3 className="card-title">Mood Summary</h3></div>
             <div className="card-body">
               {sortedLegend.map(([emoji, label]) => {
                 const count = moodCounts[emoji] || 0;
@@ -322,7 +322,7 @@ export default function Calendar() {
           </div>
 
           <div className="card insights-card" ref={el => (cardRefs.current[2] = el)}>
-            <div className="card-head-only"><h3 className="card-title">Monthly Insights</h3></div>
+            <div className="mood-card-head-only"><h3 className="card-title">Monthly Insights</h3></div>
             <div className="card-body">
               <div className="insight-positive">
                 <div className="insight-number">{positivePct}%</div>

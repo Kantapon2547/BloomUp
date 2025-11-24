@@ -1,6 +1,70 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import "./style/Timer.css";
 import { useSharedTasks } from "./SharedTaskContext";
+
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+
+const getToken = () => {
+  const token = localStorage.getItem("token");
+  if (!token || token === "null" || token === "undefined") {
+    console.error("No token in localStorage");
+    return null;
+  }
+  console.log("Token found, length:", token.length);
+  return `Bearer ${token}`;
+};
+
+async function apiFetch(path, options = {}) {
+  const token = getToken();
+  
+  if (!token) {
+    console.error("Authentication required - no token");
+    throw new Error("Authentication required");
+  }
+  
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": token,
+    ...(options.headers || {}),
+  };
+  
+  console.log(`API Request: ${options.method || 'GET'} ${path}`);
+  
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      headers,
+      ...options,
+    });
+    
+    console.log(`API Response Status: ${res.status} for ${path}`);
+    
+    if (res.status === 401) {
+      console.error("401 Unauthorized");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+      throw new Error("Unauthorized");
+    }
+    
+    if (res.status === 204) {
+      console.log("204 No Content response");
+      return null;
+    }
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`API Error ${res.status}:`, errorText);
+      throw new Error(`API Error ${res.status}: ${errorText}`);
+    }
+    
+    const data = await res.json();
+    console.log(`API Response data:`, data);
+    return data;
+  } catch (error) {
+    console.error(`Fetch failed for ${path}:`, error.message);
+    throw error;
+  }
+}
 
 function formatLocalDate(date) {
   const y = date.getFullYear();
@@ -16,27 +80,110 @@ function formatTotalTime(minutes) {
   const mins = minutes % 60;
   
   if (hours === 0) {
-    return `${mins}mins`;
+    return mins === 1 ? `${mins}min` : `${mins}mins`;
   } else if (mins === 0) {
-    return `${hours}hr`;
+    return hours === 1 ? `${hours}hr` : `${hours}hrs`;
   } else {
-    return `${hours}hr ${mins}mins`;
+    const hrText = hours === 1 ? `${hours}hr` : `${hours}hrs`;
+    const minText = mins === 1 ? `${mins}min` : `${mins}mins`;
+    return `${hrText} ${minText}`;
   }
 }
 
-export default function Timer() {
-  const { habits } = useSharedTasks();
+function formatDisplayTime(seconds) {
+  const totalMinutes = Math.floor(seconds / 60);
+  const secs = seconds % 60;
   
-  // Timer state
-  const [mode, setMode] = useState("pomodoro");
+  if (totalMinutes >= 60) {
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  }
+  
+  return `${String(totalMinutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+// Helper function to save timer sessions to localStorage
+const saveTimerSession = (sessionData) => {
+  try {
+    const stored = localStorage.getItem("bloomup_timer_sessions");
+    let sessions = [];
+    
+    if (stored) {
+      sessions = JSON.parse(stored);
+    }
+    
+    sessions.push({
+      habitId: sessionData.habitId,
+      name: sessionData.name,
+      category: sessionData.category,
+      plannedMinutes: sessionData.plannedMinutes,
+      actualMinutes: sessionData.actualMinutes,
+      elapsedMinutes: sessionData.elapsedMinutes,
+      mode: sessionData.mode,
+      status: sessionData.status,
+      completedAt: new Date().toISOString(),
+      date: formatLocalDate(new Date())
+    });
+    
+    // Keep only last 100 sessions
+    if (sessions.length > 100) {
+      sessions = sessions.slice(-100);
+    }
+    
+    localStorage.setItem("bloomup_timer_sessions", JSON.stringify(sessions));
+    console.log("✅ Timer session saved to localStorage:", sessionData);
+  } catch (e) {
+    console.error("Failed to save timer session:", e);
+  }
+};
+
+const TIMER_STORAGE_KEY = "timer_state";
+
+export default function Timer() {
+  const { tasks: sharedTasks, completeTask } = useSharedTasks();
+  
+  // Track if this is first load
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [tasksLoaded, setTasksLoaded] = useState(false);
+  
+  const loadTimerState = () => {
+    try {
+      const saved = localStorage.getItem(TIMER_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.date === formatLocalDate(new Date())) {
+          return parsed;
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load timer state:", error);
+    }
+    return null;
+  };
+
+  const savedState = loadTimerState();
+  
+  // Clear saved state on first mount so tasks data takes priority
+  useEffect(() => {
+    if (!tasksLoaded && sharedTasks.length > 0) {
+      console.log("Tasks loaded, clearing saved timer state to reinitialize");
+      localStorage.removeItem(TIMER_STORAGE_KEY);
+      setTasksLoaded(true);
+      setIsFirstLoad(true);
+    }
+  }, [sharedTasks.length, tasksLoaded]);
+  
+  const [mode, setMode] = useState("regular");
   const [pomodoroType, setPomodoroType] = useState("work");
   const [isRunning, setIsRunning] = useState(false);
   const [timeLeft, setTimeLeft] = useState(25 * 60);
-  const [tasks, setTasks] = useState([]);
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [workSessionsCompleted, setWorkSessionsCompleted] = useState(0);
   const [draggedItem, setDraggedItem] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [habitSessions, setHabitSessions] = useState({});
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   
   const timerIntervalRef = useRef(null);
 
@@ -46,42 +193,237 @@ export default function Timer() {
     long: 15 * 60,
   };
 
-  // convert duration to minutes
-  const durationToMins = (raw) => {
-    if (typeof raw === "number") return raw;
-    if (typeof raw === "string") {
-      const lower = raw.toLowerCase().trim();
-      const mMatch = lower.match(/(\d+)\s*m/);
-      if (mMatch) return parseInt(mMatch[1], 10);
-      const hMatch = lower.match(/(\d+)\s*h/);
-      if (hMatch) return parseInt(hMatch[1], 10) * 60;
-    }
-    return 30; // fallback
+  useEffect(() => {
+    const stateToSave = {
+      mode,
+      pomodoroType,
+      timeLeft,
+      currentTaskIndex,
+      workSessionsCompleted,
+      elapsedSeconds,
+      date: formatLocalDate(new Date()),
+    };
+    localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(stateToSave));
+  }, [mode, pomodoroType, timeLeft, currentTaskIndex, workSessionsCompleted, elapsedSeconds]);
+
+  const canUsePomodoroMode = (minutes) => {
+    const validMinutes = typeof minutes === 'number' && !isNaN(minutes) ? minutes : 30;
+    return validMinutes >= 25;
   };
 
-  // Sync tasks from habits
-  useEffect(() => {
-    const todayKey = formatLocalDate(new Date());
-    const tasksFromHabits = habits
-      .map(h => {
-        const minutes = durationToMins(h.duration);
-        return {
-          id: h.id,
-          name: h.name,
-          minutes: minutes,
-          icon: h.icon,
-          category: h.category,
-          color: h.color,
-          completed: !!h.history?.[todayKey],
-          requiredPomos: Math.ceil(minutes / 25),
-          fromHabit: true
-        };
-      });
+  const ensureSessionForTask = useCallback(async (task) => {
+    console.log("\nDEBUG: ensureSessionForTask called with task:", task);
     
-    setTasks(tasksFromHabits);
-  }, [habits]);
+    // Validate task data
+    if (!task || !task.id || !task.minutes) {
+      console.error("Invalid task:", task);
+      throw new Error("Invalid task data");
+    }
+    
+    console.log(`Raw task.id: "${task.id}" (type: ${typeof task.id})`);
+    console.log(`Raw task.minutes: ${task.minutes} (type: ${typeof task.minutes})`);
+    
+    const habitId = parseInt(task.id, 10);
+    const minutes = parseInt(task.minutes, 10);
+    
+    console.log(`After parseInt: habitId=${habitId}, minutes=${minutes}`);
+    
+    if (isNaN(habitId) || isNaN(minutes)) {
+      console.error(`Invalid habit ID or minutes:`, { habitId, minutes });
+      throw new Error(`Invalid habit ID (${habitId}) or minutes (${minutes})`);
+    }
+    
+    const sessionKey = `${habitId}-${formatLocalDate(new Date())}`;
+    
+    console.log(`\nENSURE_SESSION_FOR_TASK`);
+    console.log(`   habitId (final): ${habitId}`);
+    console.log(`   task.name: ${task.name}`);
+    console.log(`   task.minutes: ${minutes}`);
+    console.log(`   sessionKey: ${sessionKey}`);
+    
+    if (habitSessions[sessionKey]) {
+      console.log(`Session already cached:`, habitSessions[sessionKey]);
+      return habitSessions[sessionKey];
+    }
+    
+    try {
+      console.log(`Checking for existing sessions...`);
+      
+      let existingSessions;
+      try {
+        existingSessions = await apiFetch(`/habits/${habitId}/sessions?date_filter=${formatLocalDate(new Date())}`);
+      } catch (fetchError) {
+        console.log(`Could not fetch sessions:`, fetchError.message);
+        existingSessions = [];
+      }
+      
+      if (existingSessions && existingSessions.length > 0) {
+        const existingSession = existingSessions[0];
+        console.log(`Found existing session:`, existingSession);
+        
+        setHabitSessions(prev => ({
+          ...prev,
+          [sessionKey]: existingSession
+        }));
+        
+        return existingSession;
+      }
+      
+      console.log(`🔨 Creating new session via API for habit ${habitId}...`);
+      
+      const plannedMinutes = Math.max(1, Math.floor(minutes));
+      const plannedSeconds = plannedMinutes * 60; // Convert to seconds
+      
+      const payload = {
+        planned_duration_seconds: plannedSeconds,
+        session_date: formatLocalDate(new Date()),
+        notes: null,
+      };
+      
+      console.log(`   Payload (${plannedMinutes}m = ${plannedSeconds}s):`, payload);
+      console.log(`   Sending to: /habits/${habitId}/sessions`);
+      
+      const session = await apiFetch(`/habits/${habitId}/sessions`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      
+      console.log(`Session created successfully:`, session);
+      
+      if (!session || !session.session_id) {
+        console.error(`Invalid session response - missing session_id:`, session);
+        throw new Error("Invalid session response from API");
+      }
+      
+      setHabitSessions(prev => ({
+        ...prev,
+        [sessionKey]: session
+      }));
+      
+      return session;
+    } catch (error) {
+      if (error.message.includes("Session already exists") || error.message.includes("400")) {
+        console.log(`🔄 Session exists, fetching...`);
+        try {
+          const existingSessions = await apiFetch(`/habits/${habitId}/sessions?date_filter=${formatLocalDate(new Date())}`);
+          
+          if (existingSessions && existingSessions.length > 0) {
+            const existingSession = existingSessions[0];
+            console.log(`Retrieved existing session:`, existingSession);
+            
+            setHabitSessions(prev => ({
+              ...prev,
+              [sessionKey]: existingSession
+            }));
+            
+            return existingSession;
+          }
+        } catch (fetchError) {
+          console.error(`Failed to fetch existing sessions:`, fetchError);
+        }
+      }
+      
+      console.error(`Failed to ensure session:`, error);
+      throw error;
+    }
+  }, [habitSessions]);
 
-  // Timer countdown effect
+  const updateSessionProgress = useCallback(async (task, elapsedSeconds) => {
+    const habitId = parseInt(task.id, 10);
+    
+    if (isNaN(habitId)) {
+      console.error(`Invalid habit ID:`, task.id);
+      return;
+    }
+    
+    const sessionKey = `${habitId}-${formatLocalDate(new Date())}`;
+    const session = habitSessions[sessionKey];
+    
+    if (!session) {
+      console.warn(`No session found for key:`, sessionKey);
+      return;
+    }
+    
+    if (!session.session_id) {
+      console.error(`Session has no session_id:`, session);
+      return;
+    }
+    
+    try {
+      console.log(`Updating session ${session.session_id}: ${elapsedSeconds}s elapsed`);
+
+      const updated = await apiFetch(`/habits/${habitId}/sessions/${session.session_id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          status: "in_progress",
+          actual_duration_seconds: Math.max(0, elapsedSeconds),
+        }),
+      });
+      
+      console.log(`Session updated - actual_duration_minutes: ${updated.actual_duration_minutes}m`);
+      
+      setHabitSessions(prev => ({
+        ...prev,
+        [sessionKey]: updated
+      }));
+    } catch (error) {
+      console.error(`Failed to update session:`, error);
+    }
+  }, [habitSessions]);
+
+  const tasks = useMemo(() => {
+    return sharedTasks.map(task => {
+
+      let minutes = 30;
+      
+      if (typeof task.duration_minutes === 'number' && !isNaN(task.duration_minutes) && task.duration_minutes > 0) {
+        minutes = task.duration_minutes;
+      } else if (typeof task.minutes === 'number' && !isNaN(task.minutes) && task.minutes > 0) {
+        minutes = task.minutes;
+      } else if (typeof task.duration === 'number' && !isNaN(task.duration) && task.duration > 0) {
+        minutes = task.duration;
+      }
+      
+      console.log(`Task "${task.name}": final minutes = ${minutes}`);
+      
+      return {
+        ...task,
+        minutes: minutes,
+      };
+    });
+  }, [sharedTasks]);
+
+  useEffect(() => {
+    console.log("Checking initialization - isFirstLoad:", isFirstLoad, "tasksLoaded:", tasksLoaded, "tasks.length:", tasks.length);
+    
+    if (isFirstLoad && tasksLoaded && tasks.length > 0) {
+      console.log("Initializing timer with first task");
+      const currentTask = tasks[0];
+      const taskMinutes = typeof currentTask.minutes === 'number' ? currentTask.minutes : 30;
+      
+      console.log(`Setting initial timer to ${taskMinutes} minutes for task: ${currentTask.name}`);
+      setTimeLeft(taskMinutes * 60);
+      setMode("regular");
+      setIsFirstLoad(false);
+    }
+  }, [isFirstLoad, tasksLoaded, tasks.length]);
+
+  // Sync timer when user manually switches tasks
+  useEffect(() => {
+    if (tasks.length > 0 && currentTaskIndex < tasks.length && !isRunning && !isFirstLoad) {
+      const currentTask = tasks[currentTaskIndex];
+      const taskMinutes = typeof currentTask.minutes === 'number' ? currentTask.minutes : 30;
+      
+      if (mode === "regular") {
+        console.log(`Task switched to ${currentTask.name} (${taskMinutes}m)`);
+        setTimeLeft(taskMinutes * 60);
+      } else if (taskMinutes < 25 && mode === "pomodoro") {
+        setMode("regular");
+        setTimeLeft(taskMinutes * 60);
+      }
+    }
+  }, [currentTaskIndex, mode, isRunning, isFirstLoad]);
+
   useEffect(() => {
     if (isRunning) {
       timerIntervalRef.current = setInterval(() => {
@@ -91,6 +433,7 @@ export default function Timer() {
           }
           return prev - 1;
         });
+        setElapsedSeconds(prev => prev + 1);
       }, 1000);
     } else {
       if (timerIntervalRef.current) {
@@ -105,22 +448,102 @@ export default function Timer() {
     };
   }, [isRunning]);
 
-  // timer completion - using ref to avoid dependency issues
+  useEffect(() => {
+    if (isRunning && currentTaskIndex < tasks.length && mode === "regular") {
+      const currentTask = tasks[currentTaskIndex];
+      
+      if (elapsedSeconds % 5 === 0 && elapsedSeconds > 0) {
+        console.log(`Periodic update: ${elapsedSeconds}s elapsed`);
+        updateSessionProgress(currentTask, elapsedSeconds);
+      }
+    }
+  }, [elapsedSeconds, isRunning, currentTaskIndex, tasks, mode, updateSessionProgress]);
+
   useEffect(() => {
     if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
       
-      if (mode === "pomodoro") {
+      if (mode === "regular") {
+        if (currentTaskIndex < tasks.length) {
+          const currentTask = tasks[currentTaskIndex];
+          const finalSeconds = elapsedSeconds;
+          const finalMinutes = Math.floor(finalSeconds / 60);
+          console.log(`Timer finished - ${finalSeconds} seconds elapsed`);
+          
+          // Save session to localStorage 
+          saveTimerSession({
+            habitId: currentTask.id,
+            name: currentTask.name,
+            category: currentTask.category || 'General',
+            plannedMinutes: typeof currentTask.minutes === 'number' ? currentTask.minutes : 30,
+            actualMinutes: finalMinutes,
+            elapsedMinutes: finalMinutes,
+            mode: 'regular',
+            status: 'done'
+          });
+
+          const habitId = parseInt(currentTask.id, 10);
+          const sessionKey = `${habitId}-${formatLocalDate(new Date())}`;
+          const session = habitSessions[sessionKey];
+          
+          if (session && session.session_id) {
+            apiFetch(`/habits/${habitId}/sessions/${session.session_id}`, {
+              method: "PUT",
+              body: JSON.stringify({
+                status: "done",
+                actual_duration_seconds: Math.max(0, finalSeconds),
+              }),
+            }).then(updated => {
+              console.log(`Session marked done with ${updated.actual_duration_seconds}s`);
+              setHabitSessions(prev => ({
+                ...prev,
+                [sessionKey]: updated
+              }));
+            }).catch(err => console.error(`Failed to mark done:`, err));
+          }
+          
+          // Mark habit complete
+          const today = formatLocalDate(new Date());
+          apiFetch(`/habits/${habitId}/complete?on=${today}`, {
+            method: "POST",
+          }).then(() => {
+            console.log(`Habit ${habitId} marked complete for today in Habits page`);
+          }).catch(err => console.error(`Failed to mark habit complete:`, err));
+          
+          // Update shared tasks context
+          completeTask(currentTask.id);
+          setCurrentTaskIndex(currentTaskIndex + 1);
+          setElapsedSeconds(0);
+          
+          if (currentTaskIndex + 1 < tasks.length) {
+            const nextMinutes = typeof tasks[currentTaskIndex + 1].minutes === 'number' ? tasks[currentTaskIndex + 1].minutes : 30;
+            setTimeLeft(nextMinutes * 60);
+          }
+        }
+        alert("Timer complete!");
+      } else {
         if (pomodoroType === "work") {
           const newSessionCount = workSessionsCompleted + 1;
           setWorkSessionsCompleted(newSessionCount);
 
           if (currentTaskIndex < tasks.length) {
             const currentTask = tasks[currentTaskIndex];
-            if (newSessionCount >= currentTask.requiredPomos) {
-              const updatedTasks = [...tasks];
-              updatedTasks[currentTaskIndex].completed = true;
-              setTasks(updatedTasks);
+            const requiredPomos = Math.max(1, Math.ceil(currentTask.minutes / 25));
+            
+            // Save pomodoro session
+            saveTimerSession({
+              habitId: currentTask.id,
+              name: currentTask.name,
+              category: currentTask.category || 'General',
+              plannedMinutes: 25,
+              actualMinutes: 25,
+              elapsedMinutes: 25,
+              mode: 'pomodoro',
+              status: newSessionCount >= requiredPomos ? 'done' : 'in_progress'
+            });
+
+            if (newSessionCount >= requiredPomos) {
+              completeTask(currentTask.id);
               setCurrentTaskIndex(currentTaskIndex + 1);
               setWorkSessionsCompleted(0);
 
@@ -149,33 +572,22 @@ export default function Timer() {
           setPomodoroType("work");
           setTimeLeft(25 * 60);
         }
-      } else {
-        if (currentTaskIndex < tasks.length) {
-          const updatedTasks = [...tasks];
-          updatedTasks[currentTaskIndex].completed = true;
-          setTasks(updatedTasks);
-          setCurrentTaskIndex(currentTaskIndex + 1);
-          if (currentTaskIndex + 1 < tasks.length) {
-            setTimeLeft(tasks[currentTaskIndex + 1].minutes * 60);
-          }
-        }
-        alert("Timer complete!");
       }
     }
-  }, [timeLeft, isRunning, mode, pomodoroType, currentTaskIndex, tasks, workSessionsCompleted]);
+  }, [timeLeft, isRunning, mode, pomodoroType, currentTaskIndex, tasks, workSessionsCompleted, elapsedSeconds, habitSessions, completeTask]);
 
-  // Display time
   const displayTime = () => {
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    return formatDisplayTime(timeLeft);
   };
 
-  // Session info display
   const displaySessionInfo = () => {
     if (currentTaskIndex < tasks.length && mode === "pomodoro" && !tasks[currentTaskIndex]?.completed) {
       const task = tasks[currentTaskIndex];
-      return `Session ${Math.min(workSessionsCompleted + 1, task.requiredPomos)} of ${task.requiredPomos}`;
+      const minutes = typeof task.minutes === 'number' ? task.minutes : 30;
+      const requiredPomos = Math.max(1, Math.ceil(minutes / 25));
+      const currentSession = Math.min(workSessionsCompleted + 1, requiredPomos);
+      
+      return `Session ${currentSession} of ${requiredPomos}`;
     }
     return "";
   };
@@ -184,15 +596,15 @@ export default function Timer() {
     setMode(newMode);
     setIsRunning(false);
     setWorkSessionsCompleted(0);
+    setElapsedSeconds(0);
     
     if (newMode === "pomodoro") {
-      // start with work pomodoro
       setPomodoroType("work");
       setTimeLeft(POMODORO_TIMES["work"]);
     } else {
-      // Regular mode
       if (currentTaskIndex < tasks.length) {
-        setTimeLeft(tasks[currentTaskIndex].minutes * 60);
+        const taskMinutes = typeof tasks[currentTaskIndex].minutes === 'number' ? tasks[currentTaskIndex].minutes : 30;
+        setTimeLeft(taskMinutes * 60);
       } else {
         setTimeLeft(25 * 60);
       }
@@ -200,24 +612,110 @@ export default function Timer() {
   };
 
   const switchPomodoroType = (type) => {
+    if (isRunning) return;
     setPomodoroType(type);
     setTimeLeft(POMODORO_TIMES[type]);
     setIsRunning(false);
   };
 
-  const toggleTimer = () => {
+  const toggleTimer = async () => {
+    console.log(`\nTOGGLE_TIMER - isRunning: ${isRunning}, mode: ${mode}, taskIndex: ${currentTaskIndex}`);
+    
+    if (!isRunning && mode === "regular" && currentTaskIndex < tasks.length) {
+      const currentTask = tasks[currentTaskIndex];
+      console.log(`STARTING timer for task:`, currentTask);
+      
+      try {
+        const session = await ensureSessionForTask(currentTask);
+        if (!session) {
+          console.error(`Failed to create session`);
+          alert("Failed to start session. Please try again.");
+          return;
+        }
+        console.log(`Session created:`, session);
+        
+        const habitId = parseInt(currentTask.id, 10);
+        const sessionKey = `${habitId}-${formatLocalDate(new Date())}`;
+        console.log(`About to update session status to in_progress`);
+        console.log(`habitId: ${habitId}`);
+        console.log(`sessionKey: ${sessionKey}`);
+        console.log(`session.session_id: ${session.session_id}`);
+        
+        const updated = await apiFetch(`/habits/${habitId}/sessions/${session.session_id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            status: "in_progress",
+            actual_duration_minutes: 0,
+          }),
+        });
+        
+        console.log(`Session status updated to in_progress:`, updated);
+        console.log(`New status: ${updated.status}`);
+        console.log(`started_at: ${updated.started_at}`);
+        
+        setHabitSessions(prev => ({
+          ...prev,
+          [sessionKey]: updated
+        }));
+        
+      } catch (error) {
+        console.error(`Session error:`, error);
+        console.error(`Error message: ${error.message}`);
+        alert("Failed to start session: " + error.message);
+        return;
+      }
+    } else if (isRunning && mode === "regular" && currentTaskIndex < tasks.length) {
+      const currentTask = tasks[currentTaskIndex];
+      const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+      console.log(`PAUSING timer - elapsed: ${elapsedSeconds} seconds`);
+      
+      // Save partial session to localStorage
+      saveTimerSession({
+        habitId: currentTask.id,
+        name: currentTask.name,
+        category: currentTask.category || 'General',
+        plannedMinutes: typeof currentTask.minutes === 'number' ? currentTask.minutes : 30,
+        actualMinutes: elapsedMinutes,
+        elapsedMinutes: elapsedMinutes,
+        mode: 'regular',
+        status: 'in_progress'
+      });
+      
+      const habitId = parseInt(currentTask.id, 10);
+      const sessionKey = `${habitId}-${formatLocalDate(new Date())}`;
+      const session = habitSessions[sessionKey];
+      
+      if (session && session.session_id) {
+        try {
+          await apiFetch(`/habits/${habitId}/sessions/${session.session_id}`, {
+            method: "PUT",
+            body: JSON.stringify({
+              status: "todo",
+              actual_duration_seconds: Math.max(0, elapsedSeconds),
+            }),
+          });
+          console.log(`Session paused with ${elapsedSeconds} seconds elapsed`);
+        } catch (error) {
+          console.error(`Failed to pause session:`, error);
+        }
+      }
+    }
+    
+    console.log(`Setting isRunning to: ${!isRunning}`);
     setIsRunning(!isRunning);
   };
 
   const resetTimer = () => {
     setIsRunning(false);
+    setElapsedSeconds(0);
     
     if (mode === "pomodoro") {
       setTimeLeft(POMODORO_TIMES["work"]);
       setPomodoroType("work");
     } else {
       if (currentTaskIndex < tasks.length) {
-        setTimeLeft(tasks[currentTaskIndex].minutes * 60);
+        const taskMinutes = typeof tasks[currentTaskIndex].minutes === 'number' ? tasks[currentTaskIndex].minutes : 30;
+        setTimeLeft(taskMinutes * 60);
       } else {
         setTimeLeft(25 * 60);
       }
@@ -228,11 +726,12 @@ export default function Timer() {
     if (isRunning) return;
     setCurrentTaskIndex(index);
     setWorkSessionsCompleted(0);
+    setElapsedSeconds(0);
     
-    // only change time in regular mode, not in pomodoro breaks
     if (mode === "regular") {
       if (index < tasks.length) {
-        setTimeLeft(tasks[index].minutes * 60);
+        const taskMinutes = typeof tasks[index].minutes === 'number' ? tasks[index].minutes : 30;
+        setTimeLeft(taskMinutes * 60);
       } else {
         setTimeLeft(25 * 60);
       }
@@ -254,27 +753,23 @@ export default function Timer() {
       setDraggedItem(null);
       return;
     }
-
-    const newTasks = [...tasks];
-    const [removed] = newTasks.splice(draggedItem, 1);
-    newTasks.splice(index, 0, removed);
-    
-    setTasks(newTasks);
-    setCurrentTaskIndex(index);
-    setWorkSessionsCompleted(0);
     setDraggedItem(null);
-    resetTimer();
   };
 
   const handleDragEnd = () => {
     setDraggedItem(null);
   };
 
-  // calculate stats
   const completedCount = tasks.filter(t => t.completed).length;
-  const totalMinutes = tasks.filter(t => t.completed).reduce((sum, t) => sum + t.minutes, 0);
+  const totalMinutes = tasks.filter(t => t.completed).reduce((sum, t) => {
+    const minutes = typeof t.minutes === 'number' ? t.minutes : 30;
+    return sum + minutes;
+  }, 0);
 
-  // break mode theme changes (Pomodoro mode)
+  const currentTaskMinutes = currentTaskIndex < tasks.length ? (typeof tasks[currentTaskIndex].minutes === 'number' ? tasks[currentTaskIndex].minutes : 30) : 25;
+  const canUsePomodoro = canUsePomodoroMode(currentTaskMinutes);
+  const shouldShowPomodoroMode = tasks.length > 0 && canUsePomodoro;
+
   useEffect(() => {
     document.body.classList.remove("timer-short-break-mode", "timer-long-break-mode");
     
@@ -304,12 +799,14 @@ export default function Timer() {
 
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0px" }}>
           <div className="timer-mode-selector">
-            <button 
-              className={`timer-mode-btn ${mode === "pomodoro" ? "active" : ""}`}
-              onClick={() => switchMode("pomodoro")}
-            >
-              Pomodoro
-            </button>
+            {shouldShowPomodoroMode && (
+              <button 
+                className={`timer-mode-btn ${mode === "pomodoro" ? "active" : ""}`}
+                onClick={() => switchMode("pomodoro")}
+              >
+                Pomodoro
+              </button>
+            )}
             <button 
               className={`timer-mode-btn ${mode === "regular" ? "active" : ""}`}
               onClick={() => switchMode("regular")}
@@ -319,10 +816,11 @@ export default function Timer() {
           </div>
         </div>
 
+
         {showDetails && (
           <div className="timer-details-overlay" onClick={() => setShowDetails(false)}>
             <div className="timer-details-modal" onClick={(e) => e.stopPropagation()}>
-              <button className="timer-details-close" onClick={() => setShowDetails(false)}>✕</button>
+              <button className="timer-details-close" onClick={() => setShowDetails(false)}>×</button>
               
               <div className="timer-details-section">
                 <h3>🍅 Pomodoro Timer</h3>
@@ -402,15 +900,18 @@ export default function Timer() {
             ) : (
               tasks.map((task, idx) => {
                 const isActive = idx === currentTaskIndex;
+                const minutes = typeof task.minutes === 'number' ? task.minutes : 30;
+                const requiredPomos = Math.max(1, Math.ceil(minutes / 25));
+                const currentSession = Math.min(workSessionsCompleted + 1, requiredPomos);
+                
                 const statusText = task.completed 
                   ? "Completed" 
                   : isActive && isRunning 
                     ? "Currently doing" 
                     : "";
                 const sessionText = isActive && mode === "pomodoro" && !task.completed
-                  ? ` - Session ${Math.min(workSessionsCompleted + 1, task.requiredPomos)} of ${task.requiredPomos}`
+                  ? ` - Session ${currentSession} of ${requiredPomos}`
                   : "";
-
                 return (
                   <div
                     key={task.id}
@@ -431,7 +932,7 @@ export default function Timer() {
                       </div>
                       <div className="timer-task-status">{statusText}{sessionText}</div>
                     </div>
-                    <div className="timer-task-time">{task.minutes}m</div>
+                    <div className="timer-task-time">{minutes === 1 ? `${minutes}m` : `${minutes}m`}</div>
                   </div>
                 );
               })
