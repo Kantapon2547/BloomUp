@@ -1538,13 +1538,16 @@ export default function Reports() {
     );
 
     y += 10;
+    const bestStreakLabel =
+      longestStreak === 1 ? "1 day" : `${longestStreak} days`;
+
     const summary = [
       `Reporting Period: ${period.days.length} days (${fmtDisplayDate(
         period.start
       )} to ${fmtDisplayDate(period.end)})`,
       `Total Habits Tracked: ${habits.length}`,
       `Average Completion Rate: ${avgCompletion}%`,
-      `Best Streak: ${longestStreak} days`,
+      `Best Streak: ${bestStreakLabel}`,
       `Total Completions: ${totalCompletions}`
     ];
 
