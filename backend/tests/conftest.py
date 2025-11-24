@@ -36,8 +36,8 @@ from app.db import Base, get_db
 from app import models
 from app.security import hash_password, create_access_token
 from app.main import app
+from app.utils.timezone_utils import get_bangkok_today
 from fastapi.testclient import TestClient
-from datetime import date
 
 
 @pytest.fixture(scope="function")
@@ -121,7 +121,7 @@ def test_habit(db, test_user, test_category):
         category_id=test_category.category_id,
         emoji="🏃",
         duration_minutes=30,
-        start_date=date.today(),
+        start_date=get_bangkok_today(),
         best_streak=0,
         is_active=True,
     )
