@@ -905,6 +905,7 @@ body {
   flex-direction: column;
   gap: var(--space-sm);
   color: var(--purple-900);
+  text-transform: capitalize
 }
 
 .meme {
