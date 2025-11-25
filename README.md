@@ -70,12 +70,6 @@ docker-compose down -v
 - **Reports**: weekly/monthly recap with graphs of completions & mood trends  
 - **Feedback**: motivational messages based on progress (50%, 75%, 100%)  
 
-### 👨‍💻 Admin  
-- User & role management  
-- Approve/curate global challenges  
-- Analytics: active users, streak averages, challenge participation  
-- Data backup/restore & system health monitoring  
-
 ---
 
 ## 🛠️ Technology Stack  
