@@ -409,7 +409,7 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
   );
 });
 
-const ReportsCategoryPieChart = ({ data }) => {
+const ReportCategoryPieChart = ({ data }) => {
   const svgRef = useRef(null);
   const [hoverIndex, setHoverIndex] = useState(null);
 
@@ -524,12 +524,12 @@ const ReportsCategoryPieChart = ({ data }) => {
               />
             <span 
             style={{ 
-              fontSize:14, 
+              fontSize:"14px", 
               color:"#2d5f3f", 
-              fontWeight:600 
+              fontWeight:"600" 
               }}
               >
-              {item.label}: <strong>100%</strong>
+              {item.label}: <strong>{item.rate.toFixed(0)}%</strong>
             </span>
           </div>
         </div>
@@ -646,7 +646,7 @@ const ReportsCategoryPieChart = ({ data }) => {
               color: "#2d5f3f",
               fontWeight: '600'
             }}>
-              {item.label}: <strong>{item.pct.toFixed(0)}%</strong>
+              {item.label}: <strong>{item.rate.toFixed(0)}%</strong>
             </span>
           </div>
         ))}
@@ -2562,7 +2562,7 @@ export default function Reports() {
             <ReportsBarChart key={`${periodMode}-${cursor}`} data={dailyCompletion} periodMode={periodMode} />
           ) : (
             <div className="reports-pie-wrapper">
-              <ReportsCategoryPieChart key={`${periodMode}-${cursor}`} data={categoryPct} />
+              <ReportCategoryPieChart key={`${periodMode}-${cursor}`} data={categoryPct} />
             </div>
           )}
         </div>
