@@ -1,28 +1,29 @@
-# 🌱 BloomUp: Habit Tracker for Students  
+#  BloomUp: Habit Tracker for Students  
 
-BloomUp is a **web-based platform** designed to help students build steady **study** and **self-care habits**.  
+BloomUp is a web-based platform designed to help students build steady **study** and **self-care habits**.
 With structured habit tracking, motivational feedback, and a unique **Gratitude Jar**, BloomUp empowers students to stay consistent, positive, and resilient in their daily lives.  
 
----
 
-## 📌 Background  
+This app was created as part of the Individual Software Process course at [Kasetsart University](https://www.ku.ac.th/th). \
+All project document are in the [Project wiki.](https://github.com/Kantapon2547/BloomUp/wiki "BloomUp Wiki")
+
+##  Background  
 Many students struggle with maintaining good routines due to **busy schedules, heavy workloads, and stress**, which lowers motivation.  
 BloomUp is created to solve this problem by combining:  
 
-- ✅ **Simple, structured habit tracking** – e.g., "What task did I complete today?"  
-- 🌸 **Gratitude Jar** – a space to record positive moments and revisit them during hard times.  
-- 📊 **Progress reports** – weekly/monthly summaries of completed tasks, moods, and streaks.  
+- **Simple, structured habit tracking** – e.g., "What task did I complete today?"  
+- **Gratitude Jar** – a space to record positive moments and revisit them during hard times.  
+- **Progress reports** – weekly/monthly summaries of completed tasks, moods, and streaks.  
 
----
 
-## 🎯 Objectives  
+## Objectives  
 - Increase **study consistency** and **self-care adherence**.  
 - Encourage **reflection** with gratitude practices.  
 - Support **privacy-respecting peer challenges** to motivate students.  
 
 ---
 
-## 🛠️ Development Setup
+## Development Setup
 
 Follow these steps to get the project running locally:
 
@@ -51,17 +52,17 @@ docker-compose down -v
 
 ### 3. Access the Services
 
-- 🌐 Frontend (React Client): http://localhost:3000
+ Frontend (React Client): http://localhost:3000
 
 ---
 
-## ⚙️ Features  
+## Features  
 
-### 👤 Guest  
+### Guest  
 - Feature tour (walkthrough of core functions)  
 - Demo dashboard (preloaded example data)  
 
-### 🧑‍🎓 Student  
+### Student  
 - **Habit Management**: create tasks with name, type (study/health/personal), frequency & reminders  
 - **Mood & Gratitude**: daily mood log (1–5 scale)
     - Gratitude Jar: notes the good thing that happened to user (not daily ) 
@@ -72,7 +73,7 @@ docker-compose down -v
 
 ---
 
-## 🛠️ Technology Stack  
+## Technology Stack  
 
 **Frontend**  
 - React + Next.js (fast, responsive, server-side rendering)  
@@ -86,9 +87,10 @@ docker-compose down -v
 **Deployment & DevOps**  
 - Docker (containerized environments)  
 - GitHub Actions (automated testing, CI/CD pipelines)
-
 ---
-## 👨‍👩‍👧 Team Members  
+
+
+## Team Members  
 
 1. **6510545276** – Kantapon Hemmadhun  
 2. **6510545331** – Chananthida Sopaphol  
