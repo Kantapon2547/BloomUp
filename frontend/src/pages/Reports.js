@@ -2543,7 +2543,7 @@ export default function Reports() {
                 text={
                   chartType === "bar"
                     ? "The bar chart show completion rate per day (0–100%)."
-                    : "The pie chart shows the proportion of completions across the categories"
+                    : "The pie chart shows the proportion of completions across the categories of this period."
                 }
               />
             </div>
