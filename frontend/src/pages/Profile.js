@@ -103,7 +103,6 @@ const getMostRecentHabit = (habits) => {
   });
 };
 
-// NEW: Helper function to calculate highest progress habit
 const calculateHighestProgressHabit = (habits) => {
   if (!habits || habits.length === 0) return null;
   

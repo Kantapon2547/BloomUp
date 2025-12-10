@@ -409,7 +409,7 @@ const ReportsBarChart = React.memo(({ data, periodMode }) => {
   );
 });
 
-const ReportsCategoryPieChart = ({ data }) => {
+const ReportCategoryPieChart = ({ data }) => {
   const svgRef = useRef(null);
   const [hoverIndex, setHoverIndex] = useState(null);
 
@@ -524,12 +524,12 @@ const ReportsCategoryPieChart = ({ data }) => {
               />
             <span 
             style={{ 
-              fontSize:14, 
+              fontSize:"14px", 
               color:"#2d5f3f", 
-              fontWeight:600 
+              fontWeight:"600" 
               }}
               >
-              {item.label}: <strong>100%</strong>
+              {item.label}: <strong>{item.rate.toFixed(0)}%</strong>
             </span>
           </div>
         </div>
@@ -646,7 +646,7 @@ const ReportsCategoryPieChart = ({ data }) => {
               color: "#2d5f3f",
               fontWeight: '600'
             }}>
-              {item.label}: <strong>{item.pct.toFixed(0)}%</strong>
+              {item.label}: <strong>{item.rate.toFixed(0)}%</strong>
             </span>
           </div>
         ))}
@@ -885,20 +885,18 @@ export default function Reports() {
       return 0;
     };
 
-    const hasPeriod = period && period.start && period.end;
-    const start = hasPeriod ? atMidnight(period.start) : null;
-    const end = hasPeriod ? atMidnight(period.end) : null;
+    const today = atMidnight(new Date());
+    const todayKey = fmtLocal(today);
 
-    const inPeriod = (dateStr) => {
-      if (!hasPeriod || !dateStr) return false;
+    const inToday = (dateStr) => {
+      if (!dateStr) return false;
       const d = new Date(dateStr);
       if (Number.isNaN(d.getTime())) return false;
-      const midnight = atMidnight(d);
-      return midnight >= start && midnight <= new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
+      const mid = atMidnight(d);
+      return fmtLocal(mid) === todayKey;
     };
 
     const currentHabitIds = new Set(habits.map((h) => h.id));
-
     const allTimerData = [];
 
     try {
@@ -906,11 +904,11 @@ export default function Reports() {
       if (storedSessions) {
         const sessions = JSON.parse(storedSessions);
         if (Array.isArray(sessions)) {
-          sessions.forEach(session => {
-            if (inPeriod(session.completedAt || session.date)) {
+          sessions.forEach((session) => {
+            if (inToday(session.completedAt || session.date)) {
               allTimerData.push({
-                source: 'localStorage',
-                ...session
+                source: "localStorage",
+                ...session,
               });
             }
           });
@@ -920,28 +918,29 @@ export default function Reports() {
       console.error("Failed to load timer sessions from localStorage:", e);
     }
 
-    // Check for active timer state
     try {
       const timerState = localStorage.getItem("timer_state");
       if (timerState) {
         const state = JSON.parse(timerState);
-        if (state.date && inPeriod(state.date)) {
+        if (state.date && inToday(state.date)) {
           const taskIndex = state.currentTaskIndex || 0;
           const currentTask = habits[taskIndex];
-          
+
           if (currentTask && state.elapsedSeconds > 0) {
             allTimerData.push({
-              source: 'timer_state',
+              source: "timer_state",
               habitId: currentTask.id,
               name: currentTask.name,
-              category: currentTask.category || 'General',
-              plannedMinutes: normalizeMinutes(currentTask.minutes || currentTask.duration),
+              category: currentTask.category || "General",
+              plannedMinutes: normalizeMinutes(
+                currentTask.minutes || currentTask.duration
+              ),
               actualMinutes: Math.floor(state.elapsedSeconds / 60),
               elapsedMinutes: Math.floor(state.elapsedSeconds / 60),
-              mode: state.mode || 'regular',
-              status: 'in_progress',
+              mode: state.mode || "regular",
+              status: "in_progress",
               date: state.date,
-              isActive: true
+              isActive: true,
             });
           }
         }
@@ -950,87 +949,109 @@ export default function Reports() {
       console.error("Failed to load timer state:", e);
     }
 
-    // Get session data from habits history
-    habits.forEach(habit => {
+    habits.forEach((habit) => {
       if (!habit.id) return;
-      
-      period.days.forEach(day => {
-        const dateKey = fmtLocal(day);
-        if (habit.history && habit.history[dateKey]) {
-          const existingSession = allTimerData.find(
-            item => item.habitId === habit.id && 
-                    (item.date === dateKey || fmtLocal(new Date(item.completedAt)) === dateKey)
+
+      const localKey = todayKey;
+      const utcKey = fmtUTCKey(today);
+
+      if (habit.history && (habit.history[localKey] || habit.history[utcKey])) {
+        const existingSession = allTimerData.find((item) => {
+          const itemDate =
+            item.date ||
+            (item.completedAt ? fmtLocal(new Date(item.completedAt)) : null);
+          return (
+            (item.habitId === habit.id || item.id === habit.id) &&
+            itemDate === todayKey
           );
-          
-          if (!existingSession) {
-            allTimerData.push({
-              source: 'habit_history',
-              habitId: habit.id,
-              name: habit.name,
-              category: habit.category || 'General',
-              plannedMinutes: normalizeMinutes(habit.minutes || habit.duration || 30),
-              actualMinutes: normalizeMinutes(habit.minutes || habit.duration || 30),
-              mode: 'regular',
-              date: dateKey,
-              status: 'done',
-              completed: true
-            });
-          }
+        });
+
+        if (!existingSession) {
+          allTimerData.push({
+            source: "habit_history",
+            habitId: habit.id,
+            name: habit.name,
+            category: habit.category || "General",
+            plannedMinutes: normalizeMinutes(
+              habit.minutes || habit.duration || 30
+            ),
+            actualMinutes: normalizeMinutes(
+              habit.minutes || habit.duration || 30
+            ),
+            mode: "regular",
+            date: todayKey,
+            status: "done",
+            completed: true,
+          });
         }
-      });
+      }
     });
 
     const detailList = [];
     const modeStats = { pomodoro: 0, regular: 0, break: 0 };
     const categoryMap = new Map();
-
     const seen = new Set();
 
-    allTimerData.forEach(item => {
-      const dateStr = item.date || (item.completedAt ? fmtLocal(new Date(item.completedAt)) : 'no-date');
-      const key = `${item.habitId || item.id || 'unknown'}-${dateStr}`;
+    allTimerData.forEach((item) => {
+      const dateStr =
+        item.date ||
+        (item.completedAt ? fmtLocal(new Date(item.completedAt)) : "no-date");
+      const key = `${item.habitId || item.id || "unknown"}-${dateStr}`;
 
       if (!item.isActive && seen.has(key)) return;
       if (!item.isActive) seen.add(key);
 
       if (item.habitId && !currentHabitIds.has(item.habitId)) return;
 
-      const planned = normalizeMinutes(item.plannedMinutes || item.minutes || item.duration || 0);
-      const actual = normalizeMinutes(item.actualMinutes || item.elapsedMinutes || 0);
-      
-      const mode = (item.mode || 'regular').toLowerCase();
-      const category = item.category || 'General';
-      
-      let bucket = 'regular';
-      if (mode.includes('pomodoro') || mode.includes('pomo')) {
-        bucket = 'pomodoro';
-      } else if (mode.includes('break')) {
-        bucket = 'break';
+      const planned = normalizeMinutes(
+        item.plannedMinutes || item.minutes || item.duration || 0
+      );
+      const actual = normalizeMinutes(
+        item.actualMinutes || item.elapsedMinutes || 0
+      );
+
+      const modeRaw = (item.mode || "regular").toLowerCase();
+      const category = item.category || "General";
+
+      let bucket = "regular";
+      if (modeRaw.includes("pomodoro") || modeRaw.includes("pomo")) {
+        bucket = "pomodoro";
+      } else if (modeRaw.includes("break")) {
+        bucket = "break";
       }
 
       const minutesForStats = actual > 0 ? actual : planned;
 
-      if (bucket !== 'break') {
+      if (bucket !== "break") {
         modeStats[bucket] += minutesForStats;
-        categoryMap.set(category, (categoryMap.get(category) || 0) + minutesForStats);
+        categoryMap.set(
+          category,
+          (categoryMap.get(category) || 0) + minutesForStats
+        );
       } else {
         modeStats.break += minutesForStats;
       }
 
-      const isCompleted = item.completed || 
-                        item.status === 'done' || 
-                        (planned > 0 && actual >= planned);
+      const isCompleted =
+        item.completed ||
+        item.status === "done" ||
+        (planned > 0 && actual >= planned);
 
       detailList.push({
-        name: item.name || item.taskName || item.taskTitle || 'Unnamed task',
+        name: item.name || item.taskName || item.taskTitle || "Unnamed task",
         category,
         mode: bucket,
-        modeLabel: bucket === 'pomodoro' ? 'Pomodoro' : bucket === 'regular' ? 'Regular' : 'Break',
+        modeLabel:
+          bucket === "pomodoro"
+            ? "Pomodoro"
+            : bucket === "regular"
+            ? "Regular"
+            : "Break",
         duration: actual > 0 ? actual : planned,
         actualMinutes: actual,
         plannedMinutes: planned,
         completed: isCompleted,
-        isActive: item.isActive || false
+        isActive: item.isActive || false,
       });
     });
 
@@ -1039,19 +1060,24 @@ export default function Reports() {
       .sort((a, b) => b.minutes - a.minutes);
 
     const topCategory = categoryBreakdown[0] || null;
-    const totalMinutes = detailList.reduce((sum, t) => sum + (t.actualMinutes || t.duration || 0), 0);
-    const completedTasks = detailList.filter(t => t.completed).length;
-    const pendingTasks = detailList.filter(t => !t.completed).length;
+    const totalMinutes = detailList.reduce(
+      (sum, t) => sum + (t.actualMinutes || t.duration || 0),
+      0
+    );
+    const completedTasks = detailList.filter((t) => t.completed).length;
+    const pendingTasks = detailList.filter((t) => !t.completed).length;
 
     return {
-      source: detailList.length > 0 ? 'sessions' : 'none',
+      source: detailList.length > 0 ? "sessions" : "none",
       completedTasks,
       pendingTasks,
       totalMinutes,
-      modeStats: Object.values(modeStats).some(v => v > 0) ? modeStats : null,
+      modeStats: Object.values(modeStats).some((v) => v > 0)
+        ? modeStats
+        : null,
       categoryBreakdown: categoryBreakdown.length > 0 ? categoryBreakdown : null,
       topCategory,
-      list: detailList
+      list: detailList,
     };
   };
 
@@ -1538,13 +1564,16 @@ export default function Reports() {
     );
 
     y += 10;
+    const bestStreakLabel =
+      longestStreak === 1 ? "1 day" : `${longestStreak} days`;
+
     const summary = [
       `Reporting Period: ${period.days.length} days (${fmtDisplayDate(
         period.start
       )} to ${fmtDisplayDate(period.end)})`,
       `Total Habits Tracked: ${habits.length}`,
       `Average Completion Rate: ${avgCompletion}%`,
-      `Best Streak: ${longestStreak} days`,
+      `Best Streak: ${bestStreakLabel}`,
       `Total Completions: ${totalCompletions}`
     ];
 
@@ -2171,7 +2200,7 @@ export default function Reports() {
         ]);
       });
 
-      drawTable(detailRows, [70, 40, 50, 30]);
+      drawTable(detailRows, [55, 40, 65, 30]);
 
       addSubHeader("Timer Insights");
 
@@ -2533,7 +2562,7 @@ export default function Reports() {
             <ReportsBarChart key={`${periodMode}-${cursor}`} data={dailyCompletion} periodMode={periodMode} />
           ) : (
             <div className="reports-pie-wrapper">
-              <ReportsCategoryPieChart key={`${periodMode}-${cursor}`} data={categoryPct} />
+              <ReportCategoryPieChart key={`${periodMode}-${cursor}`} data={categoryPct} />
             </div>
           )}
         </div>
